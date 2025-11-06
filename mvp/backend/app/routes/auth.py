@@ -4,7 +4,7 @@ Authentication routes
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas import UserCreate, UserLogin, UserResponse, Token
 from app.utils.auth import verify_password, get_password_hash, create_access_token
 from app.dependencies import get_current_user
@@ -16,29 +16,11 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user"""
-    # Check if user already exists
-    db_user = db.query(User).filter(
-        (User.email == user_data.email) | (User.username == user_data.username)
-    ).first()
-    if db_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email or username already registered"
-        )
-    
-    # Create new user
-    hashed_password = get_password_hash(user_data.password)
-    db_user = User(
-        email=user_data.email,
-        username=user_data.username,
-        hashed_password=hashed_password
+    """Register a new user - DISABLED: Only superadmin can create users"""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Registration is disabled. Please contact an administrator."
     )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
-    return db_user
 
 
 @router.post("/login", response_model=Token)

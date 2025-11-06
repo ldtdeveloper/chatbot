@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.routes import auth, openai_keys, prompts, assistant_config, widget
+from app.routes import auth, openai_keys, agents, assistant_config, widget, users
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -28,9 +28,10 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(openai_keys.router)
-app.include_router(prompts.router)
-app.include_router(assistant_config.router)
+app.include_router(agents.router)
+app.include_router(assistant_config.router)  # Now handles multiple assistants
 app.include_router(widget.router)
 
 

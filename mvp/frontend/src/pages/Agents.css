@@ -1,4 +1,4 @@
-.prompts {
+.agents {
   padding: 2rem;
 }
 
@@ -28,7 +28,7 @@
   border-color: #667eea;
 }
 
-.add-prompt-form {
+.add-agent-form {
   background: white;
   padding: 1.5rem;
   border-radius: 8px;
@@ -62,16 +62,27 @@
   color: #0d47a1;
 }
 
-.add-prompt-form input,
-.add-prompt-form textarea,
-.add-prompt-form select {
+.add-agent-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.add-agent-form label strong {
+  font-weight: 600;
+  color: #333;
+}
+
+.add-agent-form input,
+.add-agent-form textarea,
+.add-agent-form select {
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
 }
 
-.add-prompt-form textarea {
+.add-agent-form textarea {
   min-height: 100px;
   resize: vertical;
 }
@@ -91,14 +102,14 @@
   margin: 0;
 }
 
-.prompts-list {
+.agents-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
 }
 
-.prompt-card {
+.agent-card {
   background: white;
   padding: 1.5rem;
   border-radius: 8px;
@@ -107,20 +118,20 @@
   transition: all 0.2s;
 }
 
-.prompt-card:hover {
+.agent-card:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.prompt-card.selected {
+.agent-card.selected {
   border: 2px solid #667eea;
 }
 
-.prompt-card h3 {
+.agent-card h3 {
   margin: 0 0 0.5rem 0;
   color: #333;
 }
 
-.prompt-meta {
+.agent-meta {
   display: flex;
   gap: 1rem;
   margin-top: 0.5rem;
@@ -128,11 +139,237 @@
   color: #666;
 }
 
-.prompt-actions {
-  margin-top: 15px;
+.agent-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
-.prompt-details {
+.agent-card-header h3 {
+  margin: 0;
+  flex: 1;
+}
+
+.view-instructions-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  width: fit-content;
+  transition: opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-instructions-btn:hover {
+  opacity: 0.7;
+}
+
+.agent-actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-btn {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 5px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.edit-btn:hover {
+  background: #45a049;
+}
+
+.widget-btn {
+  background: #2196f3;
+  color: white;
+  border: none;
+  padding: 5px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.widget-btn:hover {
+  background: #1976d2;
+}
+
+.widget-code-section {
+  margin-top: 1rem;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.code-header span {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.copy-btn {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.copy-btn:hover {
+  background: #45a049;
+}
+
+.widget-code {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 1.5rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.widget-code code {
+  color: inherit;
+  font-family: inherit;
+  white-space: pre;
+  word-wrap: normal;
+}
+
+.widget-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.widget-info p {
+  margin: 0.5rem 0;
+  color: #666;
+}
+
+.widget-note {
+  margin-top: 1rem !important;
+  padding: 0.75rem;
+  background: #e3f2fd;
+  border-left: 4px solid #2196f3;
+  border-radius: 4px;
+  color: #1565c0 !important;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.form-actions button {
+  width: fit-content;
+}
+
+.cancel-btn {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #e0e0e0;
+}
+
+.modal-body .add-agent-form {
+  margin: 0;
+  padding: 0;
+}
+
+.edit-info {
+  background: #fff3cd;
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 4px solid #ffc107;
+  margin-bottom: 0.5rem;
+}
+
+.edit-info p {
+  margin: 0;
+  color: #856404;
+  font-size: 0.9rem;
+}
+
+.agent-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.info-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.info-section h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.settings-grid div {
+  padding: 0.5rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.instructions-text {
+  margin: 0;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #333;
+}
+
+.agent-details {
   background: white;
   padding: 2rem;
   border-radius: 8px;
@@ -246,19 +483,20 @@
 }
 
 .view-instructions-btn {
-  padding: 0.4rem 0.75rem;
-  background: #667eea;
-  color: white;
+  padding: 0;
+  background: none;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
-  font-size: 0.8rem;
-  transition: background 0.2s;
+  font-size: 1.2rem;
   width: fit-content;
+  transition: opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .view-instructions-btn:hover {
-  background: #5568d3;
+  opacity: 0.7;
 }
 
 .modal-overlay {
@@ -283,6 +521,11 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-large {
+  max-width: 900px;
+  width: 95%;
 }
 
 .modal-header {
@@ -340,5 +583,7 @@
 .delete-btn {
   background: #c62828;
   color: white;
+  font-size: 12px;
+  padding: 5px;
 }
 

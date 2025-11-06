@@ -11,17 +11,9 @@ function Dashboard() {
           <h2>🔑 OpenAI Keys</h2>
           <p>Manage your OpenAI API keys</p>
         </Link>
-        <Link to="/prompts" className="dashboard-card">
-          <h2>📝 Prompts</h2>
-          <p>Create and manage audio prompts</p>
-        </Link>
-        <Link to="/assistant-config" className="dashboard-card">
-          <h2>⚙️ Settings</h2>
-          <p>Configure voice and noise reduction</p>
-        </Link>
-        <Link to="/widget-generator" className="dashboard-card">
-          <h2>🎨 Widget Generator</h2>
-          <p>Generate code for your voice assistant widget</p>
+        <Link to="/agents" className="dashboard-card">
+          <h2>🤖 Agents</h2>
+          <p>Create and manage agent configurations</p>
         </Link>
       </div>
     </div>

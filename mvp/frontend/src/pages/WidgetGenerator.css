@@ -7,6 +7,37 @@
   margin-bottom: 2rem;
 }
 
+.assistant-selector {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.assistant-selector label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.assistant-selector select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.info-message {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 1rem;
+  border-radius: 4px;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
 .widget-code-container {
   background: #1e1e1e;
   border-radius: 8px;
