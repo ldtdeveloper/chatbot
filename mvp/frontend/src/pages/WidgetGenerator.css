@@ -1,0 +1,69 @@
+.widget-generator {
+  padding: 2rem;
+}
+
+.description {
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.widget-code-container {
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.code-header {
+  background: #2d2d2d;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+.copy-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.copy-btn:hover {
+  background: #5568d3;
+}
+
+.widget-code {
+  padding: 1.5rem;
+  margin: 0;
+  overflow-x: auto;
+  color: #d4d4d4;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.widget-code code {
+  color: inherit;
+}
+
+.widget-info {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.widget-info h2 {
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.widget-info p {
+  color: #666;
+  margin: 0;
+}
+

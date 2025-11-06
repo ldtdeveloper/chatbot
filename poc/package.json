@@ -1,0 +1,12 @@
+{
+  "name": "webspeech-rt",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "dotenv": "^16.3.1"
+  }
+}
+
