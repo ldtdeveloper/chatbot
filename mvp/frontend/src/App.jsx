@@ -2,11 +2,12 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Login from './pages/Login'
-import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import Users from './pages/Users'
+import UserProfile from './pages/UserProfile'
 import OpenAIKeys from './pages/OpenAIKeys'
-import Prompts from './pages/Prompts'
-import AssistantConfig from './pages/AssistantConfig'
+import Agents from './pages/Agents'
+import Assistants from './pages/Assistants'
 import WidgetGenerator from './pages/WidgetGenerator'
 import { useAuthStore } from './context/authStore'
 import Layout from './components/Layout'
@@ -24,7 +25,6 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route
             path="/"
             element={
@@ -34,9 +34,11 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+            <Route path="users" element={<Users />} />
+            <Route path="users/:userId/profile" element={<UserProfile />} />
             <Route path="openai-keys" element={<OpenAIKeys />} />
-            <Route path="prompts" element={<Prompts />} />
-            <Route path="assistant-config" element={<AssistantConfig />} />
+            <Route path="agents" element={<Agents />} />
+            <Route path="assistants" element={<Assistants />} />
             <Route path="widget-generator" element={<WidgetGenerator />} />
           </Route>
         </Routes>

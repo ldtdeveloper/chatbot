@@ -17,9 +17,9 @@ class AssistantConfig(Base):
     __tablename__ = "assistant_configs"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
-    prompt_id = Column(Integer, ForeignKey("prompts.id"), nullable=True)  # Active prompt
-    prompt_version_id = Column(Integer, ForeignKey("prompt_versions.id"), nullable=True)  # Active version
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String, nullable=False)  # Chatbot/Assistant name
+    agent_id = Column(Integer, ForeignKey("agents.id"), nullable=True)  # Active agent configuration
     
     # Voice settings (OpenAI Realtime API voice options)
     voice = Column(String, default="alloy")  # alloy, echo, fable, onyx, nova, shimmer
@@ -36,7 +36,6 @@ class AssistantConfig(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    user = relationship("User", back_populates="assistant_config")
-    prompt = relationship("Prompt")
-    prompt_version = relationship("PromptVersion")
+    user = relationship("User", back_populates="assistant_configs")
+    agent = relationship("Agent", back_populates="assistant_configs")
 

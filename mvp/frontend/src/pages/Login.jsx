@@ -19,7 +19,11 @@ function Login() {
 
     try {
       const response = await authService.login({ email, password })
-      setAuth(response.access_token, { email })
+      // Set token first so API calls can use it
+      setAuth(response.access_token, null)
+      // Then fetch user info
+      const userInfo = await authService.getMe()
+      setAuth(response.access_token, userInfo)
       navigate('/')
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed')
@@ -55,9 +59,6 @@ function Login() {
           <button type="submit" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
           </button>
-          <p className="auth-link">
-            Don't have an account? <a href="/register">Register</a>
-          </p>
         </form>
       </div>
     </div>

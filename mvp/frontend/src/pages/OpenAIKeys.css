@@ -57,13 +57,30 @@
 
 .key-info {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  margin-right: 1rem;
 }
 
 .key-info h3 {
   margin: 0;
   color: #333;
+}
+
+.masked-key {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.masked-key code {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: #333;
+  word-break: break-all;
 }
 
 .status {
@@ -76,34 +93,57 @@
 .status.active {
   background: #e8f5e9;
   color: #2e7d32;
+  width: fit-content;
 }
 
 .status.inactive {
   background: #ffebee;
   color: #c62828;
+  width: fit-content;
 }
 
 .key-actions {
   display: flex;
   gap: 0.5rem;
+  vertical-align: top;
+  place-self: flex-start;
 }
 
 .key-actions button {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
   cursor: pointer;
   transition: background 0.2s;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
-.key-actions button:hover {
-  background: #f5f5f5;
+.key-actions button:not(.delete-btn):not(.view-key-btn) {
+  background: #f0f0f0;
+  border-color: #ccc;
+  color: #2d2d2d;
+}
+
+.key-actions button:not(.delete-btn):not(.view-key-btn):hover {
+  background: #e0e0e0;
+}
+
+.key-actions .view-key-btn {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.key-actions .view-key-btn:hover {
+  background: #5568d3;
 }
 
 .key-actions .delete-btn {
   color: #c62828;
   border-color: #c62828;
+  background: white;
 }
 
 .key-actions .delete-btn:hover {

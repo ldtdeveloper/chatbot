@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { openAIKeyService } from '../services/services'
 import './OpenAIKeys.css'
@@ -7,6 +7,8 @@ function OpenAIKeys() {
   const queryClient = useQueryClient()
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState({ key_name: '', api_key: '' })
+  const [visibleKeys, setVisibleKeys] = useState({}) // Track which keys are visible
+  const [maskedKeys, setMaskedKeys] = useState({}) // Cache masked keys
 
   const { data: keys, isLoading } = useQuery({
     queryKey: ['openai-keys'],
@@ -41,6 +43,25 @@ function OpenAIKeys() {
     createMutation.mutate(formData)
   }
 
+  const toggleKeyVisibility = async (keyId) => {
+    if (visibleKeys[keyId]) {
+      // Hide the key
+      setVisibleKeys(prev => ({ ...prev, [keyId]: false }))
+    } else {
+      // Show the key - fetch masked version if not cached
+      if (!maskedKeys[keyId]) {
+        try {
+          const data = await openAIKeyService.getMasked(keyId)
+          setMaskedKeys(prev => ({ ...prev, [keyId]: data.masked_key }))
+        } catch (error) {
+          console.error('Error fetching masked key:', error)
+          return
+        }
+      }
+      setVisibleKeys(prev => ({ ...prev, [keyId]: true }))
+    }
+  }
+
   if (isLoading) return <div>Loading...</div>
 
   return (
@@ -56,16 +77,14 @@ function OpenAIKeys() {
         <form onSubmit={handleSubmit} className="add-key-form">
           <input
             type="text"
-            placeholder="Key Name"
-            value={formData.key_name}
             onChange={(e) => setFormData({ ...formData, key_name: e.target.value })}
+            autoComplete="off"
             required
           />
           <input
             type="password"
-            placeholder="API Key"
-            value={formData.api_key}
             onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
+            autoComplete="off"
             required
           />
           <button type="submit">Add Key</button>
@@ -80,8 +99,19 @@ function OpenAIKeys() {
               <span className={`status ${key.is_active ? 'active' : 'inactive'}`}>
                 {key.is_active ? 'Active' : 'Inactive'}
               </span>
+              {visibleKeys[key.id] && (
+                <div className="masked-key">
+                  <code>{maskedKeys[key.id] || 'Loading...'}</code>
+                </div>
+              )}
             </div>
             <div className="key-actions">
+              <button
+                onClick={() => toggleKeyVisibility(key.id)}
+                className="view-key-btn"
+              >
+                {visibleKeys[key.id] ? 'Hide Key' : 'View Key'}
+              </button>
               <button onClick={() => toggleMutation.mutate(key.id)}>
                 {key.is_active ? 'Deactivate' : 'Activate'}
               </button>

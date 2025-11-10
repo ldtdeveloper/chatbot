@@ -7,7 +7,7 @@ from typing import List
 from app.database import get_db
 from app.models.user import User
 from app.models.openai_key import OpenAIKey
-from app.schemas import OpenAIKeyCreate, OpenAIKeyResponse
+from app.schemas import OpenAIKeyCreate, OpenAIKeyResponse, OpenAIKeyMaskedResponse
 from app.dependencies import get_current_user
 from app.utils.encryption import encrypt_api_key, decrypt_api_key
 
@@ -105,4 +105,34 @@ async def toggle_openai_key(
     db.commit()
     db.refresh(key)
     return key
+
+
+@router.get("/{key_id}/masked", response_model=OpenAIKeyMaskedResponse)
+async def get_masked_key(
+    key_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get a masked version of the API key (first 8 and last 8 characters)"""
+    key = db.query(OpenAIKey).filter(
+        OpenAIKey.id == key_id,
+        OpenAIKey.user_id == current_user.id
+    ).first()
+    if not key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="OpenAI key not found"
+        )
+    
+    # Decrypt the key
+    decrypted_key = decrypt_api_key(key.encrypted_key)
+    
+    # Mask the key: show first 8 and last 8 characters
+    if len(decrypted_key) <= 16:
+        # If key is too short, just show it partially
+        masked = decrypted_key[:4] + "..." + decrypted_key[-4:]
+    else:
+        masked = decrypted_key[:8] + "..." + decrypted_key[-8:]
+    
+    return {"masked_key": masked}
 

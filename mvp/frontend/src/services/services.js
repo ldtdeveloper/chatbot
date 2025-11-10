@@ -1,11 +1,6 @@
 import api from './api'
 
 export const authService = {
-  register: async (data) => {
-    const response = await api.post('/api/auth/register', data)
-    return response.data
-  },
-  
   login: async (data) => {
     const response = await api.post('/api/auth/login', data)
     return response.data
@@ -13,6 +8,38 @@ export const authService = {
   
   getMe: async () => {
     const response = await api.get('/api/auth/me')
+    return response.data
+  },
+}
+
+export const userService = {
+  list: async () => {
+    const response = await api.get('/api/users')
+    return response.data
+  },
+  
+  create: async (data) => {
+    const response = await api.post('/api/users', data)
+    return response.data
+  },
+  
+  get: async (id) => {
+    const response = await api.get(`/api/users/${id}`)
+    return response.data
+  },
+  
+  getProfile: async (id) => {
+    const response = await api.get(`/api/users/${id}/profile`)
+    return response.data
+  },
+  
+  getUserWidgets: async (id) => {
+    const response = await api.get(`/api/users/${id}/widgets`)
+    return response.data
+  },
+  
+  toggleActive: async (id) => {
+    const response = await api.patch(`/api/users/${id}/toggle-active`)
     return response.data
   },
 }
@@ -37,55 +64,76 @@ export const openAIKeyService = {
     const response = await api.patch(`/api/openai-keys/${id}/toggle`)
     return response.data
   },
+  
+  getMasked: async (id) => {
+    const response = await api.get(`/api/openai-keys/${id}/masked`)
+    return response.data
+  },
 }
 
-export const promptService = {
-  list: async () => {
-    const response = await api.get('/api/prompts')
+export const agentService = {
+  list: async (openaiKeyId = null) => {
+    const params = openaiKeyId ? { openai_key_id: openaiKeyId } : {}
+    const response = await api.get('/api/agents', { params })
     return response.data
   },
   
   get: async (id) => {
-    const response = await api.get(`/api/prompts/${id}`)
+    const response = await api.get(`/api/agents/${id}`)
     return response.data
   },
   
   create: async (data) => {
-    const response = await api.post('/api/prompts', data)
+    const response = await api.post('/api/agents', data)
     return response.data
   },
   
-  createVersion: async (promptId, data) => {
-    const response = await api.post(`/api/prompts/${promptId}/versions`, data)
-    return response.data
-  },
-  
-  updateVersion: async (promptId, versionId, data) => {
-    const response = await api.put(`/api/prompts/${promptId}/versions/${versionId}`, data)
+  update: async (id, data) => {
+    const response = await api.put(`/api/agents/${id}`, data)
     return response.data
   },
   
   delete: async (id) => {
-    const response = await api.delete(`/api/prompts/${id}`)
+    const response = await api.delete(`/api/agents/${id}`)
+    return response.data
+  },
+  
+  generateWidgetCode: async (id) => {
+    const response = await api.get(`/api/widget/code/agent/${id}`)
     return response.data
   },
 }
 
 export const assistantConfigService = {
-  get: async () => {
-    const response = await api.get('/api/assistant-config')
+  list: async () => {
+    const response = await api.get('/api/assistants')
     return response.data
   },
   
-  update: async (data) => {
-    const response = await api.put('/api/assistant-config', data)
+  get: async (id) => {
+    const response = await api.get(`/api/assistants/${id}`)
+    return response.data
+  },
+  
+  create: async (data) => {
+    const response = await api.post('/api/assistants', data)
+    return response.data
+  },
+  
+  update: async (id, data) => {
+    const response = await api.put(`/api/assistants/${id}`, data)
+    return response.data
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/api/assistants/${id}`)
     return response.data
   },
 }
 
 export const widgetService = {
-  generateCode: async () => {
-    const response = await api.get('/api/widget/code')
+  generateCode: async (assistantId) => {
+    const response = await api.get(`/api/widget/code/${assistantId}`)
     return response.data
   },
 }

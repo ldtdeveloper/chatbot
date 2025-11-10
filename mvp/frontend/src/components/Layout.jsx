@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../context/authStore'
 import './Layout.css'
@@ -6,11 +6,27 @@ import './Layout.css'
 function Layout() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
 
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   return (
     <div className="layout">
@@ -20,13 +36,29 @@ function Layout() {
         </div>
         <div className="navbar-menu">
           <Link to="/">Dashboard</Link>
+          {user?.role === 'default' && <Link to="/assistants">Assistants</Link>}
           <Link to="/openai-keys">API Keys</Link>
-          <Link to="/prompts">Prompts</Link>
-          <Link to="/assistant-config">Settings</Link>
-          <Link to="/widget-generator">Widget</Link>
-          <div className="navbar-user">
-            <span>{user?.username || 'User'}</span>
-            <button onClick={handleLogout}>Logout</button>
+          <Link to="/agents">Agents</Link>
+          {user?.role === 'default' && <Link to="/widget-generator">Widget</Link>}
+          <div className="navbar-user" ref={dropdownRef}>
+            <button 
+              className="navbar-user-toggle"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+            >
+              <span>{user?.username || 'User'}</span>
+              {user?.role === 'superadmin' && <span className="role-badge">Admin</span>}
+              <span className="dropdown-arrow">▼</span>
+            </button>
+            {dropdownOpen && (
+              <div className="dropdown-menu">
+                {user?.role === 'superadmin' && (
+                  <Link to="/users" onClick={() => setDropdownOpen(false)}>
+                    Manage Users
+                  </Link>
+                )}
+                <button onClick={handleLogout}>Logout</button>
+              </div>
+            )}
           </div>
         </div>
       </nav>
