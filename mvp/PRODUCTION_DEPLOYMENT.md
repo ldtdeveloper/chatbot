@@ -30,12 +30,16 @@ CORS_ORIGINS=["http://YOUR_STATIC_IP","http://YOUR_STATIC_IP/voice-assistant"]
 OPENAI_API_BASE=https://api.openai.com/v1
 ```
 
-### 3. Initialize Database
+### 3. Initialize Database and Seed Superadmin
 
 ```bash
 source venv/bin/activate
-python3 -c "from app.database import Base, engine; Base.metadata.create_all(bind=engine)"
+python3 seed_db.py
 ```
+
+This will:
+- Create all database tables
+- Create/update superadmin user (email: `superadmin@yopmail.com`, password: `123456`)
 
 ### 4. Create Systemd Service
 
