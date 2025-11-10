@@ -21,7 +21,7 @@ pip install -r requirements.txt
 Create `/var/www/html/voice-assistant/mvp/backend/.env`:
 
 ```env
-DATABASE_URL=sqlite:///./voice_assistant.db
+DATABASE_URL=sqlite:///./chatbot.db
 SECRET_KEY=<generate-with: python3 -c "import secrets; print(secrets.token_urlsafe(32))">
 HOST=127.0.0.1
 PORT=8000
@@ -170,7 +170,7 @@ sudo nginx -t && sudo systemctl reload nginx
 sudo chown -R www-data:www-data /var/www/html/voice-assistant/mvp
 sudo chmod -R 755 /var/www/html/voice-assistant/mvp
 sudo chmod -R 775 /var/www/html/voice-assistant/mvp/backend/venv
-sudo chmod 664 /var/www/html/voice-assistant/mvp/backend/voice_assistant.db
+sudo chmod 664 /var/www/html/voice-assistant/mvp/backend/chatbot.db
 ```
 
 ## Access URLs
