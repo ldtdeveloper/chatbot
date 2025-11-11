@@ -16,19 +16,54 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+**Verify installation:**
+```bash
+# Check installed packages
+pip list
+
+# Verify all dependencies are available
+python3 -c "import fastapi, uvicorn, sqlalchemy, pydantic, jose, passlib, httpx, openai, cryptography; print('All dependencies installed')"
+```
+
+**Note:** `bcrypt` is included via `passlib[bcrypt]`, so no separate installation needed.
+
 ### 2. Configure Environment
 
-Create `/var/www/html/voice-assistant/mvp/backend/.env`:
+Copy the appropriate environment file based on your deployment:
+
+```bash
+# For development/preview server
+cp .env.dev.example .env
+
+# For production (if needed)
+cp .env.prod.example .env.prod
+```
+
+Edit the `.env` file with your values:
 
 ```env
+# Environment (LOCAL, DEV, PROD)
+APP_ENV=DEV
+
+# Database Configuration
 DATABASE_URL=sqlite:///./chatbot.db
+
+# Security - Generate a strong secret key
 SECRET_KEY=<generate-with: python3 -c "import secrets; print(secrets.token_urlsafe(32))">
+
+# Server Configuration
 HOST=127.0.0.1
 PORT=8000
 DEBUG=True
+
+# CORS Origins (JSON array format)
 CORS_ORIGINS=["http://YOUR_STATIC_IP","http://YOUR_STATIC_IP/voice-assistant"]
+
+# OpenAI API Configuration
 OPENAI_API_BASE=https://api.openai.com/v1
 ```
+
+**Note:** Replace `YOUR_STATIC_IP` with your actual server IP address.
 
 ### 3. Initialize Database and Seed Superadmin
 
@@ -56,6 +91,7 @@ User=www-data
 Group=www-data
 WorkingDirectory=/var/www/html/voice-assistant/mvp/backend
 Environment="PATH=/var/www/html/voice-assistant/mvp/backend/venv/bin"
+Environment="APP_ENV=DEV"
 ExecStart=/var/www/html/voice-assistant/mvp/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 2
 Restart=always
 RestartSec=10
@@ -63,6 +99,8 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 ```
+
+**Note:** Set `APP_ENV=DEV` for development/preview server, or `APP_ENV=PROD` for production.
 
 Enable service:
 ```bash
@@ -96,13 +134,29 @@ export default defineConfig({
 })
 ```
 
-### 2. Set API URL
+### 2. Set Environment Configuration
 
-Create `/var/www/html/voice-assistant/mvp/frontend/.env.production`:
+Copy the appropriate environment file:
+
+```bash
+# For development/preview server
+cp .env.dev.example .env
+
+# For production builds
+cp .env.prod.example .env.production
+```
+
+Edit the `.env` file:
 
 ```env
+# Environment (LOCAL, DEV, PROD)
+VITE_APP_ENV=DEV
+
+# API Base URL
 VITE_API_BASE_URL=http://YOUR_STATIC_IP/voice-assistant/api
 ```
+
+**Note:** Replace `YOUR_STATIC_IP` with your actual server IP address.
 
 ### 3. Build Frontend
 
