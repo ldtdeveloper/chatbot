@@ -1,21 +1,20 @@
 import axios from 'axios'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+import config from '../config/env'
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: config.API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
 // Add auth token to requests
-api.interceptors.request.use((config) => {
+api.interceptors.request.use((requestConfig) => {
   const token = localStorage.getItem('token')
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    requestConfig.headers.Authorization = `Bearer ${token}`
   }
-  return config
+  return requestConfig
 })
 
 // Handle auth errors
