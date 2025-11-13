@@ -240,13 +240,13 @@ function Agents() {
           />
           <input
             type="text"
-            placeholder="Domain (e.g., example.com)"
+            placeholder="Domain (e.g., example.com or localhost)"
             value={formData.domain}
             onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
             autoComplete="off"
             required
-            pattern="^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
-            title="Enter a valid TLD domain (e.g., example.com)"
+            pattern="^(localhost|127\.0\.0\.1)(:\d+)?$|^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
+            title="Enter a valid domain (e.g., example.com, localhost, or 127.0.0.1)"
           />
           <textarea
             placeholder="System Instructions *"
@@ -428,13 +428,13 @@ function Agents() {
                 />
                 <input
                   type="text"
-                  placeholder="Domain (e.g., example.com)"
+                  placeholder="Domain (e.g., example.com or localhost)"
                   value={formData.domain}
                   onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
                   autoComplete="off"
                   required
-                  pattern="^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
-                  title="Enter a valid TLD domain (e.g., example.com)"
+                  pattern="^(localhost|127\.0\.0\.1)(:\d+)?$|^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
+                  title="Enter a valid domain (e.g., example.com, localhost, or 127.0.0.1)"
                 />
                 <textarea
                   placeholder="System Instructions *"
