@@ -53,7 +53,7 @@ SECRET_KEY=<generate-with: python3 -c "import secrets; print(secrets.token_urlsa
 
 # Server Configuration
 HOST=127.0.0.1
-PORT=8000
+PORT=8081
 DEBUG=True
 
 # CORS Origins (JSON array format)
@@ -92,7 +92,7 @@ Group=www-data
 WorkingDirectory=/var/www/html/voice-assistant/mvp/backend
 Environment="PATH=/var/www/html/voice-assistant/mvp/backend/venv/bin"
 Environment="APP_ENV=DEV"
-ExecStart=/var/www/html/voice-assistant/mvp/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 2
+ExecStart=/var/www/html/voice-assistant/mvp/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8081 --workers 2
 Restart=always
 RestartSec=10
 
@@ -126,7 +126,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8081',
         changeOrigin: true,
       },
     },
@@ -172,7 +172,7 @@ Add to existing server block or create new one in `/etc/nginx/sites-available/de
 
 ```nginx
 upstream voice_assistant_backend {
-    server 127.0.0.1:8000;
+    server 127.0.0.1:8081;
 }
 
 server {
@@ -277,7 +277,7 @@ sudo journalctl -u voice-assistant-backend.service -n 50
 
 **Nginx 502:**
 - Verify backend running: `sudo systemctl status voice-assistant-backend.service`
-- Check backend listening: `sudo netstat -tlnp | grep 8000`
+- Check backend listening: `sudo netstat -tlnp | grep 8081`
 - Check Nginx logs: `sudo tail -f /var/log/nginx/error.log`
 
 **CORS errors:**
