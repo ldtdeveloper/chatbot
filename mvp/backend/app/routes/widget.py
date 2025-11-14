@@ -79,40 +79,15 @@ async def generate_agent_widget_code(
     # Generate unique widget ID
     widget_id = str(uuid.uuid4())
     
-    # Determine API base URL based on environment
-    # The widget will use the same origin as the page it's embedded in
-    # For production, use the production API URL
-    if settings.is_prod:
-        api_base_url = "https://chat-api.ldttechnology.in"
-    else:
-        # For local/dev, widget will detect from current page origin
-        # Frontend should replace this with actual backend URL
-        api_base_url = "AUTO_DETECT"  # Widget will auto-detect from window.location
+    # Use API base URL from settings (can be configured via environment variables)
+    api_base_url = settings.api_base_url
     
     # Generate minimal widget code that loads external files
     widget_code = f"""<!-- Voice Assistant Widget: {agent.name} -->
 <script>
 (function() {{
-    // Auto-detect API base URL from current page origin
+    // API base URL for widget backend connection
     let apiBaseUrl = '{api_base_url}';
-    if (apiBaseUrl === 'AUTO_DETECT') {{
-        // Try to detect backend URL from current page
-        const currentOrigin = window.location.origin;
-        // For local development, assume backend is on same host, port 8000
-        if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {{
-            // Check if origin already has a port
-            if (currentOrigin.match(/:\d+$/)) {{
-                // Replace existing port with :8000
-                apiBaseUrl = currentOrigin.replace(/:\d+$/, ':8000');
-            }} else {{
-                // Add port :8000 if no port exists
-                apiBaseUrl = currentOrigin + ':8000';
-            }}
-        }} else {{
-            // For production or other domains, use same origin
-            apiBaseUrl = currentOrigin;
-        }}
-    }}
     
     // Create and load widget script
     const script = document.createElement('script');
