@@ -59,6 +59,11 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_base: str = "https://api.openai.com/v1"
     
+    # API Base URL for widget code generation
+    # This is the public URL where the API is accessible
+    # Can be set via API_BASE_URL environment variable
+    api_base_url: str = "http://localhost:8081"
+    
     model_config = SettingsConfigDict(
         env_file=get_env_file(),
         case_sensitive=False
