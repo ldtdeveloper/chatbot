@@ -13,6 +13,25 @@ function Agents() {
   const [selectedInstructionsAgent, setSelectedInstructionsAgent] = useState(null)
   const [selectedApiKeyId, setSelectedApiKeyId] = useState('')
   const [fetchApiKeyId, setFetchApiKeyId] = useState('')
+  const [Instructions, setInstructions] = useState({
+  company_name: '',
+  company_website: '',
+  services: '',
+  industries: '',
+  solutions: '',
+  contact_info: '',
+  careers_info: '',
+});
+
+const InstructionSet = (e) => {
+  
+  const { name, value } = e.target;
+  setInstructions((prev) => ({
+    ...prev,
+    [name]: value
+  }));
+};
+
   const [formData, setFormData] = useState({
     name: '',
     domain: '',
@@ -65,6 +84,12 @@ function Agents() {
     },
   })
 
+///creating InstructionArray
+  // const instructionsArray = Object.entries(Instructions).map(([key,value])=>({
+  //   [key]:value
+  // }))
+  // const finalInstructions = JSON.stringify(instructionsArray)
+
   const deleteMutation = useMutation({
     mutationFn: agentService.delete,
     onSuccess: () => {
@@ -75,15 +100,20 @@ function Agents() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    const finalFormData = {
+      ...formData,
+      instructions: JSON.stringify(Instructions)
+    }
+    console.log(finalFormData)
     if (editingAgent) {
       // Update existing agent
-      if (!formData.instructions.trim()) {
+      if (!finalFormData.instructions.trim()) {
         alert('Instructions are required')
         return
       }
       updateMutation.mutate({
         id: editingAgent.id,
-        data: formData
+        data: finalFormData
       })
     } else {
       // Create new agent
@@ -91,31 +121,51 @@ function Agents() {
         alert('Please select an API key')
         return
       }
-      if (!formData.instructions.trim()) {
+      if (!finalFormData.instructions.trim()) {
         alert('Instructions are required')
         return
       }
+      /////sending to the backend
       createMutation.mutate({
-        ...formData,
+        ...finalFormData,
         openai_key_id: parseInt(selectedApiKeyId)
       })
     }
   }
 
-  const handleEdit = (agent) => {
-    setEditingAgent(agent)
-    setFormData({
-      name: agent.name,
-      domain: agent.domain,
-      instructions: agent.instructions,
-      voice: agent.voice,
-      noise_reduction_mode: agent.noise_reduction_mode,
-      noise_reduction_threshold: agent.noise_reduction_threshold,
-      noise_reduction_prefix_padding_ms: agent.noise_reduction_prefix_padding_ms,
-      noise_reduction_silence_duration_ms: agent.noise_reduction_silence_duration_ms
-    })
-    setShowEditModal(true)
+const handleEdit = (agent) => {
+  setEditingAgent(agent)
+
+  let parsedInstructions = {
+    company_name: '',
+    company_website: '',
+    services: '',
+    industries: '',
+    solutions: '',
+    contact_info: '',
+    careers_info: ''
   }
+
+  try {
+    parsedInstructions = JSON.parse(agent.instructions)
+  } catch (error) {
+    console.log("Failed to parse instructions", error)
+  }
+
+  setInstructions(parsedInstructions)
+  setFormData({
+    name: agent.name,
+    domain: agent.domain,
+    instructions: agent.instructions, 
+    voice: agent.voice,
+    noise_reduction_mode: agent.noise_reduction_mode,
+    noise_reduction_threshold: agent.noise_reduction_threshold,
+    noise_reduction_prefix_padding_ms: agent.noise_reduction_prefix_padding_ms,
+    noise_reduction_silence_duration_ms: agent.noise_reduction_silence_duration_ms
+  })
+  setShowEditModal(true)
+}
+
 
   const handleGenerateWidget = async (agent) => {
     try {
@@ -154,9 +204,10 @@ function Agents() {
     setSelectedApiKeyId('')
   }
 
+
   // Auto-select first API key if none selected
   useEffect(() => {
-    if (!fetchApiKeyId && activeApiKeys.length > 0) {
+    if (!fetchApiKeyId && activeApiKeys.length > 0){
       setFetchApiKeyId(String(activeApiKeys[0].id))
     }
   }, [activeApiKeys, fetchApiKeyId])
@@ -248,14 +299,26 @@ function Agents() {
             pattern="^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
             title="Enter a valid TLD domain (e.g., example.com)"
           />
-          <textarea
+         
+          {/* <textarea
             placeholder="System Instructions *"
             value={formData.instructions}
             onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
             autoComplete="off"
             required
             rows={10}
-          />
+          /> */}
+          <label
+          >Company Info</label>
+          
+          <input value ={Instructions.company_name} name="company_name"  placeholder='Company Name' onChange={InstructionSet}/>
+          <input value ={Instructions.company_website} name="company_website"  placeholder='Company Website'  onChange={InstructionSet}/>
+          <textarea value={Instructions.services} name="services"  autoComplete="off" required rows={3} placeholder='Services'  onChange={InstructionSet}/>
+          <textarea  value = {Instructions.industries} name = "industries" autoComplete="off" required rows={3} placeholder='Industries'  onChange={InstructionSet}/>
+          <textarea value= {Instructions.solutions}  name="solutions"  autoComplete="off" required rows={3} placeholder='Solutions'  onChange={InstructionSet}/>
+          <label>Careers & Contact</label>
+          <input  value={Instructions.contact_info} name="contact_info" placeholder='Contact Info'  onChange={InstructionSet}/>
+          <textarea  value= {Instructions.careers_info} name="careers_info"  autoComplete="off" required rows={3} placeholder='Careers Info'  onChange={InstructionSet}/>
           <label>
             Assistant Voice:
             <select
@@ -436,14 +499,24 @@ function Agents() {
                   pattern="^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
                   title="Enter a valid TLD domain (e.g., example.com)"
                 />
-                <textarea
+                {/* <textarea
                   placeholder="System Instructions *"
                   value={formData.instructions}
                   onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
                   autoComplete="off"
                   required
                   rows={10}
-                />
+                /> */}
+                <label>Instructions Set</label>
+                <input value ={Instructions.company_name} name="company_name"  placeholder='Company Name' onChange={InstructionSet}/>
+                <input value ={Instructions.company_website} name="company_website"  placeholder='Company Website'  onChange={InstructionSet}/>
+                <textarea value={Instructions.services} name="services"  autoComplete="off" required rows={3} placeholder='Services'  onChange={InstructionSet}/>
+                <textarea  value = {Instructions.industries} name = "industries" autoComplete="off" required rows={3} placeholder='Industries'  onChange={InstructionSet}/>
+                <textarea value= {Instructions.solutions}  name="solutions"  autoComplete="off" required rows={3} placeholder='Solutions'  onChange={InstructionSet}/>
+                <label>Careers & Contact</label>
+                <input  value={Instructions.contact_info} name="contact_info" placeholder='Contact Info'  onChange={InstructionSet}/>
+                <textarea  value= {Instructions.careers_info} name="careers_info"  autoComplete="off" required rows={3} placeholder='Careers Info'  onChange={InstructionSet}/>
+
                 <label>
                   Assistant Voice:
                   <select

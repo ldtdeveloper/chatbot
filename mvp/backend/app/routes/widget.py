@@ -3,6 +3,8 @@ Widget code generation routes
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import json
+
 from app.database import get_db
 from app.models.user import User
 from app.models.assistant_config import AssistantConfig
@@ -28,7 +30,15 @@ async def generate_agent_widget_code(
         Agent.id == agent_id,
         Agent.user_id == current_user.id
     ).first()
+
+    instructions_data = json.loads(agent.instructions)
+    company_name = instructions_data.get("company_name")
+    print(company_name)
     
+    print(type(agent.instructions))
+
+
+    print(agent.instructions)
     if not agent:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -49,6 +59,8 @@ async def generate_agent_widget_code(
     
     # Generate unique widget ID
     widget_id = str(uuid.uuid4())
+  
+   
     
     # Escape instructions for JavaScript
     instructions_escaped = agent.instructions.replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
@@ -70,7 +82,8 @@ async def generate_agent_widget_code(
     
     // Agent configuration
     const agentConfig = {{
-        instructions: '{instructions_escaped}',
+    
+        instructions: {instructions_data},
         voice: '{agent.voice}',
         noiseReduction: {{
             mode: '{agent.noise_reduction_mode}',
