@@ -1,0 +1,51 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Voice Chatbot</title>
+  <link rel="stylesheet" href="http://127.0.0.1:8000/static/chatbot.css" />
+</head>
+<body>
+  <div id="chat-container">
+    <div id="transcripts"></div>
+    <input type="text" id="promptInput" placeholder="Type your prompt here..." />
+    <button id="sendPromptBtn">Send Prompt</button>
+    <button id="micBtn">Start / Stop Mic</button>
+  </div>
+
+  <script type="module" src="http://127.0.0.1:8000/static/chatbot.js"></script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Voice Chatbot</title>
+  <!-- CSS is loaded by the widget-loader (or direct link to /static/chatbot.css) -->
+</head>
+<body>
+  <div id="chat-container">
+    <div id="transcripts" aria-live="polite"></div>
+
+    <!-- Controls -->
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <!-- Use this field to set an Agent ID (the DB id of the agent you want to use) -->
+      <input id="agentIdInput" type="number" placeholder="Agent ID (optional)" style="flex:1;padding:8px;border-radius:6px;border:1px solid #3a3d52;background:#1f2130;color:#fff;" />
+
+      <!-- Send agent to backend -->
+      <button id="setAgentBtn" type="button">Set Agent</button>
+    </div>
+
+    <!-- Optional custom instruction/prompt to override -->
+    <input id="promptInput" type="text" placeholder="Type a custom prompt/instructions (optional)" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #3a3d52;background:#1f2130;color:#fff;" />
+    <button id="sendPromptBtn" type="button" style="width:100%;margin-top:8px;">Send Prompt</button>
+
+    <button id="micBtn" type="button" style="width:100%;margin-top:10px;">Start / Stop Microphone</button>
+  </div>
+<script type="module" src="http://127.0.0.1:8000/static/chatbot.js"></script>
+  <!-- JS is loaded by widget-loader (or direct link to /static/chatbot.js) -->
+</body>
+</html>
+

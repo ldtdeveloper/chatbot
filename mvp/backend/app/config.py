@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     
     # Server
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 8081
     debug: bool = True
     
     # CORS - Will be overridden by environment-specific logic
@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     
     # OpenAI
     openai_api_base: str = "https://api.openai.com/v1"
+    
+    # API Base URL for widget code generation
+    # This is the public URL where the API is accessible
+    # Can be set via API_BASE_URL environment variable
+    api_base_url: str = "http://localhost:8081"
     
     model_config = SettingsConfigDict(
         env_file=get_env_file(),

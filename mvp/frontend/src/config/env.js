@@ -22,13 +22,13 @@ const getApiBaseUrl = () => {
   const env = APP_ENV.toUpperCase()
   switch (env) {
     case 'LOCAL':
-      return 'http://localhost:8000'
+      return 'http://localhost:8081'
     case 'DEV':
-      return 'http://localhost:8000' // Should be set in .env file
+      return 'http://localhost:8081' // Should be set in .env file
     case 'PROD':
       return 'https://chat-api.ldttechnology.in' // Production default
     default:
-      return 'http://localhost:8000'
+      return 'http://localhost:8081'
   }
 }
 

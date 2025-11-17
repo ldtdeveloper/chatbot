@@ -1,0 +1,119 @@
+#voice-widget-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+#voice-widget-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+#voice-widget-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+#voice-widget-button.recording {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+#voice-widget-button.connected {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+#voice-widget-button svg {
+    width: 28px;
+    height: 28px;
+    fill: white;
+}
+
+#voice-widget-button #stop-icon {
+    width: 24px;
+    height: 24px;
+}
+
+#voice-widget-panel {
+    position: absolute;
+    bottom: 80px;
+    right: 0;
+    width: 320px;
+    max-height: 400px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#voice-widget-panel.open {
+    display: flex;
+}
+
+#voice-widget-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+#voice-widget-transcript {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    max-height: 300px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #333;
+}
+
+.transcript-user {
+    margin-bottom: 10px;
+    color: #667eea;
+}
+
+.transcript-assistant {
+    margin-bottom: 10px;
+    color: #764ba2;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.transcript-assistant .ai-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.transcript-assistant span:not(.ai-icon) {
+    flex: 1;
+}
+
+#voice-widget-status {
+    padding: 10px 15px;
+    background: #f5f5f5;
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+}
+

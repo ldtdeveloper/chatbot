@@ -1,0 +1,68 @@
+body {
+  background: #0f111a;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  margin: 0;
+}
+
+#chat-container {
+  width: 380px;
+  max-width: 96%;
+  background: #1a1b26;
+  border-radius: 12px;
+  border: 1px solid #2f3344;
+  padding: 18px;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.5);
+}
+
+#transcripts {
+  max-height: 300px;
+  overflow-y: auto;
+  background: #252736;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.user-msg {
+  color: #a0c4ff;
+  margin: 0.5rem 0;
+}
+
+.assistant-msg {
+  color: #caffbf;
+  margin: 0.5rem 0;
+}
+
+#agentIdInput, #promptInput {
+  box-sizing: border-box;
+}
+
+#sendPromptBtn,
+#setAgentBtn,
+#micBtn {
+  padding: 10px 14px;
+  margin-top: 6px;
+  background: linear-gradient(135deg, #36d1dc, #5b86e5);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#micBtn.recording {
+  background: linear-gradient(135deg, #ff6b6b, #ff9a9a);
+}
+
+button:focus, input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(91,134,229,0.12);
+}
