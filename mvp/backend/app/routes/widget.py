@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSoc
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.database import get_db, SessionLocal
-import json
 from app.models.user import User
 from app.models.assistant_config import AssistantConfig
 from app.models.openai_key import OpenAIKey
