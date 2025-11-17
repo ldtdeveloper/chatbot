@@ -58,6 +58,8 @@
     let isConnected = false;
     let audioQueue = [];
     let isPlaying = false;
+    let currentAudioSource = null;
+    let currentPlaybackContext = null;
     
     // Determine WebSocket URL
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -155,10 +157,13 @@
                 break;
             case 'audio_chunk':
                 if (data.audio) {
+                    // If this is a new response (queue was cleared), start fresh
                     queueAudio(data.audio);
                 }
                 break;
             case 'speech_started':
+                // User started speaking - stop all bot responses immediately
+                stopAllPlayback();
                 status.textContent = 'Listening...';
                 button.classList.add('recording');
                 break;
@@ -206,10 +211,11 @@
             stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     channelCount: 1,
-                    sampleRate: 24000,
+                    sampleRate: 16000,
                     echoCancellation: true,
                     noiseSuppression: true,
-                    autoGainControl: true
+                    autoGainControl: true,
+                    suppressLocalAudioPlayback: true
                 }
             });
             
@@ -233,12 +239,22 @@
                 if (!isConnected || !isRecording) return;
                 
                 const inputData = e.inputBuffer.getChannelData(0);
+                
+                // Detect if user is speaking (simple energy-based detection)
+                const rms = Math.sqrt(inputData.reduce((sum, val) => sum + val * val, 0) / inputData.length);
+                const speechThreshold = 0.01; // Adjust based on testing
+                
+                // If user starts speaking while bot is playing, interrupt immediately
+                if (rms > speechThreshold && isPlaying) {
+                    stopAllPlayback();
+                }
+                
                 const inputSampleRate = audioContext.sampleRate;
                 
-                // Resample to 24kHz if needed
+                // Resample to 16kHz if needed (OpenAI minimum requirement)
                 let audioData = inputData;
-                if (inputSampleRate !== 24000) {
-                    audioData = resampleAudio(inputData, inputSampleRate, 24000);
+                if (inputSampleRate !== 16000) {
+                    audioData = resampleAudio(inputData, inputSampleRate, 16000);
                 }
                 
                 const pcm16 = float32ToPCM16(audioData);
@@ -283,6 +299,34 @@
         isRecording = false;
     }
     
+    // Stop all audio playback and clear queue
+    function stopAllPlayback() {
+        // Stop current audio source if playing
+        if (currentAudioSource) {
+            try {
+                currentAudioSource.stop();
+                currentAudioSource.disconnect();
+            } catch (err) {
+                // Source may already be stopped
+            }
+            currentAudioSource = null;
+        }
+        
+        // Close playback context if exists
+        if (currentPlaybackContext && currentPlaybackContext.state !== 'closed') {
+            try {
+                currentPlaybackContext.close();
+            } catch (err) {
+                // Context may already be closed
+            }
+            currentPlaybackContext = null;
+        }
+        
+        // Clear the audio queue
+        audioQueue = [];
+        isPlaying = false;
+    }
+    
     // Audio playback
     function queueAudio(base64Audio) {
         audioQueue.push(base64Audio);
@@ -307,9 +351,11 @@
                 bytes[i] = binaryString.charCodeAt(i);
             }
             
+            // OpenAI sends audio at 24kHz, so playback must match
             const playbackContext = new (window.AudioContext || window.webkitAudioContext)({
                 sampleRate: 24000
             });
+            currentPlaybackContext = playbackContext;
             
             const pcm16 = new Int16Array(bytes.buffer);
             const float32 = new Float32Array(pcm16.length);
@@ -321,10 +367,17 @@
             audioBuffer.getChannelData(0).set(float32);
             
             const bufferSource = playbackContext.createBufferSource();
+            currentAudioSource = bufferSource;
             bufferSource.buffer = audioBuffer;
             bufferSource.connect(playbackContext.destination);
             
             bufferSource.onended = function() {
+                if (currentAudioSource === bufferSource) {
+                    currentAudioSource = null;
+                }
+                if (currentPlaybackContext === playbackContext) {
+                    currentPlaybackContext = null;
+                }
                 playbackContext.close();
                 playNextAudio();
             };

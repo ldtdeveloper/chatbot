@@ -277,6 +277,12 @@ async def connect_openai(client_ws: WebSocket, agent: Optional[Dict] = None):
 
     instructions = get_agent_instructions(agent)
 
+    # Get noise reduction settings from agent if available
+    noise_reduction_mode = agent.get("noise_reduction_mode") if agent else None
+    noise_reduction_threshold = float(agent.get("noise_reduction_threshold", 0.5)) if agent else 0.5
+    prefix_padding_ms = agent.get("noise_reduction_prefix_padding_ms", 300) if agent else 300
+    silence_duration_ms = agent.get("noise_reduction_silence_duration_ms", 500) if agent else 500
+
     session_payload = {
         "type": "session.update",
         "session": {
@@ -286,12 +292,20 @@ async def connect_openai(client_ws: WebSocket, agent: Optional[Dict] = None):
             "input_audio_transcription": {"model": "whisper-1"},
             "turn_detection": {
                 "type": "server_vad",
-                "threshold": 0.5,
-                "prefix_padding_ms": 300,
-                "silence_duration_ms": 500
+                "threshold": noise_reduction_threshold,
+                "prefix_padding_ms": prefix_padding_ms,
+                "silence_duration_ms": silence_duration_ms
             }
         }
     }
+    
+    # Add noise reduction mode if specified
+    if noise_reduction_mode:
+        # Handle both enum values and string values
+        noise_type = noise_reduction_mode.value if hasattr(noise_reduction_mode, 'value') else str(noise_reduction_mode)
+        session_payload["session"]["input_audio_noise_reduction"] = {
+            "type": noise_type
+        }
     
     if instructions:
         session_payload["session"]["instructions"] = instructions
