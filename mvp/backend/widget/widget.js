@@ -304,6 +304,8 @@
         // Stop current audio source if playing
         if (currentAudioSource) {
             try {
+                // Remove onended handler to prevent callback after stop
+                currentAudioSource.onended = null;
                 currentAudioSource.stop();
                 currentAudioSource.disconnect();
             } catch (err) {
@@ -378,7 +380,14 @@
                 if (currentPlaybackContext === playbackContext) {
                     currentPlaybackContext = null;
                 }
-                playbackContext.close();
+                // Only close if context is not already closed
+                if (playbackContext.state !== 'closed') {
+                    try {
+                        playbackContext.close();
+                    } catch (err) {
+                        // Context may already be closing/closed
+                    }
+                }
                 playNextAudio();
             };
             
