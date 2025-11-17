@@ -90,7 +90,7 @@ export const agentService = {
   
   update: async (id, data) => {
     const response = await api.put(`/api/agents/${id}`, data)
-    return response.data
+    return response
   },
   
   delete: async (id) => {
@@ -100,6 +100,7 @@ export const agentService = {
   
   generateWidgetCode: async (id) => {
     const response = await api.get(`/api/widget/code/agent/${id}`)
+    console.log(response)
     return response.data
   },
 }
@@ -134,7 +135,9 @@ export const assistantConfigService = {
 export const widgetService = {
   generateCode: async (assistantId) => {
     const response = await api.get(`/api/widget/code/${assistantId}`)
+
     return response.data
+
   },
 }
 

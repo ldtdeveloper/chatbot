@@ -9,7 +9,7 @@ function WidgetGenerator() {
     queryKey: ['widget-code'],
     queryFn: widgetService.generateCode,
   })
-
+console.log(widgetService)
   const handleCopy = () => {
     if (widgetData?.widget_code) {
       navigator.clipboard.writeText(widgetData.widget_code)

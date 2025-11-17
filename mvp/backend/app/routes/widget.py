@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSoc
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.database import get_db, SessionLocal
+import json
 from app.models.user import User
 from app.models.assistant_config import AssistantConfig
 from app.models.openai_key import OpenAIKey
@@ -57,7 +58,15 @@ async def generate_agent_widget_code(
         Agent.id == agent_id,
         Agent.user_id == current_user.id
     ).first()
+
+    instructions_data = json.loads(agent.instructions)
+    company_name = instructions_data.get("company_name")
+    print(company_name)
     
+    print(type(agent.instructions))
+
+
+    print(agent.instructions)
     if not agent:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -78,6 +87,8 @@ async def generate_agent_widget_code(
     
     # Generate unique widget ID
     widget_id = str(uuid.uuid4())
+  
+   
     
     # Use API base URL from settings (can be configured via environment variables)
     api_base_url = settings.api_base_url

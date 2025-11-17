@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<!-- Voice Assistant Widget: angry man -->
+<!-- Voice Assistant Widget: angry man -->
+<!-- Voice Assistant Widget: willy -->
+<!-- Voice Assistant Widget: aura -->
+<!-- Voice Assistant Widget: aura -->
+<!-- Voice Assistant Widget: spain -->
+<script>
+(function() {
+    // Auto-detect API base URL from current page origin
+    let apiBaseUrl = 'AUTO_DETECT';
+    if (apiBaseUrl === 'AUTO_DETECT') {
+        // Try to detect backend URL from current page
+        const currentOrigin = window.location.origin;
+        // For local development, assume backend is on same host, port 8000
+        if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
+            // Check if origin already has a port
+            if (currentOrigin.match(/:\d+$/)) {
+                // Replace existing port with :8000
+                apiBaseUrl = currentOrigin.replace(/:\d+$/, ':8000');
+            } else {
+                // Add port :8000 if no port exists
+                apiBaseUrl = currentOrigin + ':8000';
+            }
+        } else {
+            // For production or other domains, use same origin
+            apiBaseUrl = currentOrigin;
+        }
+    }
+    
+    // Create and load widget script
+    const script = document.createElement('script');
+    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
+    script.setAttribute('data-agent-id', '2');
+    script.setAttribute('data-api-url', apiBaseUrl);
+    script.setAttribute('data-agent-name', 'spain');
+    script.async = true;
+    document.head.appendChild(script);
+})();
+</script>
+</body>
+</html>
