@@ -211,11 +211,55 @@ function AssistantDetails({ assistant, onClose }) {
     enabled: !!assistant.id,
   })
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (widgetData?.widget_code) {
-      navigator.clipboard.writeText(widgetData.widget_code)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      try {
+        // Try modern Clipboard API first (requires HTTPS or localhost)
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(widgetData.widget_code)
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        } else {
+          // Fallback for browsers without Clipboard API (HTTP, older browsers)
+          const textArea = document.createElement('textarea')
+          textArea.value = widgetData.widget_code
+          textArea.style.position = 'fixed'
+          textArea.style.left = '-999999px'
+          textArea.style.top = '-999999px'
+          document.body.appendChild(textArea)
+          textArea.focus()
+          textArea.select()
+          try {
+            document.execCommand('copy')
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          } catch (err) {
+            console.error('Fallback copy failed:', err)
+            alert('Failed to copy. Please select and copy the code manually.')
+          }
+          document.body.removeChild(textArea)
+        }
+      } catch (err) {
+        console.error('Copy failed:', err)
+        // Fallback method
+        const textArea = document.createElement('textarea')
+        textArea.value = widgetData.widget_code
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        try {
+          document.execCommand('copy')
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        } catch (fallbackErr) {
+          console.error('Fallback copy failed:', fallbackErr)
+          alert('Failed to copy. Please select and copy the code manually.')
+        }
+        document.body.removeChild(textArea)
+      }
     }
   }
 

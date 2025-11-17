@@ -180,6 +180,28 @@
     async function startRecording() {
         if (isRecording) return;
         
+        // Check if getUserMedia is available (requires HTTPS or localhost)
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            const isHttp = window.location.protocol === 'http:';
+            const isLocalhost = window.location.hostname.includes('localhost') || 
+                               window.location.hostname === '127.0.0.1';
+            
+            let errorMsg;
+            if (isHttp && !isLocalhost) {
+                const httpsUrl = window.location.href.replace('http://', 'https://');
+                errorMsg = 'Microphone access requires HTTPS';
+                console.error('[Widget]', errorMsg + '. Please use:', httpsUrl);
+                status.textContent = errorMsg + ' - Use HTTPS';
+                alert(errorMsg + '\n\nFor security reasons, microphone access requires a secure connection (HTTPS).\n\nPlease access this page via:\n' + httpsUrl);
+            } else {
+                errorMsg = 'Microphone access is not available in this browser';
+                console.error('[Widget]', errorMsg);
+                status.textContent = errorMsg;
+                alert(errorMsg);
+            }
+            return;
+        }
+        
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
