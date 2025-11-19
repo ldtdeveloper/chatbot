@@ -97,6 +97,7 @@
             status.textContent = 'Connecting...';
             ws = new WebSocket(wsUrl);
             
+            
             ws.onopen = function() {
                 console.log('[Widget] Connected to backend');
                 isConnected = true;

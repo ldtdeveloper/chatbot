@@ -14,6 +14,7 @@ function UserProfile() {
     retry: 1,
   })
 
+
   if (isLoading) {
     return (
       <div className="user-profile">

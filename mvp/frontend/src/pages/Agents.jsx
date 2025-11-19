@@ -14,13 +14,43 @@ function Agents() {
   const [selectedApiKeyId, setSelectedApiKeyId] = useState('')
   const [fetchApiKeyId, setFetchApiKeyId] = useState('')
   const [Instructions, setInstructions] = useState({
-  company_name: '',
-  company_website: '',
-  services: '',
-  industries: '',
-  solutions: '',
-  contact_info: '',
-  careers_info: '',
+  // company_name: '',
+  // company_website: '',
+  // industries: '',
+  // solutions: '',
+  // contact_info: '',
+  // careers_info: '',
+  // company_domain:'',
+  // company_description:'',
+  // company_tagline:'',
+  // services_page_url:'',
+  // industries_page_url:'',
+  // solutions_page_url:'',
+  // careers_page_url:'',
+  // insights_page_url:'',
+  // contact_page_url:'',
+  // leadership_info:'',
+  // allowed_scope:'',
+  // forbidden_scope:'',
+  // strict_refusal_text:'',
+  // greeting_text:'',
+  // refusal_text:'',
+  // closure_text:'',
+  voice_behaviour: "",
+  scope:'',
+  contact_details:'',
+  privacy_rules:'',
+  top_features:'',
+  product:'',
+  services:'',
+  office_locations:'',
+  pricing_rules:'',
+  restrictions:'',
+  tone_examples:'',
+  additional_instructions:''
+
+
+
 });
 
 const InstructionSet = (e) => {
@@ -56,6 +86,7 @@ const InstructionSet = (e) => {
     },
     enabled: !!fetchApiKeyId,
   })
+  
 
   const { data: apiKeys, isLoading: keysLoading } = useQuery({
     queryKey: ['openai-keys'],
@@ -97,6 +128,47 @@ const InstructionSet = (e) => {
       setSelectedAgent(null)
     },
   })
+  function convertJsonPrompt(data){
+   const data1 =  JSON.parse(data)
+    console.log(typeof(data1))
+   
+    
+
+ 
+    // const data1 = cleanJson(data)
+    // console.log("data"+data["pricing_rules"])
+  
+
+    return `
+    VOICE & BEHAVIOUR
+    ${data1.voice_behaviour}
+    SCOPE
+    ${data1.scope}
+    CONTACT DETAILS
+    ${data1.contact_details}
+    PRIVACY_RULES
+    ${data1.privacy_rules}
+    TOP FEATURES
+    ${data1.top_features}
+    PRODUCT
+    ${data1.product}
+    SERVICES
+    ${data1.services}
+    OFFICE LOCATION
+    ${data1.office_locations}
+    PRICING RULES
+    ${data1.pricing_rules}
+    RESTRICTIONS
+    ${data1.restrictions}
+    TONE_EXAMPLES
+    ${data1.tone_examples}
+    ADDITONAL INSTRUCTIONS
+    ${data1.additional_instructions}
+    `
+
+
+  }
+  
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -137,13 +209,14 @@ const handleEdit = (agent) => {
   setEditingAgent(agent)
 
   let parsedInstructions = {
-    company_name: '',
-    company_website: '',
-    services: '',
-    industries: '',
-    solutions: '',
-    contact_info: '',
-    careers_info: ''
+    // company_name: '',
+    // company_website: '',
+    // Services: '',
+    // industries: '',
+    // solutions: '',
+    // contact_info: '',
+    // careers_info: '',
+    // voice_behavior: ""
   }
 
   try {
@@ -185,6 +258,12 @@ const handleEdit = (agent) => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
+  }
+  function convertJsonToPrompt(){
+return `
+voice&behaviour
+${"hello"}
+`
   }
 
   const handleCancelEdit = () => {
@@ -308,19 +387,60 @@ const handleEdit = (agent) => {
             required
             rows={10}
           /> */}
-          <label
-          >Company Info</label>
-          
-          <input value ={Instructions.company_name} name="company_name"  placeholder='Company Name' onChange={InstructionSet}/>
-          <input value ={Instructions.company_website} name="company_website"  placeholder='Company Website'  onChange={InstructionSet}/>
-          <textarea value={Instructions.services} name="services"  autoComplete="off" required rows={3} placeholder='Services'  onChange={InstructionSet}/>
-          <textarea  value = {Instructions.industries} name = "industries" autoComplete="off" required rows={3} placeholder='Industries'  onChange={InstructionSet}/>
-          <textarea value= {Instructions.solutions}  name="solutions"  autoComplete="off" required rows={3} placeholder='Solutions'  onChange={InstructionSet}/>
-          <label>Careers & Contact</label>
-          <input  value={Instructions.contact_info} name="contact_info" placeholder='Contact Info'  onChange={InstructionSet}/>
-          <textarea  value= {Instructions.careers_info} name="careers_info"  autoComplete="off" required rows={3} placeholder='Careers Info'  onChange={InstructionSet}/>
-          <label>
-            Assistant Voice:
+         {/* <label>Basic Info</label>
+                <input value ={Instructions.company_name} name="company_name"  placeholder='Company Name' onChange={InstructionSet}/>
+                <input value ={Instructions.company_website} name="company_website"  placeholder='Company Website'  onChange={InstructionSet}/>
+                <input value ={Instructions.company_domain} name="company_domain"  placeholder='Company Domain'  onChange={InstructionSet}/>
+                <textarea value={Instructions.company_description} name="company_description"  autoComplete="off" required rows={3} placeholder='company description'  onChange={InstructionSet}/>
+                 <input value ={Instructions.company_tagline} name="company_tagline"  placeholder='Company Tagline'  onChange={InstructionSet}/>
+                 <label>Services/Pages</label>
+
+                <input value={Instructions.services_page_url} name="services_page_url"  autoComplete="off" required rows={3} placeholder='Services Page Url (Enter your services page url)'  onChange={InstructionSet}/>
+                <input value={Instructions.industries_page_url} name="industries_page_url"  autoComplete="off" required rows={3} placeholder='Industries Page Url (Enter your industries page url)'  onChange={InstructionSet}/>
+                <input value={Instructions.solution_page_url} name="solution_page_url"  autoComplete="off" required rows={3} placeholder='Solutions Page Url (Enter your solution page url)'  onChange={InstructionSet}/>
+                <input value={Instructions.insights_page_url} name="insights_page_url"  autoComplete="off" required rows={3} placeholder='Insights Page Url (Enter your insights page url)'  onChange={InstructionSet}/>
+                <input value={Instructions.careers_page_url} name="careers_page_url"  autoComplete="off" required rows={3} placeholder='Careers Page Url (Enter your careers page url)'  onChange={InstructionSet}/>
+                <input value={Instructions.contacts_page_url} name="contacts_page_url"  autoComplete="off" required rows={3} placeholder='Contacts Page Url (Enter your contacts page url)'  onChange={InstructionSet}/>
+                <label>Leadership/Public Info</label>
+                <textarea value={Instructions.leadership} name="leadership"  autoComplete="off" required rows={3} placeholder='Leadership Info'  onChange={InstructionSet}/>
+                <label>Rules&Scope</label>
+                <textarea value={Instructions.allowed_scope} name="allowed_scope"  autoComplete="off" required rows={3} placeholder='Allowed Scope'  onChange={InstructionSet}/>
+                <textarea value={Instructions.forbidden_scope} name="forbidden_scope"  autoComplete="off" required rows={3} placeholder='Forbidden Scope'  onChange={InstructionSet}/>
+                <textarea value={Instructions.strict_refusal_text} name="strict_refusal_text"  autoComplete="off" required rows={3} placeholder='Strict Refusal Text'  onChange={InstructionSet}/>
+                <label>Greeting/Closure/Templates</label>
+                <textarea value={Instructions.greeting_text} name="greeting_text"  autoComplete="off" required rows={3} placeholder='Greeting Text'  onChange={InstructionSet}/>
+                <textarea value={Instructions.refusal_text} name="refusal_text"  autoComplete="off" required rows={3} placeholder='Refusal Text'  onChange={InstructionSet}/>
+                <textarea value={Instructions.closure_text} name="closure_text"  autoComplete="off" required rows={3} placeholder='Closure Text'  onChange={InstructionSet}/>
+                <label>Additonal Information</label>
+                 <textarea value={Instructions.additional_information} name="additional_information"  autoComplete="off" required rows={3} placeholder='Additonal Information'  onChange={InstructionSet}/> */}
+                 <label>Voice & Behavior</label>
+                 <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off' required rows={5} placeholder="Voice and Behavior (example: you are maria a personal assistant.you are a female.answer in soft tone.For any background noise, miss-written or understandable questions, tell user - I didnt understand that, can you please repeat what you asked?)" onChange={InstructionSet}/>
+          <label><label>Scope/What I Can Talk About</label>
+          <textarea value={Instructions.scope} name="scope" autoComplete='off' required rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet}/>
+          <label>Allowed Contact Details</label>
+          <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off' required rows={5} placeholder="Contact Details (example: Email,sales(phn no),HR)"  onChange={InstructionSet}/>
+          <label>Privacy Rules</label>
+          <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off' required rows={5} placeholder="Privacy Rules (example: Do not share the personal information" onChange={InstructionSet} />
+         
+          <label>Top Features</label>
+          <textarea value={Instructions.top_features} name="top_features" autoComplete='off' required rows={5} placeholder="Top Features (example:1.Web and Mobile Development)" onChange={InstructionSet}/>
+          <label>Products</label>
+          <textarea value={Instructions.product} name="product" autoComplete='off' required rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet}/>
+          <label>Services</label>
+          <textarea value={Instructions.services} name="services" autoComplete='off' required rows={5} placeholder="Services add the services you provide" onChange={InstructionSet}/>
+          <label>Office Locations</label>
+          <textarea value={Instructions.office_locations} name="office_locations" autocomplete='off' required rows ={5} placeholder="Office Locations (example:USA,India)" onChange={InstructionSet}/>
+          <label>Pricing Rules</label>
+          <textarea value={Instructions.pricing_rules} name="pricing_rules" autocomplete="off" required rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet}/>
+          <label>Restrictions</label>
+          <textarea value={Instructions.restrictions} name="restrictions" autocomplete="off" required rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet}/>
+          <label>Tone Examples</label>
+          <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off' required rows={5} placeholder="Tone Examples (example:1. Greeting:Enter your type)" onChange={InstructionSet}/>
+          <label>Additional Instructions</label>
+          <textarea value={Instructions.additional_instructions} name="additional_instructions" autocomplete="off" required rows={5} placeholder="Additonal instructions (example:Add the additonal instructions you want to enhance your assistant)" onChange={InstructionSet}/>
+     
+         
+            Assistant Voice: 
             <select
               value={formData.voice}
               onChange={(e) => setFormData({ ...formData, voice: e.target.value })}
@@ -403,6 +523,8 @@ const handleEdit = (agent) => {
                   className="view-instructions-btn"
                   onClick={(e) => {
                     e.stopPropagation()
+               
+                  
                     setSelectedInstructionsAgent(agent)
                   }}
                   title="View Instructions"
@@ -507,16 +629,33 @@ const handleEdit = (agent) => {
                   required
                   rows={10}
                 /> */}
-                <label>Instructions Set</label>
-                <input value ={Instructions.company_name} name="company_name"  placeholder='Company Name' onChange={InstructionSet}/>
-                <input value ={Instructions.company_website} name="company_website"  placeholder='Company Website'  onChange={InstructionSet}/>
-                <textarea value={Instructions.services} name="services"  autoComplete="off" required rows={3} placeholder='Services'  onChange={InstructionSet}/>
-                <textarea  value = {Instructions.industries} name = "industries" autoComplete="off" required rows={3} placeholder='Industries'  onChange={InstructionSet}/>
-                <textarea value= {Instructions.solutions}  name="solutions"  autoComplete="off" required rows={3} placeholder='Solutions'  onChange={InstructionSet}/>
-                <label>Careers & Contact</label>
-                <input  value={Instructions.contact_info} name="contact_info" placeholder='Contact Info'  onChange={InstructionSet}/>
-                <textarea  value= {Instructions.careers_info} name="careers_info"  autoComplete="off" required rows={3} placeholder='Careers Info'  onChange={InstructionSet}/>
-
+              <label>Voice & Behavior</label>
+                 <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off' required rows={5} placeholder="Voice and Behavior (example: you are maria a personal assistant.you are a female.answer in soft tone.For any background noise, miss-written or understandable questions, tell user - I didnt understand that, can you please repeat what you asked?)" onChange={InstructionSet}/>
+          <label>Scope/What I Can Talk About</label>
+          <textarea value={Instructions.scope} name="scope" autoComplete='off' required rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet}/>
+          <label>Allowed Contact Details</label>
+          <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off' required rows={5} placeholder="Contact Details (example: Email,sales(phn no),HR)"  onChange={InstructionSet}/>
+          <label>Privacy Rules</label>
+          <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off' required rows={5} placeholder="Privacy Rules (example: Do not share the personal information" onChange={InstructionSet} />
+         
+          <label>Top Features</label>
+          <textarea value={Instructions.top_features} name="top_features" autoComplete='off' required rows={5} placeholder="Top Features (example:1.Web and Mobile Development)" onChange={InstructionSet}/>
+          <label>Products</label>
+          <textarea value={Instructions.product} name="product" autoComplete='off' required rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet}/>
+          <label>Services</label>
+          <textarea value={Instructions.services} name="services" autoComplete='off' required rows={5} placeholder="Services add the services you provide" onChange={InstructionSet}/>
+          <label>Office Locations</label>
+          <textarea value={Instructions.office_locations} name="office_locations" autocomplete='off' required rows ={5} placeholder="Office Locations (example:USA,India)" onChange={InstructionSet}/>
+          <label>Pricing Rules</label>
+          <textarea value={Instructions.pricing_rules} name="pricing_rules" autocomplete="off" required rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet}/>
+          <label>Restrictions</label>
+          <textarea value={Instructions.restrictions} name="restrictions" autocomplete="off" required rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet}/>
+          <label>Tone Examples</label>
+          <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off' required rows={5} placeholder="Tone Examples (example:1. Greeting:Enter your type)" onChange={InstructionSet}/>
+          <label>Additional Instructions</label>
+          <textarea value={Instructions.additional_instructions} name="additional_instructions" autocomplete="off" required rows={5} placeholder="Additonal instructions (example:Add the additonal instructions you want to enhance your assistant)" onChange={InstructionSet}/>
+     
+         
                 <label>
                   Assistant Voice:
                   <select
@@ -629,8 +768,10 @@ const handleEdit = (agent) => {
               <button className="modal-close" onClick={() => setSelectedInstructionsAgent(null)}>×</button>
             </div>
             <div className="modal-body">
-              <pre className="instructions-text">{selectedInstructionsAgent.instructions}</pre>
-            </div>
+{console.log(selectedInstructionsAgent.instructions)}
+
+              <pre className="instructions-text">{convertJsonPrompt(selectedInstructionsAgent.instructions)}</pre>
+            </div>)
           </div>
         </div>
       )}

@@ -23,13 +23,23 @@ export const userService = {
     return response.data
   },
   
+  // Get basic user info
   get: async (id) => {
     const response = await api.get(`/api/users/${id}`)
     return response.data
   },
   
+  // Get full user profile with agents, assistants, keys
   getProfile: async (id) => {
+    console.log("get in the get user profiles"+id)
     const response = await api.get(`/api/users/${id}/profile`)
+   console.log(response)
+    return response.data
+  },
+  
+  
+  updateProfile: async (id, data) => {
+    const response = await api.patch(`/api/users/${id}`, data)
     return response.data
   },
   
@@ -100,7 +110,6 @@ export const agentService = {
   
   generateWidgetCode: async (id) => {
     const response = await api.get(`/api/widget/code/agent/${id}`)
-    console.log(response)
     return response.data
   },
 }
@@ -108,6 +117,7 @@ export const agentService = {
 export const assistantConfigService = {
   list: async () => {
     const response = await api.get('/api/assistants')
+    
     return response.data
   },
   
@@ -135,9 +145,6 @@ export const assistantConfigService = {
 export const widgetService = {
   generateCode: async (assistantId) => {
     const response = await api.get(`/api/widget/code/${assistantId}`)
-
     return response.data
-
   },
 }
-
