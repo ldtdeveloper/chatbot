@@ -1,19 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget Placement Demo</title>
+<style>
+  /* Fill entire page for demo */
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    background-color: #f0f0f0;
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Highlighted widget container */
+  #chatbot {
+    width: 550px;
+    height: 500px;
+    border: 5px solid #ff5722; /* bright border to see the div */
+    background-color: #ffe0b2; /* filled color to make it visible */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+  }
+</style>
 </head>
 <body>
-<!-- Voice Assistant Widget: angry man -->
-<!-- Voice Assistant Widget: angry man -->
-<!-- Voice Assistant Widget: willy -->
-<!-- Voice Assistant Widget: aura -->
-<!-- Voice Assistant Widget: aura -->
-<!-- Voice Assistant Widget: spain -->
-<!-- Voice Assistant Widget: spanish -->
-<!-- Voice Assistant Widget: spanish -->
+
+<div id="chatbot">
+  This is your widget container (#chatbot)
+</div>
+<!-- Voice Assistant Widget: WNS -->
+<!-- Voice Assistant Widget: WNS -->
 <script>
 (function() {
     // API base URL for widget backend connection
@@ -21,10 +48,11 @@
     
     // Create and load widget script
     const script = document.createElement('script');
-    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
-    script.setAttribute('data-agent-id', '9');
+    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widgetNew.js';
+    script.setAttribute('data-agent-id', '10');
     script.setAttribute('data-api-url', apiBaseUrl);
-    script.setAttribute('data-agent-name', 'spanish');
+    script.setAttribute('data-agent-name', 'WNS');
+     script.setAttribute('data-target-id', 'chatbot');
     script.async = true;
     document.head.appendChild(script);
 })();

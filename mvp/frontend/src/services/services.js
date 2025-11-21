@@ -112,6 +112,10 @@ export const agentService = {
     const response = await api.get(`/api/widget/code/agent/${id}`)
     return response.data
   },
+  generateWidgetCodeFixed: async (id) => {
+    const response = await api.get(`/api/widget/codeFixed/agent/${id}`)
+    return response.data
+  },
 }
 
 export const assistantConfigService = {

@@ -34,6 +34,13 @@ async def get_widget_css():
     if not css_file.exists():
         raise HTTPException(status_code=404, detail="Widget CSS not found")
     return FileResponse(css_file, media_type="text/css")
+@router.get("/widgetNew.css")
+async def get_widget_css():
+    """Serve widget CSS file"""
+    css_file = WIDGET_DIR / "widgetNew.css"
+    if not css_file.exists():
+        raise HTTPException(status_code=404, detail="Widget CSS not found")
+    return FileResponse(css_file, media_type="text/css")
 
 
 @router.get("/widget.js")
@@ -43,8 +50,87 @@ async def get_widget_js():
     if not js_file.exists():
         raise HTTPException(status_code=404, detail="Widget JS not found")
     return FileResponse(js_file, media_type="application/javascript")
+@router.get("/widgetNew.js")
+async def get_widget_new_js():
+    js_file = WIDGET_DIR / "widget-new.js"
+    if not js_file.exists():
+        raise HTTPException(status_code=404, detail="WidgetNew JS not found")
+    return FileResponse(js_file, media_type="application/javascript")
+
+@router.get("/codeFixed/agent/{agent_id}", response_model=WidgetCodeResponse)
+async def generate_agent_widget_code(
+    agent_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate JavaScript code for a specific agent widget"""
+    # Get the agent
+    agent = db.query(Agent).filter(
+        Agent.id == agent_id,
+        Agent.user_id == current_user.id
+    ).first()
+
+    instructions_data = json.loads(agent.instructions)
+    company_name = instructions_data.get("company_name")
+    print(company_name)
+    
+    print(type(agent.instructions))
 
 
+    print(agent.instructions)
+    if not agent:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agent not found"
+        )
+    
+    # Get the OpenAI key for this agent
+    api_key = db.query(OpenAIKey).filter(
+        OpenAIKey.id == agent.openai_key_id,
+        OpenAIKey.is_active == True
+    ).first()
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Agent's API key is not active"
+        )
+    
+    # Generate unique widget ID
+    widget_id = str(uuid.uuid4())
+  
+   
+    
+    # Use API base URL from settings (can be configured via environment variables)
+    api_base_url = settings.api_base_url
+    
+    # Generate minimal widget code that loads external files
+
+    widget_code = f"""<!-- Voice Assistant Widget: {agent.name} -->
+//Give the div an ID of 'chatbot'and the agent will be placed there
+<script>
+(function() {{
+    // API base URL for widget backend connection
+    let apiBaseUrl = '{api_base_url}';
+    
+    // Create and load widget script
+    const script = document.createElement('script');
+    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget-new.js';
+    script.setAttribute('data-agent-id', '{agent_id}');
+    script.setAttribute('data-api-url', apiBaseUrl);
+    script.setAttribute('data-agent-name', '{agent.name}');
+    script.setAttribute('data-target-id', 'chatbot');
+    script.async = true;
+    document.head.appendChild(script);
+}})();
+</script>"""
+    
+    return {
+        "widget_code": widget_code.strip(),
+        "widget_id": widget_id,
+        "assistant_id": agent_id,
+        "assistant_name": agent.name
+    }
 @router.get("/code/agent/{agent_id}", response_model=WidgetCodeResponse)
 async def generate_agent_widget_code(
     agent_id: int,
@@ -93,6 +179,7 @@ async def generate_agent_widget_code(
     api_base_url = settings.api_base_url
     
     # Generate minimal widget code that loads external files
+
     widget_code = f"""<!-- Voice Assistant Widget: {agent.name} -->
 <script>
 (function() {{
@@ -116,8 +203,6 @@ async def generate_agent_widget_code(
         "assistant_id": agent_id,
         "assistant_name": agent.name
     }
-
-
 @router.get("/code/{assistant_id}", response_model=WidgetCodeResponse)
 async def generate_widget_code(
     assistant_id: int,
@@ -130,7 +215,7 @@ async def generate_widget_code(
         AssistantConfig.id == assistant_id,
         AssistantConfig.user_id == current_user.id
     ).first()
-    
+  
     if not config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

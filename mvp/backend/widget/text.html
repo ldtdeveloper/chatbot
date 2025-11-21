@@ -6,7 +6,26 @@
     <title>Document</title>
 </head>
 <body>
- 
-    <script src="http://127.0.0.1:8000/static/widget-loader.js" async></script>
+   <div id="chatbot" style="width:1500px;height:500px">
+    <h1>Your widget will load there</h1>
+
+   </div> 
+   <!-- Voice Assistant Widget: WNS -->
+<script>
+(function() {
+    // API base URL for widget backend connection
+    let apiBaseUrl = 'http://localhost:8081';
+    
+    // Create and load widget script
+    const script = document.createElement('script');
+    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widgetNew.js';
+    script.setAttribute('data-agent-id', '10');
+    script.setAttribute('data-api-url', apiBaseUrl);
+    script.setAttribute('data-agent-name', 'WNS');
+     script.setAttribute('data-target-id', 'chatbot');
+    script.async = true;
+    document.head.appendChild(script);
+})();
+</script>
 </body>
 </html>

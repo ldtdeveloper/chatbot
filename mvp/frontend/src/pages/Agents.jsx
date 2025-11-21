@@ -12,6 +12,7 @@ function Agents() {
   const [selectedAgent, setSelectedAgent] = useState(null)
   const [selectedInstructionsAgent, setSelectedInstructionsAgent] = useState(null)
   const [selectedApiKeyId, setSelectedApiKeyId] = useState('')
+  const [tab, setTab] = useState("float");
   const [fetchApiKeyId, setFetchApiKeyId] = useState('')
   const [Instructions, setInstructions] = useState({
   // company_name: '',
@@ -61,6 +62,40 @@ const InstructionSet = (e) => {
     [name]: value
   }));
 };
+const fetchWidgetCode = async (agent, type) => {
+  try {
+    let data;
+    if (type === "float") {
+      data = await agentService.generateWidgetCode(agent.id);
+    } else {
+      data = await agentService.generateWidgetCodeFixed(agent.id);
+    }
+    setWidgetCode(data.widget_code);
+    setSelectedAgentForWidget(agent);
+    setShowWidgetModal(true);
+  } catch (error) {
+    console.error('Error generating widget code:', error);
+    alert('Failed to generate widget code: ' + (error.response?.data?.detail || error.message));
+  }
+};
+const handleTabChange = async (type) => {
+  setTab(type);
+  if (!selectedAgentForWidget) return;
+
+  try {
+    let data;
+    if (type === "float") {
+      data = await agentService.generateWidgetCode(selectedAgentForWidget.id);
+    } else {
+      data = await agentService.generateWidgetCodeFixed(selectedAgentForWidget.id);
+    }
+    setWidgetCode(data.widget_code); // Set the code dynamically
+  } catch (error) {
+    console.error("Error fetching widget code:", error);
+    alert("Failed to fetch widget code");
+  }
+};
+
 
   const [formData, setFormData] = useState({
     name: '',
@@ -140,37 +175,48 @@ const InstructionSet = (e) => {
   
 
     return `
-    VOICE & BEHAVIOUR
-    ${data1.voice_behaviour}
-    SCOPE
-    ${data1.scope}
-    CONTACT DETAILS
-    ${data1.contact_details}
-    PRIVACY_RULES
-    ${data1.privacy_rules}
-    TOP FEATURES
-    ${data1.top_features}
-    PRODUCT
-    ${data1.product}
-    SERVICES
-    ${data1.services}
-    OFFICE LOCATION
-    ${data1.office_locations}
-    PRICING RULES
-    ${data1.pricing_rules}
-    RESTRICTIONS
-    ${data1.restrictions}
-    TONE_EXAMPLES
-    ${data1.tone_examples}
-    ADDITONAL INSTRUCTIONS
-    ${data1.additional_instructions}
+    
+    <div class="instruction-block">
+      <h3>VOICE & BEHAVIOUR</h3>
+      <p>${data1.voice_behaviour}</p>
+
+      <h3>SCOPE</h3>
+      <p>${data1.scope}</p>
+
+      <h3>CONTACT DETAILS</h3>
+      <p>${data1.contact_details}</p>
+
+      <h3>PRIVACY RULES</h3>
+      <p>${data1.privacy_rules}</p>
+
+      <h3>TOP FEATURES</h3>
+      <p>${data1.top_features}</p>
+
+      <h3>PRODUCT</h3>
+      <p>${data1.product}</p>
+
+      <h3>SERVICES</h3>
+      <p>${data1.services}</p>
+
+      <h3>OFFICE LOCATION</h3>
+      <p>${data1.office_locations}</p>
+
+      <h3>PRICING RULES</h3>
+      <p>${data1.pricing_rules}</p>
+
+      <h3>RESTRICTIONS</h3>
+      <p>${data1.restrictions}</p>
+
+      <h3>TONE EXAMPLES</h3>
+      <p>${data1.tone_examples}</p>
+
+      <h3>ADDITIONAL INSTRUCTIONS</h3>
+      <p>${data1.additional_instructions}</p>
+    </div>
     `
-
-
   }
   
-
-  const handleSubmit = (e) => {
+    const handleSubmit = (e) => {
     e.preventDefault()
     const finalFormData = {
       ...formData,
@@ -251,6 +297,18 @@ const handleEdit = (agent) => {
       alert('Failed to generate widget code: ' + (error.response?.data?.detail || error.message))
     }
   }
+  const handleGenerateWidgetFixed = async (agent) => {
+    try {
+      const data = await agentService.generateWidgetCodeFixed(agent.id)
+      setWidgetCode(data.widget_code)
+      setSelectedAgentForWidget(agent)
+      setShowWidgetModal(true)
+    } catch (error) {
+      console.error('Error generating widget code:', error)
+      alert('Failed to generate widget code: ' + (error.response?.data?.detail || error.message))
+    }
+  }
+  
 
   const handleCopyWidgetCode = async () => {
     if (widgetCode) {
@@ -422,66 +480,31 @@ ${"hello"}
             pattern="^(localhost|127\.0\.0\.1)(:\d+)?$|^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
             title="Enter a valid domain (e.g., example.com, localhost, or 127.0.0.1)"
           />
-         
-          {/* <textarea
-            placeholder="System Instructions *"
-            value={formData.instructions}
-            onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
-            autoComplete="off"
-            required
-            rows={10}
-          /> */}
-         {/* <label>Basic Info</label>
-                <input value ={Instructions.company_name} name="company_name"  placeholder='Company Name' onChange={InstructionSet}/>
-                <input value ={Instructions.company_website} name="company_website"  placeholder='Company Website'  onChange={InstructionSet}/>
-                <input value ={Instructions.company_domain} name="company_domain"  placeholder='Company Domain'  onChange={InstructionSet}/>
-                <textarea value={Instructions.company_description} name="company_description"  autoComplete="off" required rows={3} placeholder='company description'  onChange={InstructionSet}/>
-                 <input value ={Instructions.company_tagline} name="company_tagline"  placeholder='Company Tagline'  onChange={InstructionSet}/>
-                 <label>Services/Pages</label>
-
-                <input value={Instructions.services_page_url} name="services_page_url"  autoComplete="off" required rows={3} placeholder='Services Page Url (Enter your services page url)'  onChange={InstructionSet}/>
-                <input value={Instructions.industries_page_url} name="industries_page_url"  autoComplete="off" required rows={3} placeholder='Industries Page Url (Enter your industries page url)'  onChange={InstructionSet}/>
-                <input value={Instructions.solution_page_url} name="solution_page_url"  autoComplete="off" required rows={3} placeholder='Solutions Page Url (Enter your solution page url)'  onChange={InstructionSet}/>
-                <input value={Instructions.insights_page_url} name="insights_page_url"  autoComplete="off" required rows={3} placeholder='Insights Page Url (Enter your insights page url)'  onChange={InstructionSet}/>
-                <input value={Instructions.careers_page_url} name="careers_page_url"  autoComplete="off" required rows={3} placeholder='Careers Page Url (Enter your careers page url)'  onChange={InstructionSet}/>
-                <input value={Instructions.contacts_page_url} name="contacts_page_url"  autoComplete="off" required rows={3} placeholder='Contacts Page Url (Enter your contacts page url)'  onChange={InstructionSet}/>
-                <label>Leadership/Public Info</label>
-                <textarea value={Instructions.leadership} name="leadership"  autoComplete="off" required rows={3} placeholder='Leadership Info'  onChange={InstructionSet}/>
-                <label>Rules&Scope</label>
-                <textarea value={Instructions.allowed_scope} name="allowed_scope"  autoComplete="off" required rows={3} placeholder='Allowed Scope'  onChange={InstructionSet}/>
-                <textarea value={Instructions.forbidden_scope} name="forbidden_scope"  autoComplete="off" required rows={3} placeholder='Forbidden Scope'  onChange={InstructionSet}/>
-                <textarea value={Instructions.strict_refusal_text} name="strict_refusal_text"  autoComplete="off" required rows={3} placeholder='Strict Refusal Text'  onChange={InstructionSet}/>
-                <label>Greeting/Closure/Templates</label>
-                <textarea value={Instructions.greeting_text} name="greeting_text"  autoComplete="off" required rows={3} placeholder='Greeting Text'  onChange={InstructionSet}/>
-                <textarea value={Instructions.refusal_text} name="refusal_text"  autoComplete="off" required rows={3} placeholder='Refusal Text'  onChange={InstructionSet}/>
-                <textarea value={Instructions.closure_text} name="closure_text"  autoComplete="off" required rows={3} placeholder='Closure Text'  onChange={InstructionSet}/>
-                <label>Additonal Information</label>
-                 <textarea value={Instructions.additional_information} name="additional_information"  autoComplete="off" required rows={3} placeholder='Additonal Information'  onChange={InstructionSet}/> */}
                  <label>Voice & Behavior</label>
-                 <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off' required rows={5} placeholder="Voice and Behavior (example: you are maria a personal assistant.you are a female.answer in soft tone.For any background noise, miss-written or understandable questions, tell user - I didnt understand that, can you please repeat what you asked?)" onChange={InstructionSet}/>
+                 <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off'  rows={5} placeholder="Voice and Behavior (example: you are maria a personal assistant.you are a female.answer in soft tone.For any background noise, miss-written or understandable questions, tell user - I didnt understand that, can you please repeat what you asked?)" onChange={InstructionSet}/>
           <label><label>Scope/What I Can Talk About</label>
-          <textarea value={Instructions.scope} name="scope" autoComplete='off' required rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet}/>
+          <textarea value={Instructions.scope} name="scope" autoComplete='off'  rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet}/>
           <label>Allowed Contact Details</label>
-          <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off' required rows={5} placeholder="Contact Details (example: Email,sales(phn no),HR)"  onChange={InstructionSet}/>
+          <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off'  rows={5} placeholder="Contact Details (example: Email,sales(phn no),HR)"  onChange={InstructionSet}/>
           <label>Privacy Rules</label>
-          <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off' required rows={5} placeholder="Privacy Rules (example: Do not share the personal information" onChange={InstructionSet} />
+          <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off'  rows={5} placeholder="Privacy Rules (example: Do not share the personal information" onChange={InstructionSet} />
          
           <label>Top Features</label>
-          <textarea value={Instructions.top_features} name="top_features" autoComplete='off' required rows={5} placeholder="Top Features (example:1.Web and Mobile Development)" onChange={InstructionSet}/>
+          <textarea value={Instructions.top_features} name="top_features" autoComplete='off'  rows={5} placeholder="Top Features (example:1.Web and Mobile Development)" onChange={InstructionSet}/>
           <label>Products</label>
-          <textarea value={Instructions.product} name="product" autoComplete='off' required rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet}/>
+          <textarea value={Instructions.product} name="product" autoComplete='off'  rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet}/>
           <label>Services</label>
-          <textarea value={Instructions.services} name="services" autoComplete='off' required rows={5} placeholder="Services add the services you provide" onChange={InstructionSet}/>
+          <textarea value={Instructions.services} name="services" autoComplete='off'  rows={5} placeholder="Services add the services you provide" onChange={InstructionSet}/>
           <label>Office Locations</label>
-          <textarea value={Instructions.office_locations} name="office_locations" autocomplete='off' required rows ={5} placeholder="Office Locations (example:USA,India)" onChange={InstructionSet}/>
+          <textarea value={Instructions.office_locations} name="office_locations" autocomplete='off'  rows ={5} placeholder="Office Locations (example:USA,India)" onChange={InstructionSet}/>
           <label>Pricing Rules</label>
-          <textarea value={Instructions.pricing_rules} name="pricing_rules" autocomplete="off" required rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet}/>
+          <textarea value={Instructions.pricing_rules} name="pricing_rules" autocomplete="off"  rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet}/>
           <label>Restrictions</label>
-          <textarea value={Instructions.restrictions} name="restrictions" autocomplete="off" required rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet}/>
+          <textarea value={Instructions.restrictions} name="restrictions" autocomplete="off"  rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet}/>
           <label>Tone Examples</label>
-          <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off' required rows={5} placeholder="Tone Examples (example:1. Greeting:Enter your type)" onChange={InstructionSet}/>
+          <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off'  rows={5} placeholder="Tone Examples (example:1. Greeting:Enter your type)" onChange={InstructionSet}/>
           <label>Additional Instructions</label>
-          <textarea value={Instructions.additional_instructions} name="additional_instructions" autocomplete="off" required rows={5} placeholder="Additonal instructions (example:Add the additonal instructions you want to enhance your assistant)" onChange={InstructionSet}/>
+          <textarea value={Instructions.additional_instructions} name="additional_instructions" autocomplete="off"  rows={5} placeholder="Additonal instructions (example:Add the additonal instructions you want to enhance your assistant)" onChange={InstructionSet}/>
      
          
             Assistant Voice: 
@@ -665,39 +688,31 @@ ${"hello"}
                   pattern="^(localhost|127\.0\.0\.1)(:\d+)?$|^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
                   title="Enter a valid domain (e.g., example.com, localhost, or 127.0.0.1)"
                 />
-                {/* <textarea
-                  placeholder="System Instructions *"
-                  value={formData.instructions}
-                  onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
-                  autoComplete="off"
-                  required
-                  rows={10}
-                /> */}
               <label>Voice & Behavior</label>
-                 <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off' required rows={5} placeholder="Voice and Behavior (example: you are maria a personal assistant.you are a female.answer in soft tone.For any background noise, miss-written or understandable questions, tell user - I didnt understand that, can you please repeat what you asked?)" onChange={InstructionSet}/>
+                 <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off'  rows={5} placeholder="Voice and Behavior (example: you are maria a personal assistant.you are a female.answer in soft tone.For any background noise, miss-written or understandable questions, tell user - I didnt understand that, can you please repeat what you asked?)" onChange={InstructionSet}/>
           <label>Scope/What I Can Talk About</label>
-          <textarea value={Instructions.scope} name="scope" autoComplete='off' required rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet}/>
+          <textarea value={Instructions.scope} name="scope" autoComplete='off'  rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet}/>
           <label>Allowed Contact Details</label>
-          <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off' required rows={5} placeholder="Contact Details (example: Email,sales(phn no),HR)"  onChange={InstructionSet}/>
+          <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off'  rows={5} placeholder="Contact Details (example: Email,sales(phn no),HR)"  onChange={InstructionSet}/>
           <label>Privacy Rules</label>
-          <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off' required rows={5} placeholder="Privacy Rules (example: Do not share the personal information" onChange={InstructionSet} />
+          <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off'  rows={5} placeholder="Privacy Rules (example: Do not share the personal information" onChange={InstructionSet} />
          
           <label>Top Features</label>
-          <textarea value={Instructions.top_features} name="top_features" autoComplete='off' required rows={5} placeholder="Top Features (example:1.Web and Mobile Development)" onChange={InstructionSet}/>
+          <textarea value={Instructions.top_features} name="top_features" autoComplete='off'  rows={5} placeholder="Top Features (example:1.Web and Mobile Development)" onChange={InstructionSet}/>
           <label>Products</label>
-          <textarea value={Instructions.product} name="product" autoComplete='off' required rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet}/>
+          <textarea value={Instructions.product} name="product" autoComplete='off'  rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet}/>
           <label>Services</label>
-          <textarea value={Instructions.services} name="services" autoComplete='off' required rows={5} placeholder="Services add the services you provide" onChange={InstructionSet}/>
+          <textarea value={Instructions.services} name="services" autoComplete='off'  rows={5} placeholder="Services add the services you provide" onChange={InstructionSet}/>
           <label>Office Locations</label>
-          <textarea value={Instructions.office_locations} name="office_locations" autocomplete='off' required rows ={5} placeholder="Office Locations (example:USA,India)" onChange={InstructionSet}/>
+          <textarea value={Instructions.office_locations} name="office_locations" autocomplete='off'  rows ={5} placeholder="Office Locations (example:USA,India)" onChange={InstructionSet}/>
           <label>Pricing Rules</label>
-          <textarea value={Instructions.pricing_rules} name="pricing_rules" autocomplete="off" required rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet}/>
+          <textarea value={Instructions.pricing_rules} name="pricing_rules" autocomplete="off"  rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet}/>
           <label>Restrictions</label>
-          <textarea value={Instructions.restrictions} name="restrictions" autocomplete="off" required rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet}/>
+          <textarea value={Instructions.restrictions} name="restrictions" autocomplete="off"  rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet}/>
           <label>Tone Examples</label>
-          <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off' required rows={5} placeholder="Tone Examples (example:1. Greeting:Enter your type)" onChange={InstructionSet}/>
+          <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off'  rows={5} placeholder="Tone Examples (example:1. Greeting:Enter your type)" onChange={InstructionSet}/>
           <label>Additional Instructions</label>
-          <textarea value={Instructions.additional_instructions} name="additional_instructions" autocomplete="off" required rows={5} placeholder="Additonal instructions (example:Add the additonal instructions you want to enhance your assistant)" onChange={InstructionSet}/>
+          <textarea value={Instructions.additional_instructions} name="additional_instructions" autocomplete="off"  rows={5} placeholder="Additonal instructions (example:Add the additonal instructions you want to enhance your assistant)" onChange={InstructionSet}/>
      
          
                 <label>
@@ -774,35 +789,63 @@ ${"hello"}
         </div>
       )}
 
-      {showWidgetModal && widgetCode && selectedAgentForWidget && (
-        <div className="modal-overlay" onClick={() => setShowWidgetModal(false)}>
-          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Widget Code - {selectedAgentForWidget.name}</h3>
-              <button className="modal-close" onClick={() => setShowWidgetModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <div className="widget-code-section">
-                <div className="code-header">
-                  <span>Copy this code to integrate the widget on <strong>{selectedAgentForWidget.domain}</strong></span>
-                  <button onClick={handleCopyWidgetCode} className="copy-btn">
-                    {copied ? '✓ Copied!' : 'Copy Code'}
-                  </button>
-                </div>
-                <pre className="widget-code">
-                  <code>{widgetCode}</code>
-                </pre>
-                <div className="widget-info">
-                  <p><strong>Widget ID:</strong> {widgetCode.match(/widgetId\s*=\s*['"]([^'"]+)['"]/)?.[1] || 'N/A'}</p>
-                  <p><strong>Agent ID:</strong> {selectedAgentForWidget.id}</p>
-                  <p><strong>Domain:</strong> {selectedAgentForWidget.domain}</p>
-                  <p className="widget-note"><strong>Note:</strong> This widget code should only be used on <strong>{selectedAgentForWidget.domain}</strong> or its subdomains.</p>
-                </div>
-              </div>
-            </div>
+    {showWidgetModal && selectedAgentForWidget && (
+  <div className="modal-overlay" onClick={() => setShowWidgetModal(false)}>
+    <div
+      className="modal-content"
+      onClick={(e) => e.stopPropagation()} 
+    >
+      <div className="modal-header">
+        <h3>Widget Code - {selectedAgentForWidget.name}</h3>
+        <button className="modal-close" onClick={() => setShowWidgetModal(false)}>×</button>
+      </div>
+
+      <div className="modal-body">
+      
+        <div className="chrome-tabs">
+          <button
+            className={tab === "float" ? "active" : ""}
+            onClick={() => handleTabChange("float")}
+          >
+            Float
+          </button>
+          <button
+            className={tab === "fixed" ? "active" : ""}
+            onClick={() => handleTabChange("fixed")}
+          >
+            Fixed
+          </button>
+        </div>
+
+        <div className="widget-code-section">
+          <div className="code-header">
+            <span>
+              Copy this code to integrate the widget on <strong>{selectedAgentForWidget.domain}</strong>
+            </span>
+            <button onClick={handleCopyWidgetCode} className="copy-btn">
+              {copied ? "✓ Copied!" : "Copy Code"}
+            </button>
+          </div>
+
+          <pre className="widget-code">
+            <code>{widgetCode || "Loading..."}</code>
+          </pre>
+
+          <div className="widget-info">
+            <p><strong>Widget ID:</strong> {widgetCode?.match(/widgetId\s*=\s*['"]([^'"]+)['"]/)?.[1] || "N/A"}</p>
+            <p><strong>Agent ID:</strong> {selectedAgentForWidget.id}</p>
+            <p><strong>Domain:</strong> {selectedAgentForWidget.domain}</p>
+            <p className="widget-note">
+              <strong>Note:</strong> This widget code should only be used on <strong>{selectedAgentForWidget.domain}</strong> or its subdomains.
+            </p>
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  </div>
+)}
+
+
 
       {selectedInstructionsAgent && (
         <div className="modal-overlay" onClick={() => setSelectedInstructionsAgent(null)}>
@@ -814,7 +857,11 @@ ${"hello"}
             <div className="modal-body">
 {console.log(selectedInstructionsAgent.instructions)}
 
-              <pre className="instructions-text">{convertJsonPrompt(selectedInstructionsAgent.instructions)}</pre>
+             <div className="instructions-text"
+  dangerouslySetInnerHTML={{
+    __html: convertJsonPrompt(selectedInstructionsAgent.instructions),
+  }}
+></div>
             </div>)
           </div>
         </div>

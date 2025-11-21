@@ -13,7 +13,8 @@ function UserProfile() {
     queryFn: () => userService.getProfile(userId),
     retry: 1,
   })
-
+  
+// console.log(profile)
 
   if (isLoading) {
     return (
@@ -84,6 +85,7 @@ function UserProfile() {
         </div>
 
         <div className="profile-section">
+          
           <h2>Chatbot Assistants</h2>
           {!profile.assistants || profile.assistants.length === 0 ? (
             <p className="no-data">No chatbot assistants created yet.</p>
