@@ -61,6 +61,29 @@
     let currentAudioSource = null;
     let currentPlaybackContext = null;
     
+    // Advanced speech detection state for better noise filtering
+    let speechDetectionState = {
+        consecutiveSpeechFrames: 0,
+        lastSpeechTime: 0,
+        speechStartTime: 0, // Track when continuous speech started (client-side)
+        openaiSpeechStartTime: 0, // Track when OpenAI detected speech started
+        minSpeechFrames: 3, // Require 3 consecutive frames to confirm speech detection
+        minContinuousSpeechMs: 1500, // Require 1500ms (1.5 seconds) of continuous speech before interrupting
+        openaiSpeechDebounceMs: 500, // Wait 500ms after OpenAI speech_started before stopping (filters false positives)
+        speechThreshold: 0.02, // Base RMS threshold
+        energyHistory: [], // Track recent energy levels to detect variation
+        zcrHistory: [], // Track zero crossing rate history
+        historySize: 5, // Keep last 5 frames for variance calculation
+        minVariance: 0.0002, // Minimum variance to distinguish speech from continuous noise/music
+        minZCR: 0.1, // Minimum zero crossing rate for speech (speech has higher ZCR than noise)
+        maxZCR: 0.5, // Maximum zero crossing rate (filters out high-frequency noise)
+        adaptiveThreshold: 0.02, // Adaptive threshold that adjusts to background noise
+        noiseFloor: 0.01, // Estimated background noise level
+        noiseFloorAlpha: 0.95, // Smoothing factor for noise floor estimation
+        speechScore: 0, // Combined speech likelihood score (0-1)
+        openaiSpeechPending: false // Track if we're waiting to stop after OpenAI speech_started
+    };
+    
     // Determine WebSocket URL
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = apiBaseUrl.replace(/^https?:/, '').replace(/^\/\//, '');
@@ -144,6 +167,7 @@
     
     // Handle messages
     function handleMessage(data) {
+        console.log(data?.type);
         switch (data.type) {
             case 'connected':
                 status.textContent = 'Connected - Ready';
@@ -162,8 +186,22 @@
                 }
                 break;
             case 'speech_started':
-                // User started speaking - stop all bot responses immediately
-                stopAllPlayback();
+                // OpenAI detected user speech - use debounced approach to filter false positives
+                const currentTime = Date.now();
+                speechDetectionState.openaiSpeechStartTime = currentTime;
+                speechDetectionState.openaiSpeechPending = true;
+                
+                // Set a timeout to actually stop playback after debounce period
+                // This allows us to verify speech is continuing
+                setTimeout(() => {
+                    // Only stop if speech is still detected (not a false positive)
+                    if (speechDetectionState.openaiSpeechPending && 
+                        (Date.now() - speechDetectionState.openaiSpeechStartTime) >= speechDetectionState.openaiSpeechDebounceMs) {
+                        stopAllPlayback();
+                        speechDetectionState.openaiSpeechPending = false;
+                    }
+                }, speechDetectionState.openaiSpeechDebounceMs);
+                
                 status.textContent = 'Listening...';
                 button.classList.add('recording');
                 break;
@@ -211,7 +249,7 @@
             stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     channelCount: 1,
-                    sampleRate: 16000,
+                    sampleRate: 24000,
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true,
@@ -240,21 +278,133 @@
                 
                 const inputData = e.inputBuffer.getChannelData(0);
                 
-                // Detect if user is speaking (simple energy-based detection)
-                const rms = Math.sqrt(inputData.reduce((sum, val) => sum + val * val, 0) / inputData.length);
-                const speechThreshold = 0.01; // Adjust based on testing
+                // Advanced multi-feature speech detection
+                // Uses RMS energy, energy variance, and zero crossing rate (ZCR)
                 
-                // If user starts speaking while bot is playing, interrupt immediately
-                if (rms > speechThreshold && isPlaying) {
-                    stopAllPlayback();
+                // 1. Calculate RMS Energy
+                const rms = Math.sqrt(inputData.reduce((sum, val) => sum + val * val, 0) / inputData.length);
+                
+                // 2. Calculate Zero Crossing Rate (ZCR) - speech has characteristic ZCR patterns
+                let zcr = 0;
+                for (let i = 1; i < inputData.length; i++) {
+                    if ((inputData[i] >= 0 && inputData[i-1] < 0) || (inputData[i] < 0 && inputData[i-1] >= 0)) {
+                        zcr++;
+                    }
+                }
+                const normalizedZCR = zcr / inputData.length; // Normalize by frame length
+                
+                // 3. Update adaptive noise floor (estimate background noise level)
+                if (rms < speechDetectionState.adaptiveThreshold) {
+                    // Likely noise - update noise floor estimate
+                    speechDetectionState.noiseFloor = 
+                        speechDetectionState.noiseFloorAlpha * speechDetectionState.noiseFloor + 
+                        (1 - speechDetectionState.noiseFloorAlpha) * rms;
+                }
+                
+                // 4. Track energy history for variance calculation
+                speechDetectionState.energyHistory.push(rms);
+                if (speechDetectionState.energyHistory.length > speechDetectionState.historySize) {
+                    speechDetectionState.energyHistory.shift();
+                }
+                
+                // 5. Track ZCR history
+                speechDetectionState.zcrHistory.push(normalizedZCR);
+                if (speechDetectionState.zcrHistory.length > speechDetectionState.historySize) {
+                    speechDetectionState.zcrHistory.shift();
+                }
+                
+                // 6. Calculate energy variance (speech has more variation than continuous noise/music)
+                let energyVariance = 0;
+                if (speechDetectionState.energyHistory.length >= 3) {
+                    const mean = speechDetectionState.energyHistory.reduce((a, b) => a + b, 0) / speechDetectionState.energyHistory.length;
+                    const variance = speechDetectionState.energyHistory.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / speechDetectionState.energyHistory.length;
+                    energyVariance = variance;
+                }
+                
+                // 7. Calculate adaptive threshold (adjusts to background noise level)
+                speechDetectionState.adaptiveThreshold = Math.max(
+                    speechDetectionState.speechThreshold,
+                    speechDetectionState.noiseFloor * 2.5 // Threshold is 2.5x the noise floor
+                );
+                
+                // 8. Multi-feature speech detection scoring
+                // Feature 1: Energy above adaptive threshold
+                const energyScore = rms > speechDetectionState.adaptiveThreshold ? 1 : 0;
+                
+                // Feature 2: Energy variance (speech has variation, continuous noise doesn't)
+                const varianceScore = energyVariance >= speechDetectionState.minVariance ? 1 : 0;
+                
+                // Feature 3: Zero Crossing Rate (speech has characteristic ZCR range)
+                const zcrScore = (normalizedZCR >= speechDetectionState.minZCR && 
+                                 normalizedZCR <= speechDetectionState.maxZCR) ? 1 : 0;
+                
+                // Feature 4: Signal-to-noise ratio (SNR)
+                const snr = speechDetectionState.noiseFloor > 0 ? 
+                    (rms / speechDetectionState.noiseFloor) : 0;
+                const snrScore = snr > 2.0 ? 1 : 0; // Require at least 2:1 SNR
+                
+                // Combined speech likelihood score (weighted combination)
+                // Require at least 3 out of 4 features to indicate speech
+                const featureCount = energyScore + varianceScore + zcrScore + snrScore;
+                const isSpeechDetected = featureCount >= 3;
+                
+                // Store speech score for debugging (optional)
+                speechDetectionState.speechScore = featureCount / 4;
+                
+                // Track consecutive speech frames to distinguish real speech from noise
+                const currentTime = Date.now();
+                if (isSpeechDetected) {
+                    speechDetectionState.consecutiveSpeechFrames++;
+                    speechDetectionState.lastSpeechTime = currentTime;
+                    
+                    // Track when continuous speech started
+                    if (speechDetectionState.speechStartTime === 0) {
+                        speechDetectionState.speechStartTime = currentTime;
+                    }
+                } else {
+                    // Reset counter if no speech detected (allows brief pauses in speech)
+                    // Only reset if we haven't had speech for a while
+                    if (currentTime - speechDetectionState.lastSpeechTime > 200) {
+                        speechDetectionState.consecutiveSpeechFrames = 0;
+                        speechDetectionState.speechStartTime = 0; // Reset speech start time
+                    }
+                }
+                
+                // Client-side backup detection: Only interrupt if we have sustained speech for the minimum duration
+                // This is a backup in case OpenAI's detection misses something
+                // Require both: sufficient frames AND continuous speech for 1000ms
+                if (isPlaying && 
+                    speechDetectionState.consecutiveSpeechFrames >= speechDetectionState.minSpeechFrames &&
+                    speechDetectionState.speechStartTime > 0) {
+                    
+                    const continuousSpeechDuration = currentTime - speechDetectionState.speechStartTime;
+                    
+                    // Only stop playback if user has been speaking continuously for at least 1000ms
+                    // This ensures we don't interrupt on brief sounds
+                    if (continuousSpeechDuration >= speechDetectionState.minContinuousSpeechMs) {
+                        stopAllPlayback();
+                        // Reset after interrupting to avoid immediate re-triggering
+                        speechDetectionState.consecutiveSpeechFrames = 0;
+                        speechDetectionState.speechStartTime = 0;
+                        speechDetectionState.openaiSpeechPending = false; // Cancel OpenAI pending if client-side triggered
+                    }
+                }
+                
+                // If OpenAI speech_started was detected, verify it's still ongoing
+                // Reset pending flag if speech stops (false positive detection)
+                if (speechDetectionState.openaiSpeechPending && !isSpeechDetected) {
+                    // If no speech detected for a while, cancel the pending stop
+                    if (currentTime - speechDetectionState.openaiSpeechStartTime > 300) {
+                        speechDetectionState.openaiSpeechPending = false;
+                    }
                 }
                 
                 const inputSampleRate = audioContext.sampleRate;
                 
-                // Resample to 16kHz if needed (OpenAI minimum requirement)
+                // Resample to 24kHz if needed (matches OpenAI's output format)
                 let audioData = inputData;
-                if (inputSampleRate !== 16000) {
-                    audioData = resampleAudio(inputData, inputSampleRate, 16000);
+                if (inputSampleRate !== 24000) {
+                    audioData = resampleAudio(inputData, inputSampleRate, 24000);
                 }
                 
                 const pcm16 = float32ToPCM16(audioData);
@@ -327,6 +477,16 @@
         // Clear the audio queue
         audioQueue = [];
         isPlaying = false;
+        
+        // Reset speech detection state after stopping playback
+        speechDetectionState.consecutiveSpeechFrames = 0;
+        speechDetectionState.lastSpeechTime = 0;
+        speechDetectionState.speechStartTime = 0;
+        speechDetectionState.openaiSpeechStartTime = 0;
+        speechDetectionState.openaiSpeechPending = false;
+        speechDetectionState.energyHistory = [];
+        speechDetectionState.zcrHistory = [];
+        speechDetectionState.speechScore = 0;
     }
     
     // Audio playback
