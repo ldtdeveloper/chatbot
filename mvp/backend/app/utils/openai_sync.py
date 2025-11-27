@@ -4,6 +4,7 @@ OpenAI API sync utilities for prompts and versions
 import httpx
 from typing import List
 from app.utils.encryption import decrypt_api_key
+from app.utils.openai_logger import log_openai_request
 from app.models.openai_key import OpenAIKey
 from sqlalchemy.orm import Session
 
@@ -21,19 +22,22 @@ async def create_openai_prompt(
     try:
         decrypted_key = decrypt_api_key(api_key.encrypted_key)
         
+        url = "https://api.openai.com/v1/prompts"
+        headers = {
+            "Authorization": f"Bearer {decrypted_key}",
+            "Content-Type": "application/json"
+        }
+        body = {
+            "name": name,
+            "instructions": instructions
+        }
+        
+        # Log request in dev environment
+        log_openai_request(url, headers, body, "POST")
+        
         async with httpx.AsyncClient(timeout=30.0) as client:
             # Use /v1/prompts endpoint (not /v1/realtime/prompts)
-            response = await client.post(
-                "https://api.openai.com/v1/prompts",
-                headers={
-                    "Authorization": f"Bearer {decrypted_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "name": name,
-                    "instructions": instructions
-                }
-            )
+            response = await client.post(url, headers=headers, json=body)
             
             if response.status_code == 201:
                 data = response.json()
@@ -62,18 +66,21 @@ async def create_openai_prompt_version(
     try:
         decrypted_key = decrypt_api_key(api_key.encrypted_key)
         
+        url = f"https://api.openai.com/v1/prompts/{prompt_id}/versions"
+        headers = {
+            "Authorization": f"Bearer {decrypted_key}",
+            "Content-Type": "application/json"
+        }
+        body = {
+            "instructions": instructions
+        }
+        
+        # Log request in dev environment
+        log_openai_request(url, headers, body, "POST")
+        
         async with httpx.AsyncClient(timeout=30.0) as client:
             # Use /v1/prompts/{id}/versions endpoint (not /v1/realtime/prompts)
-            response = await client.post(
-                f"https://api.openai.com/v1/prompts/{prompt_id}/versions",
-                headers={
-                    "Authorization": f"Bearer {decrypted_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "instructions": instructions
-                }
-            )
+            response = await client.post(url, headers=headers, json=body)
             
             if response.status_code == 201:
                 data = response.json()
@@ -111,15 +118,18 @@ async def get_openai_prompt(
     try:
         decrypted_key = decrypt_api_key(api_key.encrypted_key)
         
+        url = f"https://api.openai.com/v1/prompts/{prompt_id}"
+        headers = {
+            "Authorization": f"Bearer {decrypted_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Log request in dev environment
+        log_openai_request(url, headers, None, "GET")
+        
         async with httpx.AsyncClient(timeout=30.0) as client:
             # Use /v1/prompts/{id} endpoint (not /v1/realtime/prompts)
-            response = await client.get(
-                f"https://api.openai.com/v1/prompts/{prompt_id}",
-                headers={
-                    "Authorization": f"Bearer {decrypted_key}",
-                    "Content-Type": "application/json"
-                }
-            )
+            response = await client.get(url, headers=headers)
             
             if response.status_code == 200:
                 return response.json()
@@ -142,15 +152,18 @@ async def list_openai_prompt_versions(
     try:
         decrypted_key = decrypt_api_key(api_key.encrypted_key)
         
+        url = f"https://api.openai.com/v1/prompts/{prompt_id}/versions"
+        headers = {
+            "Authorization": f"Bearer {decrypted_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Log request in dev environment
+        log_openai_request(url, headers, None, "GET")
+        
         async with httpx.AsyncClient(timeout=30.0) as client:
             # Use /v1/prompts/{id}/versions endpoint (not /v1/realtime/prompts)
-            response = await client.get(
-                f"https://api.openai.com/v1/prompts/{prompt_id}/versions",
-                headers={
-                    "Authorization": f"Bearer {decrypted_key}",
-                    "Content-Type": "application/json"
-                }
-            )
+            response = await client.get(url, headers=headers)
             
             if response.status_code == 200:
                 data = response.json()

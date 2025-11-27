@@ -36,10 +36,11 @@ function Layout() {
         </div>
         <div className="navbar-menu">
           <Link to="/">Dashboard</Link>
-          {user?.role === 'default' && <Link to="/assistants">Assistants</Link>}
+          {/* {user?.role === 'default' && <Link to="/assistants">Assistants</Link>} */}
           <Link to="/openai-keys">API Keys</Link>
           <Link to="/agents">Agents</Link>
-          {user?.role === 'default' && <Link to="/widget-generator">Widget</Link>}
+          {/* {user?.role === 'default' && <Link to="/widget-generator">Widget</Link>} */}
+
           <div className="navbar-user" ref={dropdownRef}>
             <button 
               className="navbar-user-toggle"
@@ -49,19 +50,35 @@ function Layout() {
               {user?.role === 'superadmin' && <span className="role-badge">Admin</span>}
               <span className="dropdown-arrow">▼</span>
             </button>
+
             {dropdownOpen && (
               <div className="dropdown-menu">
+                {/* Edit Profile - only for non-superadmin */}
+                {user?.role !== 'superadmin' && (
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      navigate(`/users/${user.id}/profile-update`)
+                    }}
+                  >
+                    Edit Profile
+                  </button>
+                )}
+
+                {/* Manage Users - only superadmin */}
                 {user?.role === 'superadmin' && (
                   <Link to="/users" onClick={() => setDropdownOpen(false)}>
                     Manage Users
                   </Link>
                 )}
+
                 <button onClick={handleLogout}>Logout</button>
               </div>
             )}
           </div>
         </div>
       </nav>
+
       <main className="main-content">
         <Outlet />
       </main>
@@ -70,4 +87,3 @@ function Layout() {
 }
 
 export default Layout
-

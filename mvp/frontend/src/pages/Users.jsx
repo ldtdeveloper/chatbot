@@ -118,6 +118,13 @@ function Users() {
                 View Profile
               </button>
               <button
+                onClick={() => navigate(`/users/${user.id}/profile-update`)}
+                className="view-btn"
+                title={`View profile for ${user.username} (${user.role})`}
+              >
+                Edit Profile
+              </button>
+              <button
                 onClick={() => toggleMutation.mutate(user.id)}
                 disabled={toggleMutation.isLoading}
               >

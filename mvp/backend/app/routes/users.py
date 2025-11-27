@@ -6,10 +6,11 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.user import User, UserRole
-from app.schemas import UserCreate, UserResponse
+from app.schemas import UserCreate, UserResponse, UserUpdate
 from app.dependencies import get_current_user
 from app.utils.auth import get_password_hash
 from app.utils.roles import require_superadmin
+
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -89,6 +90,71 @@ async def get_user(
     return user
 
 
+@router.patch("/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: int,
+    userdata: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user (superadmin only) — password not editable here."""
+    if current_user.role != UserRole.SUPERADMIN and current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. You can only view your own profile."
+        )
+    
+
+    # Fetch the user
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check duplicate email
+    if userdata.email and userdata.email != db_user.email:
+        if db.query(User).filter(User.email == userdata.email).first():
+            raise HTTPException(
+                status_code=400,
+                detail="Email already registered"
+            )
+
+    # Check duplicate username
+    if userdata.username and userdata.username != db_user.username:
+        if db.query(User).filter(User.username == userdata.username).first():
+            raise HTTPException(
+                status_code=400,
+                detail="Username already taken"
+            )
+
+    # Update email
+    if userdata.email:
+        db_user.email = userdata.email
+
+    # Update username
+    if userdata.username:
+        db_user.username = userdata.username
+    #update password
+    if userdata.password:
+        db_user.hashed_password=get_password_hash(userdata.password)
+        
+
+    # Update role
+    if userdata.role:
+        try:
+            db_user.role = UserRole(userdata.role)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid role. Allowed: {[r.value for r in UserRole]}"
+            )
+
+    # Save
+    db.commit()
+    db.refresh(db_user)
+
+    return db_user
+
+
 @router.patch("/{user_id}/toggle-active")
 async def toggle_user_active(
     user_id: int,
@@ -126,7 +192,12 @@ async def get_user_profile(
     db: Session = Depends(get_db)
 ):
     """Get user profile with all their data (superadmin only)"""
-    require_superadmin(current_user)
+    if current_user.role != UserRole.SUPERADMIN and current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. You can only view your own profile."
+        )
+    
     
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -153,7 +224,7 @@ async def get_user_profile(
             "is_active": user.is_active,
             "created_at": user.created_at
         },
-        "agents": [{"id": a.id, "name": a.name, "description": a.description} for a in agents],
+        "agents": [{"id": a.id, "name": a.name, "description": getattr(a, "description", "")} for a in agents],
         "assistants": [{"id": a.id, "name": a.name, "voice": a.voice, "created_at": a.created_at} for a in assistants],
         "api_keys_count": len(keys),
         "active_keys_count": len([k for k in keys if k.is_active])
@@ -238,4 +309,3 @@ async def get_user_widgets(
         "username": user.username,
         "widgets": widgets
     }
-

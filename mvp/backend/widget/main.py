@@ -3,6 +3,7 @@ import os
 import json
 import asyncio
 import websockets
+import logging
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +12,13 @@ from pathlib import Path
 import sqlite3
 from typing import Optional, Dict
 from dotenv import load_dotenv
+
+# Configure logging for OpenAI requests logger
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 # Load environment variables
 load_dotenv()
@@ -74,6 +82,45 @@ WIDGET_DIR = BASE_DIR / "widget-files"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise RuntimeError("Missing OPENAI_API_KEY environment variable. Please set it in your .env file")
+
+# Import logger utility (will check APP_ENV internally)
+try:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from app.utils.openai_logger import log_openai_websocket_connect, log_openai_websocket_message
+except ImportError:
+    # Fallback if app module not available
+    def log_openai_websocket_connect(url, headers):
+        app_env = os.getenv("APP_ENV", "LOCAL").upper()
+        if app_env in ["DEV", "LOCAL"]:
+            import json
+            logger = logging.getLogger("openai_requests")
+            masked_headers = headers.copy()
+            if "Authorization" in masked_headers:
+                auth_value = masked_headers["Authorization"]
+                if auth_value.startswith("Bearer "):
+                    token = auth_value[7:]
+                    if len(token) > 14:
+                        masked_token = f"{token[:10]}...{token[-4:]}"
+                    else:
+                        masked_token = "***"
+                    masked_headers["Authorization"] = f"Bearer {masked_token}"
+                else:
+                    masked_headers["Authorization"] = "Bearer ***"
+            logger.info("OpenAI REQUEST -")
+            logger.info(f"endpoint: WebSocket {url}")
+            logger.info(f"headers: {json.dumps(masked_headers, indent=2)}")
+            logger.info("body: (WebSocket connection)")
+    
+    def log_openai_websocket_message(message):
+        app_env = os.getenv("APP_ENV", "LOCAL").upper()
+        if app_env in ["DEV", "LOCAL"]:
+            logger = logging.getLogger("openai_requests")
+            message_str = json.dumps(message, indent=2)
+            logger.info("OpenAI REQUEST -")
+            logger.info("endpoint: WebSocket Message")
+            logger.info("headers: (N/A for WebSocket message)")
+            logger.info(f"body: {message_str}")
 
 # Client tracking
 clients: Dict[WebSocket, websockets.WebSocketClientProtocol] = {}
@@ -203,12 +250,15 @@ async def websocket_proxy(ws: WebSocket):
                 
                 openai_ws = clients[ws]
                 if openai_ws.open:
-                    await openai_ws.send(json.dumps({
-                        "type": "input_audio_buffer.commit"
-                    }))
-                    await openai_ws.send(json.dumps({
-                        "type": "response.create"
-                    }))
+                    commit_msg = {"type": "input_audio_buffer.commit"}
+                    response_msg = {"type": "response.create"}
+                    
+                    # Log messages in dev environment
+                    log_openai_websocket_message(commit_msg)
+                    log_openai_websocket_message(response_msg)
+                    
+                    await openai_ws.send(json.dumps(commit_msg))
+                    await openai_ws.send(json.dumps(response_msg))
                     print("[WS] Committed audio & requested response")
 
             else:
@@ -267,6 +317,9 @@ async def connect_openai(client_ws: WebSocket, agent: Optional[Dict] = None):
         "OpenAI-Beta": "realtime=v1"
     }
     
+    # Log WebSocket connection in dev environment
+    log_openai_websocket_connect(ws_url, headers)
+    
     try:
         openai_ws = await websockets.connect(ws_url, extra_headers=headers)
         print("[OpenAI] Connected to Realtime API")
@@ -315,6 +368,9 @@ async def connect_openai(client_ws: WebSocket, agent: Optional[Dict] = None):
     else:
         print("[OpenAI] No agent instructions - using default behavior")
 
+    # Log session update message in dev environment
+    log_openai_websocket_message(session_payload)
+    
     await openai_ws.send(json.dumps(session_payload))
     print("[OpenAI] Session configured")
 

@@ -1,11 +1,19 @@
 """
 Main FastAPI application
 """
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
 from app.routes import auth, openai_keys, agents, assistant_config, widget, users
+
+# Configure logging for OpenAI requests logger
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -17,7 +25,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
