@@ -12,6 +12,7 @@ from app.models.agent import Agent
 from app.schemas import WidgetCodeResponse
 from app.dependencies import get_current_user
 from app.utils.encryption import decrypt_api_key
+from app.utils.openai_logger import log_openai_websocket_connect, log_openai_websocket_message
 from app.config import settings
 from pathlib import Path
 import uuid
@@ -25,6 +26,73 @@ router = APIRouter(prefix="/api/widget", tags=["widget"])
 
 # Widget static files directory
 WIDGET_DIR = Path(__file__).parent.parent.parent / "widget"
+
+
+def format_instructions_for_openai(instructions: str) -> str:
+    """
+    Convert instructions from JSON format to plain text format for OpenAI.
+    
+    Args:
+        instructions: Instructions as JSON string or plain text
+        
+    Returns:
+        Plain text instructions formatted for OpenAI
+    """
+    if not instructions:
+        return ""
+    
+    # Try to parse as JSON
+    try:
+        instructions_dict = json.loads(instructions)
+        
+        # If it's a dict, format it as readable text
+        if isinstance(instructions_dict, dict):
+            formatted_parts = []
+            
+            # Add each field as a section
+            if instructions_dict.get("voice_behaviour"):
+                formatted_parts.append(f"VOICE & BEHAVIOUR\n{instructions_dict['voice_behaviour']}")
+            
+            if instructions_dict.get("scope"):
+                formatted_parts.append(f"\nSCOPE\n{instructions_dict['scope']}")
+            
+            if instructions_dict.get("contact_details"):
+                formatted_parts.append(f"\nCONTACT DETAILS\n{instructions_dict['contact_details']}")
+            
+            if instructions_dict.get("privacy_rules"):
+                formatted_parts.append(f"\nPRIVACY RULES\n{instructions_dict['privacy_rules']}")
+            
+            if instructions_dict.get("top_features"):
+                formatted_parts.append(f"\nTOP FEATURES\n{instructions_dict['top_features']}")
+            
+            if instructions_dict.get("product"):
+                formatted_parts.append(f"\nPRODUCT\n{instructions_dict['product']}")
+            
+            if instructions_dict.get("services"):
+                formatted_parts.append(f"\nSERVICES\n{instructions_dict['services']}")
+            
+            if instructions_dict.get("office_locations"):
+                formatted_parts.append(f"\nOFFICE LOCATIONS\n{instructions_dict['office_locations']}")
+            
+            if instructions_dict.get("pricing_rules"):
+                formatted_parts.append(f"\nPRICING RULES\n{instructions_dict['pricing_rules']}")
+            
+            if instructions_dict.get("restrictions"):
+                formatted_parts.append(f"\nRESTRICTIONS\n{instructions_dict['restrictions']}")
+            
+            if instructions_dict.get("tone_examples"):
+                formatted_parts.append(f"\nTONE EXAMPLES\n{instructions_dict['tone_examples']}")
+            
+            if instructions_dict.get("additional_instructions"):
+                formatted_parts.append(f"\nADDITIONAL INSTRUCTIONS ----->\n\n{instructions_dict['additional_instructions']}")
+            
+            return "\n".join(formatted_parts)
+        else:
+            # If parsed but not a dict, return as string
+            return str(instructions_dict)
+    except (json.JSONDecodeError, TypeError):
+        # If it's not JSON, return as plain text
+        return instructions
 
 
 @router.get("/widget.css")
@@ -390,6 +458,9 @@ async def widget_websocket(
             "OpenAI-Beta": "realtime=v1"
         }
         
+        # Log WebSocket connection in dev environment
+        log_openai_websocket_connect(ws_url, headers)
+        
         try:
             openai_ws = await websockets.connect(ws_url, extra_headers=headers)
             print("[Widget WS] Connected to OpenAI Realtime API")
@@ -418,7 +489,7 @@ async def widget_websocket(
                     "prefix_padding_ms": agent.noise_reduction_prefix_padding_ms or 300,
                     "silence_duration_ms": agent.noise_reduction_silence_duration_ms or 500
                 },
-                "instructions": agent.instructions
+                "instructions": format_instructions_for_openai(agent.instructions)
             }
         }
         
@@ -431,6 +502,9 @@ async def widget_websocket(
             for key, value in agent_config.items():
                 if key not in session_payload["session"]:
                     session_payload["session"][key] = value
+        
+        # Log session update message in dev environment
+        log_openai_websocket_message(session_payload)
         
         await openai_ws.send(json.dumps(session_payload))
         print(f"[Widget WS] OpenAI session configured for agent '{agent.name}'")
@@ -462,12 +536,15 @@ async def widget_websocket(
                 elif action == "commit":
                     # Commit audio and request response
                     if openai_ws and openai_ws.open:
-                        await openai_ws.send(json.dumps({
-                            "type": "input_audio_buffer.commit"
-                        }))
-                        await openai_ws.send(json.dumps({
-                            "type": "response.create"
-                        }))
+                        commit_msg = {"type": "input_audio_buffer.commit"}
+                        response_msg = {"type": "response.create"}
+                        
+                        # Log messages in dev environment
+                        log_openai_websocket_message(commit_msg)
+                        log_openai_websocket_message(response_msg)
+                        
+                        await openai_ws.send(json.dumps(commit_msg))
+                        await openai_ws.send(json.dumps(response_msg))
                         print("[Widget WS] Committed audio & requested response")
                 
                 else:
