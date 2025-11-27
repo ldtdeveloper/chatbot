@@ -13,6 +13,11 @@ class UserCreate(BaseModel):
     username: str
     password: str
     role: Optional[str] = "default"  # Only superadmin can set role
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None  # Only superadmin can set the role
 
 
 class UserLogin(BaseModel):

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import EditProfile from './pages/EditProfile'
 import Users from './pages/Users'
 import UserProfile from './pages/UserProfile'
 import OpenAIKeys from './pages/OpenAIKeys'
@@ -36,6 +37,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="users" element={<Users />} />
             <Route path="users/:userId/profile" element={<UserProfile />} />
+            <Route path="users/:userId/profile-update" element={<EditProfile />} />
             <Route path="openai-keys" element={<OpenAIKeys />} />
             <Route path="agents" element={<Agents />} />
             <Route path="assistants" element={<Assistants />} />
