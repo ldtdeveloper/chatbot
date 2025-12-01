@@ -102,10 +102,10 @@ async def get_widget_css():
     if not css_file.exists():
         raise HTTPException(status_code=404, detail="Widget CSS not found")
     return FileResponse(css_file, media_type="text/css")
-@router.get("/widgetNew.css")
+@router.get("/widget-static.css")
 async def get_widget_css():
     """Serve widget CSS file"""
-    css_file = WIDGET_DIR / "widgetNew.css"
+    css_file = WIDGET_DIR / "widget-static.css"
     if not css_file.exists():
         raise HTTPException(status_code=404, detail="Widget CSS not found")
     return FileResponse(css_file, media_type="text/css")
@@ -118,11 +118,11 @@ async def get_widget_js():
     if not js_file.exists():
         raise HTTPException(status_code=404, detail="Widget JS not found")
     return FileResponse(js_file, media_type="application/javascript")
-@router.get("/widgetNew.js")
-async def get_widget_new_js():
-    js_file = WIDGET_DIR / "widget-new.js"
+@router.get("/widget-static.js")
+async def get_widget_static_js():
+    js_file = WIDGET_DIR / "widget-static.js"
     if not js_file.exists():
-        raise HTTPException(status_code=404, detail="WidgetNew JS not found")
+        raise HTTPException(status_code=404, detail="Widget Static JS not found")
     return FileResponse(js_file, media_type="application/javascript")
 
 @router.get("/codeFixed/agent/{agent_id}", response_model=WidgetCodeResponse)
@@ -138,19 +138,22 @@ async def generate_agent_widget_code(
         Agent.user_id == current_user.id
     ).first()
 
-    instructions_data = json.loads(agent.instructions)
-    company_name = instructions_data.get("company_name")
-    print(company_name)
-    
-    print(type(agent.instructions))
-
-
-    print(agent.instructions)
     if not agent:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Agent not found"
         )
+    
+    # Try to parse instructions as JSON (for debugging/optional use)
+    try:
+        if agent.instructions:
+            instructions_data = json.loads(agent.instructions)
+            company_name = instructions_data.get("company_name")
+            if company_name:
+                print(f"Company name: {company_name}")
+    except (json.JSONDecodeError, TypeError):
+        # Instructions might be plain text, which is fine
+        pass
     
     # Get the OpenAI key for this agent
     api_key = db.query(OpenAIKey).filter(
@@ -175,7 +178,6 @@ async def generate_agent_widget_code(
     # Generate minimal widget code that loads external files
 
     widget_code = f"""<!-- Voice Assistant Widget: {agent.name} -->
-//Give the div an ID of 'chatbot'and the agent will be placed there
 <script>
 (function() {{
     // API base URL for widget backend connection
@@ -183,11 +185,11 @@ async def generate_agent_widget_code(
     
     // Create and load widget script
     const script = document.createElement('script');
-    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget-new.js';
+    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget-static.js';
     script.setAttribute('data-agent-id', '{agent_id}');
     script.setAttribute('data-api-url', apiBaseUrl);
     script.setAttribute('data-agent-name', '{agent.name}');
-    script.setAttribute('data-target-id', 'chatbot');
+    script.setAttribute('data-target-id', 'chatbot'); // <<<--- Change to desired container id
     script.async = true;
     document.head.appendChild(script);
 }})();
@@ -212,19 +214,22 @@ async def generate_agent_widget_code(
         Agent.user_id == current_user.id
     ).first()
 
-    instructions_data = json.loads(agent.instructions)
-    company_name = instructions_data.get("company_name")
-    print(company_name)
-    
-    print(type(agent.instructions))
-
-
-    print(agent.instructions)
     if not agent:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Agent not found"
         )
+    
+    # Try to parse instructions as JSON (for debugging/optional use)
+    try:
+        if agent.instructions:
+            instructions_data = json.loads(agent.instructions)
+            company_name = instructions_data.get("company_name")
+            if company_name:
+                print(f"Company name: {company_name}")
+    except (json.JSONDecodeError, TypeError):
+        # Instructions might be plain text, which is fine
+        pass
     
     # Get the OpenAI key for this agent
     api_key = db.query(OpenAIKey).filter(
@@ -254,13 +259,14 @@ async def generate_agent_widget_code(
     // API base URL for widget backend connection
     let apiBaseUrl = '{api_base_url}';
     
-    // Create and load widget script
+    // Create and load widget script-
     const script = document.createElement('script');
     script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
     script.setAttribute('data-agent-id', '{agent_id}');
     script.setAttribute('data-api-url', apiBaseUrl);
     script.setAttribute('data-agent-name', '{agent.name}');
     script.async = true;
+    
     document.head.appendChild(script);
 }})();
 </script>"""

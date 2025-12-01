@@ -386,7 +386,7 @@
             // Add AI icon for assistant messages
             const icon = document.createElement('span');
             icon.className = 'ai-icon';
-            icon.innerHTML = '🤖';
+            icon.innerHTML = '🗩';
             div.appendChild(icon);
             
             const textSpan = document.createElement('span');

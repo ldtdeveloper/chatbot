@@ -55,7 +55,7 @@
 }
 
 .copy-btn {
-  background: #667eea;
+  background: linear-gradient(65deg, #667eea 35%, #764ba2 75%);
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -65,7 +65,7 @@
 }
 
 .copy-btn:hover {
-  background: #5568d3;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .widget-code {

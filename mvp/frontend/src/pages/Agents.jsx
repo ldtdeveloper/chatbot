@@ -62,22 +62,6 @@ const InstructionSet = (e) => {
     [name]: value
   }));
 };
-const fetchWidgetCode = async (agent, type) => {
-  try {
-    let data;
-    if (type === "float") {
-      data = await agentService.generateWidgetCode(agent.id);
-    } else {
-      data = await agentService.generateWidgetCodeFixed(agent.id);
-    }
-    setWidgetCode(data.widget_code);
-    setSelectedAgentForWidget(agent);
-    setShowWidgetModal(true);
-  } catch (error) {
-    console.error('Error generating widget code:', error);
-    alert('Failed to generate widget code: ' + (error.response?.data?.detail || error.message));
-  }
-};
 const handleTabChange = async (type) => {
   setTab(type);
   if (!selectedAgentForWidget) return;
@@ -90,6 +74,7 @@ const handleTabChange = async (type) => {
       data = await agentService.generateWidgetCodeFixed(selectedAgentForWidget.id);
     }
     setWidgetCode(data.widget_code); // Set the code dynamically
+    setWidgetId(data.widget_id || null); // Store widget_id from response
   } catch (error) {
     console.error("Error fetching widget code:", error);
     alert("Failed to fetch widget code");
@@ -109,6 +94,7 @@ const handleTabChange = async (type) => {
   })
   const [selectedAgentForWidget, setSelectedAgentForWidget] = useState(null)
   const [widgetCode, setWidgetCode] = useState(null)
+  const [widgetId, setWidgetId] = useState(null)
   const [copied, setCopied] = useState(false)
 
   const { data: agents, isLoading } = useQuery({
@@ -304,8 +290,10 @@ const handleEdit = (agent) => {
 
   const handleGenerateWidget = async (agent) => {
     try {
+      setTab("float") // Set initial tab to float
       const data = await agentService.generateWidgetCode(agent.id)
       setWidgetCode(data.widget_code)
+      setWidgetId(data.widget_id || null)
       setSelectedAgentForWidget(agent)
       setShowWidgetModal(true)
     } catch (error) {
@@ -807,14 +795,24 @@ ${"hello"}
       )}
 
     {showWidgetModal && selectedAgentForWidget && (
-  <div className="modal-overlay" onClick={() => setShowWidgetModal(false)}>
+  <div className="modal-overlay" onClick={() => {
+    setShowWidgetModal(false)
+    setWidgetCode(null)
+    setWidgetId(null)
+    setCopied(false)
+  }}>
     <div
       className="modal-content"
       onClick={(e) => e.stopPropagation()} 
     >
       <div className="modal-header">
         <h3>Widget Code - {selectedAgentForWidget.name}</h3>
-        <button className="modal-close" onClick={() => setShowWidgetModal(false)}>×</button>
+        <button className="modal-close" onClick={() => {
+          setShowWidgetModal(false)
+          setWidgetCode(null)
+          setWidgetId(null)
+          setCopied(false)
+        }}>×</button>
       </div>
 
       <div className="modal-body">
@@ -824,13 +822,13 @@ ${"hello"}
             className={tab === "float" ? "active" : ""}
             onClick={() => handleTabChange("float")}
           >
-            Float
+            Floating
           </button>
           <button
-            className={tab === "fixed" ? "active" : ""}
-            onClick={() => handleTabChange("fixed")}
+            className={tab === "static" ? "active" : ""}
+            onClick={() => handleTabChange("static")}
           >
-            Fixed
+            Static
           </button>
         </div>
 
@@ -849,7 +847,7 @@ ${"hello"}
           </pre>
 
           <div className="widget-info">
-            <p><strong>Widget ID:</strong> {widgetCode?.match(/widgetId\s*=\s*['"]([^'"]+)['"]/)?.[1] || "N/A"}</p>
+            <p><strong>Widget ID:</strong> {widgetId || "N/A"}</p>
             <p><strong>Agent ID:</strong> {selectedAgentForWidget.id}</p>
             <p><strong>Domain:</strong> {selectedAgentForWidget.domain}</p>
             <p className="widget-note">
