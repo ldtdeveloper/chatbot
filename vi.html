@@ -481,6 +481,31 @@
             animation: fadeInUp 0.8s ease-out;
         }
 
+        /* Embedded Widget Section */
+        .widget-section {
+            padding: 4rem 5%;
+            background: var(--light-bg);
+        }
+
+        .widget-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        #chatbot {
+            min-height: 500px;
+            background: var(--white);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 2rem;
+            position: relative;
+        }
+
+        /* Override widget header to match Vi branding */
+        #voice-widget-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .nav-links {
@@ -503,6 +528,11 @@
             .benefits-grid,
             .testimonials-grid {
                 grid-template-columns: 1fr;
+            }
+
+            #chatbot {
+                min-height: 400px;
+                padding: 1rem;
             }
         }
     </style>
@@ -664,6 +694,15 @@
         <a href="#contact" class="cta-button" style="font-size: 1.2rem; padding: 1.2rem 2.5rem;">Contact Support</a>
     </section>
 
+    <!-- Voice Assistant Widget Container (Embedded) -->
+    <section class="widget-section">
+        <div class="widget-container">
+            <h2 class="section-title">Chat with Samantha</h2>
+            <p class="section-subtitle">Get instant help with your queries using our AI-powered voice assistant</p>
+            <div id="chatbot"></div>
+        </div>
+    </section>
+
     <!-- Footer -->
     <footer id="contact">
         <div class="footer-content">
@@ -701,18 +740,19 @@
         </div>
     </footer>
 
-<!-- Voice Assistant Widget: Vi Assistant -->
+<!-- Voice Assistant Widget: Vi Assistant (Embedded) -->
 <script>
 (function() {
     // API base URL for widget backend connection
     let apiBaseUrl = '//chat-api.ldttechnology.in';
     
-    // Create and load widget script
+    // Create and load embedded widget script
     const script = document.createElement('script');
-    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
+    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget-static.js';
     script.setAttribute('data-agent-id', '1');
     script.setAttribute('data-api-url', apiBaseUrl);
     script.setAttribute('data-agent-name', 'Samantha');
+    script.setAttribute('data-target-id', 'chatbot'); // Target div for embedded widget
     script.async = true;
     document.head.appendChild(script);
 })();
