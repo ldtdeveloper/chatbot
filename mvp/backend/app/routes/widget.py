@@ -503,6 +503,14 @@ async def widget_websocket(
         if agent.voice:
             session_payload["session"]["voice"] = agent.voice
         
+        # Add noise reduction mode if specified
+        if agent.noise_reduction_mode:
+            # Convert enum to string value (e.g., NoiseReductionMode.NEAR_FIELD -> "near_field")
+            noise_reduction_type = agent.noise_reduction_mode.value if hasattr(agent.noise_reduction_mode, 'value') else str(agent.noise_reduction_mode)
+            session_payload["session"]["input_audio_noise_reduction"] = {
+                "type": noise_reduction_type
+            }
+        
         # Add additional agent config if present
         if agent_config:
             for key, value in agent_config.items():
