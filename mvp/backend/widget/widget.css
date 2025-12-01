@@ -103,6 +103,7 @@
     font-size: 18px;
     flex-shrink: 0;
     margin-top: 2px;
+    color: #6b21a8;
 }
 
 .transcript-assistant span:not(.ai-icon) {

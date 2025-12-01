@@ -14,7 +14,7 @@
     // Inject CSS
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widgetNew.css';
+    link.href = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget-static.css';
     document.head.appendChild(link);
     
     // HTML
@@ -242,7 +242,7 @@
         div.className = 'transcript-' + role;
         if (role === 'assistant') {
             const icon = document.createElement('span');
-            icon.className = 'ai-icon'; icon.innerHTML = '🤖'; div.appendChild(icon);
+            icon.className = 'ai-icon'; icon.innerHTML = '🗩'; div.appendChild(icon);
             const textSpan = document.createElement('span'); textSpan.textContent = text; div.appendChild(textSpan);
         } else div.textContent = 'You: ' + text;
         transcript.appendChild(div);

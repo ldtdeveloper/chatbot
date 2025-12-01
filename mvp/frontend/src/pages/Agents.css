@@ -205,8 +205,9 @@
   background: #1976d2;
 }
 
-.widget-code-section {
-  margin-top: 1rem;
+.widget-code-section, .widget-code-section * {
+	margin: 0 !important;
+	border-radius: 0 !important;
 }
 
 .code-header {
@@ -225,7 +226,7 @@
 }
 
 .copy-btn {
-  background: #4caf50;
+  background: linear-gradient(65deg, #667eea 35%, #764ba2 75%);
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -591,18 +592,16 @@
   display: flex;
   width:100%;
   height:100%;
-  background-color: #000;
+  background-color: #2d2d2d;
   /* gap: 4px; */
   margin-bottom: 10px; /* space between tabs and code container */
 }
 
 .chrome-tabs button {
-  background: black;       /* light gray background */
-  border: 1px solid black;    /* border to define the tab */
-  border-bottom: none;        /* visually connected to code container */
-  /* border-top-left-radius: 6px;
-  border-top-right-radius: 6px; */
-  padding: 6px 12px;
+  background: #3d3d3d;       /* light gray background */
+  border: none;        /* visually connected to code container */
+  border-radius: 0;
+  padding: 10px;
   cursor: pointer;
   font-weight: 500;
   color: white;               /* dark text color for visibility */
@@ -612,13 +611,12 @@
 .chrome-tabs button:hover {
   background: #272727;       /* slightly darker on hover */
 }
-
 .chrome-tabs button.active {
-  background: #333;       /* active tab white */
-  /* border-bottom: 1px solid #ffffff; */
-  font-weight: 600;
-  color: white;               /* dark text for active tab */
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	font-weight: 600;
+	color: white;
 }
+
 .instruction-block > div {
   margin-bottom: 15px;
 }
