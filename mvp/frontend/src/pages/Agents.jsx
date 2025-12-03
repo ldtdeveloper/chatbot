@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentService, openAIKeyService } from '../services/services'
-import './Agents.css'
+import '../assets/Agents.css'
 
 function Agents() {
   const queryClient = useQueryClient()
@@ -15,71 +15,71 @@ function Agents() {
   const [tab, setTab] = useState("float");
   const [fetchApiKeyId, setFetchApiKeyId] = useState('')
   const [Instructions, setInstructions] = useState({
-  // company_name: '',
-  // company_website: '',
-  // industries: '',
-  // solutions: '',
-  // contact_info: '',
-  // careers_info: '',
-  // company_domain:'',
-  // company_description:'',
-  // company_tagline:'',
-  // services_page_url:'',
-  // industries_page_url:'',
-  // solutions_page_url:'',
-  // careers_page_url:'',
-  // insights_page_url:'',
-  // contact_page_url:'',
-  // leadership_info:'',
-  // allowed_scope:'',
-  // forbidden_scope:'',
-  // strict_refusal_text:'',
-  // greeting_text:'',
-  // refusal_text:'',
-  // closure_text:'',
-  voice_behaviour: "",
-  scope:'',
-  contact_details:'',
-  privacy_rules:'',
-  top_features:'',
-  product:'',
-  services:'',
-  office_locations:'',
-  pricing_rules:'',
-  restrictions:'',
-  tone_examples:'',
-  additional_instructions:''
+    // company_name: '',
+    // company_website: '',
+    // industries: '',
+    // solutions: '',
+    // contact_info: '',
+    // careers_info: '',
+    // company_domain:'',
+    // company_description:'',
+    // company_tagline:'',
+    // services_page_url:'',
+    // industries_page_url:'',
+    // solutions_page_url:'',
+    // careers_page_url:'',
+    // insights_page_url:'',
+    // contact_page_url:'',
+    // leadership_info:'',
+    // allowed_scope:'',
+    // forbidden_scope:'',
+    // strict_refusal_text:'',
+    // greeting_text:'',
+    // refusal_text:'',
+    // closure_text:'',
+    voice_behaviour: "",
+    scope: '',
+    contact_details: '',
+    privacy_rules: '',
+    top_features: '',
+    product: '',
+    services: '',
+    office_locations: '',
+    pricing_rules: '',
+    restrictions: '',
+    tone_examples: '',
+    additional_instructions: ''
 
 
 
-});
+  });
 
-const InstructionSet = (e) => {
-  
-  const { name, value } = e.target;
-  setInstructions((prev) => ({
-    ...prev,
-    [name]: value
-  }));
-};
-const handleTabChange = async (type) => {
-  setTab(type);
-  if (!selectedAgentForWidget) return;
+  const InstructionSet = (e) => {
 
-  try {
-    let data;
-    if (type === "float") {
-      data = await agentService.generateWidgetCode(selectedAgentForWidget.id);
-    } else {
-      data = await agentService.generateWidgetCodeFixed(selectedAgentForWidget.id);
+    const { name, value } = e.target;
+    setInstructions((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  const handleTabChange = async (type) => {
+    setTab(type);
+    if (!selectedAgentForWidget) return;
+
+    try {
+      let data;
+      if (type === "float") {
+        data = await agentService.generateWidgetCode(selectedAgentForWidget.id);
+      } else {
+        data = await agentService.generateWidgetCodeFixed(selectedAgentForWidget.id);
+      }
+      setWidgetCode(data.widget_code); // Set the code dynamically
+      setWidgetId(data.widget_id || null); // Store widget_id from response
+    } catch (error) {
+      console.error("Error fetching widget code:", error);
+      alert("Failed to fetch widget code");
     }
-    setWidgetCode(data.widget_code); // Set the code dynamically
-    setWidgetId(data.widget_id || null); // Store widget_id from response
-  } catch (error) {
-    console.error("Error fetching widget code:", error);
-    alert("Failed to fetch widget code");
-  }
-};
+  };
 
 
   const [formData, setFormData] = useState({
@@ -107,7 +107,7 @@ const handleTabChange = async (type) => {
     },
     enabled: !!fetchApiKeyId,
   })
-  
+
 
   const { data: apiKeys, isLoading: keysLoading } = useQuery({
     queryKey: ['openai-keys'],
@@ -136,7 +136,7 @@ const handleTabChange = async (type) => {
     },
   })
 
-///creating InstructionArray
+  ///creating InstructionArray
   // const instructionsArray = Object.entries(Instructions).map(([key,value])=>({
   //   [key]:value
   // }))
@@ -149,14 +149,14 @@ const handleTabChange = async (type) => {
       setSelectedAgent(null)
     },
   })
-  function convertJsonPrompt(data){
+  function convertJsonPrompt(data) {
     // Handle null or undefined
     if (!data) {
       return '<div class="instruction-block"><p>No instructions available</p></div>'
     }
 
     let data1;
-    
+
     // Check if data is already an object
     if (typeof data === 'object') {
       data1 = data;
@@ -180,10 +180,10 @@ const handleTabChange = async (type) => {
     }
 
     // Check if it has the expected structure (has at least one of the expected properties)
-    const hasStructuredData = data1.voice_behaviour || data1.scope || data1.contact_details || 
-                              data1.privacy_rules || data1.top_features || data1.product || 
-                              data1.services || data1.office_locations || data1.pricing_rules || 
-                              data1.restrictions || data1.tone_examples || data1.additional_instructions;
+    const hasStructuredData = data1.voice_behaviour || data1.scope || data1.contact_details ||
+      data1.privacy_rules || data1.top_features || data1.product ||
+      data1.services || data1.office_locations || data1.pricing_rules ||
+      data1.restrictions || data1.tone_examples || data1.additional_instructions;
 
     if (!hasStructuredData) {
       // If it doesn't have the expected structure, display as plain text
@@ -194,8 +194,8 @@ const handleTabChange = async (type) => {
     // Return structured format
     return `<div class="instruction-block">${data1.voice_behaviour ? `<div><h3>VOICE & BEHAVIOUR</h3><p>${data1.voice_behaviour}</p></div>` : ''}${data1.scope ? `<div><h3>SCOPE</h3><p>${data1.scope}</p></div>` : ''}${data1.contact_details ? `<div><h3>CONTACT DETAILS</h3><p>${data1.contact_details}</p></div>` : ''}${data1.privacy_rules ? `<div><h3>PRIVACY RULES</h3><p>${data1.privacy_rules}</p></div>` : ''}${data1.top_features ? `<div><h3>TOP FEATURES</h3><p>${data1.top_features}</p></div>` : ''}${data1.product ? `<div><h3>PRODUCT</h3><p>${data1.product}</p></div>` : ''}${data1.services ? `<div><h3>SERVICES</h3><p>${data1.services}</p></div>` : ''}${data1.office_locations ? `<div><h3>OFFICE LOCATION</h3><p>${data1.office_locations}</p></div>` : ''}${data1.pricing_rules ? `<div><h3>PRICING RULES</h3><p>${data1.pricing_rules}</p></div>` : ''}${data1.restrictions ? `<div><h3>RESTRICTIONS</h3><p>${data1.restrictions}</p></div>` : ''}${data1.tone_examples ? `<div><h3>TONE EXAMPLES</h3><p>${data1.tone_examples}</p></div>` : ''}${data1.additional_instructions ? `<div><h3>ADDITIONAL INSTRUCTIONS</h3><p>${data1.additional_instructions}</p></div>` : ''}</div>`
   }
-  
-    const handleSubmit = (e) => {
+
+  const handleSubmit = (e) => {
     e.preventDefault()
     const finalFormData = {
       ...formData,
@@ -230,62 +230,62 @@ const handleTabChange = async (type) => {
     }
   }
 
-const handleEdit = (agent) => {
-  setEditingAgent(agent)
+  const handleEdit = (agent) => {
+    setEditingAgent(agent)
 
-  // Default structure for instructions
-  const defaultInstructions = {
-    voice_behaviour: "",
-    scope: '',
-    contact_details: '',
-    privacy_rules: '',
-    top_features: '',
-    product: '',
-    services: '',
-    office_locations: '',
-    pricing_rules: '',
-    restrictions: '',
-    tone_examples: '',
-    additional_instructions: ''
-  }
+    // Default structure for instructions
+    const defaultInstructions = {
+      voice_behaviour: "",
+      scope: '',
+      contact_details: '',
+      privacy_rules: '',
+      top_features: '',
+      product: '',
+      services: '',
+      office_locations: '',
+      pricing_rules: '',
+      restrictions: '',
+      tone_examples: '',
+      additional_instructions: ''
+    }
 
-  let parsedInstructions = { ...defaultInstructions }
+    let parsedInstructions = { ...defaultInstructions }
 
-  // Handle instructions parsing
-  if (agent.instructions) {
-    if (typeof agent.instructions === 'object') {
-      // Already an object, use it directly
-      parsedInstructions = { ...defaultInstructions, ...agent.instructions }
-    } else if (typeof agent.instructions === 'string') {
-      try {
-        // Try to parse as JSON
-        const parsed = JSON.parse(agent.instructions)
-        if (typeof parsed === 'object' && parsed !== null) {
-          parsedInstructions = { ...defaultInstructions, ...parsed }
-        } else {
-          // If parsed value is not an object, treat as plain text in voice_behaviour
+    // Handle instructions parsing
+    if (agent.instructions) {
+      if (typeof agent.instructions === 'object') {
+        // Already an object, use it directly
+        parsedInstructions = { ...defaultInstructions, ...agent.instructions }
+      } else if (typeof agent.instructions === 'string') {
+        try {
+          // Try to parse as JSON
+          const parsed = JSON.parse(agent.instructions)
+          if (typeof parsed === 'object' && parsed !== null) {
+            parsedInstructions = { ...defaultInstructions, ...parsed }
+          } else {
+            // If parsed value is not an object, treat as plain text in voice_behaviour
+            parsedInstructions = { ...defaultInstructions, voice_behaviour: agent.instructions }
+          }
+        } catch (error) {
+          // If parsing fails, it's plain text - put it in voice_behaviour
           parsedInstructions = { ...defaultInstructions, voice_behaviour: agent.instructions }
         }
-      } catch (error) {
-        // If parsing fails, it's plain text - put it in voice_behaviour
-        parsedInstructions = { ...defaultInstructions, voice_behaviour: agent.instructions }
       }
     }
-  }
 
-  setInstructions(parsedInstructions)
-  setFormData({
-    name: agent.name,
-    domain: agent.domain,
-    instructions: agent.instructions, 
-    voice: agent.voice,
-    noise_reduction_mode: agent.noise_reduction_mode,
-    noise_reduction_threshold: agent.noise_reduction_threshold,
-    noise_reduction_prefix_padding_ms: agent.noise_reduction_prefix_padding_ms,
-    noise_reduction_silence_duration_ms: agent.noise_reduction_silence_duration_ms
-  })
-  setShowEditModal(true)
-}
+    setInstructions(parsedInstructions)
+    setFormData({
+      name: agent.name,
+      domain: agent.domain,
+      instructions: agent.instructions,
+      voice: agent.voice,
+      noise_reduction_mode: agent.noise_reduction_mode,
+      noise_reduction_threshold: agent.noise_reduction_threshold,
+      noise_reduction_prefix_padding_ms: agent.noise_reduction_prefix_padding_ms,
+      noise_reduction_silence_duration_ms: agent.noise_reduction_silence_duration_ms
+    })
+    setShowEditModal(true)
+  }
 
 
   const handleGenerateWidget = async (agent) => {
@@ -312,7 +312,7 @@ const handleEdit = (agent) => {
       alert('Failed to generate widget code: ' + (error.response?.data?.detail || error.message))
     }
   }
-  
+
 
   const handleCopyWidgetCode = async () => {
     if (widgetCode) {
@@ -365,8 +365,8 @@ const handleEdit = (agent) => {
       }
     }
   }
-  function convertJsonToPrompt(){
-return `
+  function convertJsonToPrompt() {
+    return `
 voice&behaviour
 ${"hello"}
 `
@@ -392,7 +392,7 @@ ${"hello"}
 
   // Auto-select first API key if none selected
   useEffect(() => {
-    if (!fetchApiKeyId && activeApiKeys.length > 0){
+    if (!fetchApiKeyId && activeApiKeys.length > 0) {
       setFetchApiKeyId(String(activeApiKeys[0].id))
     }
   }, [activeApiKeys, fetchApiKeyId])
@@ -484,35 +484,35 @@ ${"hello"}
             pattern="^(localhost|127\.0\.0\.1)(:\d+)?$|^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
             title="Enter a valid domain (e.g., example.com, localhost, or 127.0.0.1)"
           />
-                 <label>Voice & Behavior</label>
-                 <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off'  rows={5} placeholder="Voice and Behavior (example: You are Maria, a personal assistant. You are a female. Answer in a soft tone. For any background noise, miswritten or understandable questions, tell the user - I didn't understand that, can you please repeat what you asked?)" onChange={InstructionSet}/>
+          <label>Voice & Behavior</label>
+          <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off' rows={5} placeholder="Voice and Behavior (example: You are Maria, a personal assistant. You are a female. Answer in a soft tone. For any background noise, miswritten or understandable questions, tell the user - I didn't understand that, can you please repeat what you asked?)" onChange={InstructionSet} />
           <label>Scope/What I Can Talk About</label>
-          <textarea value={Instructions.scope} name="scope" autoComplete='off'  rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet}/>
+          <textarea value={Instructions.scope} name="scope" autoComplete='off' rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet} />
           <label>Allowed Contact Details</label>
-          <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off'  rows={5} placeholder="Contact Details (example: Email, sales (phone no), HR)"  onChange={InstructionSet}/>
+          <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off' rows={5} placeholder="Contact Details (example: Email, sales (phone no), HR)" onChange={InstructionSet} />
           <label>Privacy Rules</label>
-          <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off'  rows={5} placeholder="Privacy Rules (example: Do not share personal information)" onChange={InstructionSet} />
-         
+          <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off' rows={5} placeholder="Privacy Rules (example: Do not share personal information)" onChange={InstructionSet} />
+
           <label>Top Features</label>
-          <textarea value={Instructions.top_features} name="top_features" autoComplete='off'  rows={5} placeholder="Top Features (example: 1. Web and Mobile Development)" onChange={InstructionSet}/>
+          <textarea value={Instructions.top_features} name="top_features" autoComplete='off' rows={5} placeholder="Top Features (example: 1. Web and Mobile Development)" onChange={InstructionSet} />
           <label>Products</label>
-          <textarea value={Instructions.product} name="product" autoComplete='off'  rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet}/>
+          <textarea value={Instructions.product} name="product" autoComplete='off' rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet} />
           <label>Services</label>
-          <textarea value={Instructions.services} name="services" autoComplete='off'  rows={5} placeholder="Services (example: Add the services you provide)" onChange={InstructionSet}/>
+          <textarea value={Instructions.services} name="services" autoComplete='off' rows={5} placeholder="Services (example: Add the services you provide)" onChange={InstructionSet} />
           <label>Office Locations</label>
-          <textarea value={Instructions.office_locations} name="office_locations" autoComplete='off'  rows ={5} placeholder="Office Locations (example: USA, India)" onChange={InstructionSet}/>
+          <textarea value={Instructions.office_locations} name="office_locations" autoComplete='off' rows={5} placeholder="Office Locations (example: USA, India)" onChange={InstructionSet} />
           <label>Pricing Rules</label>
-          <textarea value={Instructions.pricing_rules} name="pricing_rules" autoComplete="off"  rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet}/>
+          <textarea value={Instructions.pricing_rules} name="pricing_rules" autoComplete="off" rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet} />
           <label>Restrictions</label>
-          <textarea value={Instructions.restrictions} name="restrictions" autoComplete="off"  rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet}/>
+          <textarea value={Instructions.restrictions} name="restrictions" autoComplete="off" rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet} />
           <label>Tone Examples</label>
-          <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off'  rows={5} placeholder="Tone Examples (example: 1. Greeting: Enter your type)" onChange={InstructionSet}/>
+          <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off' rows={5} placeholder="Tone Examples (example: 1. Greeting: Enter your type)" onChange={InstructionSet} />
           <label>Additional Instructions</label>
-          <textarea value={Instructions.additional_instructions} name="additional_instructions" autoComplete="off"  rows={5} placeholder="Additional Instructions (example: Add the additional instructions you want to enhance your assistant)" onChange={InstructionSet}/>
-     
-         
+          <textarea value={Instructions.additional_instructions} name="additional_instructions" autoComplete="off" rows={5} placeholder="Additional Instructions (example: Add the additional instructions you want to enhance your assistant)" onChange={InstructionSet} />
+
+
           <label>
-            Assistant Voice: 
+            Assistant Voice:
             <select
               value={formData.voice}
               onChange={(e) => setFormData({ ...formData, voice: e.target.value })}
@@ -595,8 +595,8 @@ ${"hello"}
                   className="view-instructions-btn"
                   onClick={(e) => {
                     e.stopPropagation()
-               
-                  
+
+
                     setSelectedInstructionsAgent(agent)
                   }}
                   title="View Instructions"
@@ -693,33 +693,33 @@ ${"hello"}
                   pattern="^(localhost|127\.0\.0\.1)(:\d+)?$|^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
                   title="Enter a valid domain (e.g., example.com, localhost, or 127.0.0.1)"
                 />
-              <label>Voice & Behavior</label>
-                 <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off'  rows={5} placeholder="Voice and Behavior (example: You are Maria, a personal assistant. You are a female. Answer in a soft tone. For any background noise, miswritten or understandable questions, tell the user - I didn't understand that, can you please repeat what you asked?)" onChange={InstructionSet}/>
-          <label>Scope/What I Can Talk About</label>
-          <textarea value={Instructions.scope} name="scope" autoComplete='off'  rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet}/>
-          <label>Allowed Contact Details</label>
-          <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off'  rows={5} placeholder="Contact Details (example: Email, sales (phone no), HR)"  onChange={InstructionSet}/>
-          <label>Privacy Rules</label>
-          <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off'  rows={5} placeholder="Privacy Rules (example: Do not share personal information)" onChange={InstructionSet} />
-         
-          <label>Top Features</label>
-          <textarea value={Instructions.top_features} name="top_features" autoComplete='off'  rows={5} placeholder="Top Features (example: 1. Web and Mobile Development)" onChange={InstructionSet}/>
-          <label>Products</label>
-          <textarea value={Instructions.product} name="product" autoComplete='off'  rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet}/>
-          <label>Services</label>
-          <textarea value={Instructions.services} name="services" autoComplete='off'  rows={5} placeholder="Services (example: Add the services you provide)" onChange={InstructionSet}/>
-          <label>Office Locations</label>
-          <textarea value={Instructions.office_locations} name="office_locations" autoComplete='off'  rows ={5} placeholder="Office Locations (example: USA, India)" onChange={InstructionSet}/>
-          <label>Pricing Rules</label>
-          <textarea value={Instructions.pricing_rules} name="pricing_rules" autoComplete="off"  rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet}/>
-          <label>Restrictions</label>
-          <textarea value={Instructions.restrictions} name="restrictions" autoComplete="off"  rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet}/>
-          <label>Tone Examples</label>
-          <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off'  rows={5} placeholder="Tone Examples (example: 1. Greeting: Enter your type)" onChange={InstructionSet}/>
-          <label>Additional Instructions</label>
-          <textarea value={Instructions.additional_instructions} name="additional_instructions" autoComplete="off"  rows={5} placeholder="Additional Instructions (example: Add the additional instructions you want to enhance your assistant)" onChange={InstructionSet}/>
-     
-         
+                <label>Voice & Behavior</label>
+                <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off' rows={5} placeholder="Voice and Behavior (example: You are Maria, a personal assistant. You are a female. Answer in a soft tone. For any background noise, miswritten or understandable questions, tell the user - I didn't understand that, can you please repeat what you asked?)" onChange={InstructionSet} />
+                <label>Scope/What I Can Talk About</label>
+                <textarea value={Instructions.scope} name="scope" autoComplete='off' rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet} />
+                <label>Allowed Contact Details</label>
+                <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off' rows={5} placeholder="Contact Details (example: Email, sales (phone no), HR)" onChange={InstructionSet} />
+                <label>Privacy Rules</label>
+                <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off' rows={5} placeholder="Privacy Rules (example: Do not share personal information)" onChange={InstructionSet} />
+
+                <label>Top Features</label>
+                <textarea value={Instructions.top_features} name="top_features" autoComplete='off' rows={5} placeholder="Top Features (example: 1. Web and Mobile Development)" onChange={InstructionSet} />
+                <label>Products</label>
+                <textarea value={Instructions.product} name="product" autoComplete='off' rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet} />
+                <label>Services</label>
+                <textarea value={Instructions.services} name="services" autoComplete='off' rows={5} placeholder="Services (example: Add the services you provide)" onChange={InstructionSet} />
+                <label>Office Locations</label>
+                <textarea value={Instructions.office_locations} name="office_locations" autoComplete='off' rows={5} placeholder="Office Locations (example: USA, India)" onChange={InstructionSet} />
+                <label>Pricing Rules</label>
+                <textarea value={Instructions.pricing_rules} name="pricing_rules" autoComplete="off" rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet} />
+                <label>Restrictions</label>
+                <textarea value={Instructions.restrictions} name="restrictions" autoComplete="off" rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet} />
+                <label>Tone Examples</label>
+                <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off' rows={5} placeholder="Tone Examples (example: 1. Greeting: Enter your type)" onChange={InstructionSet} />
+                <label>Additional Instructions</label>
+                <textarea value={Instructions.additional_instructions} name="additional_instructions" autoComplete="off" rows={5} placeholder="Additional Instructions (example: Add the additional instructions you want to enhance your assistant)" onChange={InstructionSet} />
+
+
                 <label>
                   Assistant Voice:
                   <select
@@ -794,71 +794,71 @@ ${"hello"}
         </div>
       )}
 
-    {showWidgetModal && selectedAgentForWidget && (
-  <div className="modal-overlay" onClick={() => {
-    setShowWidgetModal(false)
-    setWidgetCode(null)
-    setWidgetId(null)
-    setCopied(false)
-  }}>
-    <div
-      className="modal-content"
-      onClick={(e) => e.stopPropagation()} 
-    >
-      <div className="modal-header">
-        <h3>Widget Code - {selectedAgentForWidget.name}</h3>
-        <button className="modal-close" onClick={() => {
+      {showWidgetModal && selectedAgentForWidget && (
+        <div className="modal-overlay" onClick={() => {
           setShowWidgetModal(false)
           setWidgetCode(null)
           setWidgetId(null)
           setCopied(false)
-        }}>×</button>
-      </div>
-
-      <div className="modal-body">
-      
-        <div className="chrome-tabs">
-          <button
-            className={tab === "float" ? "active" : ""}
-            onClick={() => handleTabChange("float")}
+        }}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
           >
-            Floating
-          </button>
-          <button
-            className={tab === "static" ? "active" : ""}
-            onClick={() => handleTabChange("static")}
-          >
-            Static
-          </button>
-        </div>
+            <div className="modal-header">
+              <h3>Widget Code - {selectedAgentForWidget.name}</h3>
+              <button className="modal-close" onClick={() => {
+                setShowWidgetModal(false)
+                setWidgetCode(null)
+                setWidgetId(null)
+                setCopied(false)
+              }}>×</button>
+            </div>
 
-        <div className="widget-code-section">
-          <div className="code-header">
-            <span>
-              Copy this code to integrate the widget on <strong>{selectedAgentForWidget.domain}</strong>
-            </span>
-            <button onClick={handleCopyWidgetCode} className="copy-btn">
-              {copied ? "✓ Copied!" : "Copy Code"}
-            </button>
+            <div className="modal-body">
+
+              <div className="chrome-tabs">
+                <button
+                  className={tab === "float" ? "active" : ""}
+                  onClick={() => handleTabChange("float")}
+                >
+                  Floating
+                </button>
+                <button
+                  className={tab === "static" ? "active" : ""}
+                  onClick={() => handleTabChange("static")}
+                >
+                  Static
+                </button>
+              </div>
+
+              <div className="widget-code-section">
+                <div className="code-header">
+                  <span>
+                    Copy this code to integrate the widget on <strong>{selectedAgentForWidget.domain}</strong>
+                  </span>
+                  <button onClick={handleCopyWidgetCode} className="copy-btn">
+                    {copied ? "✓ Copied!" : "Copy Code"}
+                  </button>
+                </div>
+
+                <pre className="widget-code">
+                  <code>{widgetCode || "Loading..."}</code>
+                </pre>
+
+                <div className="widget-info">
+                  <p><strong>Widget ID:</strong> {widgetId || "N/A"}</p>
+                  <p><strong>Agent ID:</strong> {selectedAgentForWidget.id}</p>
+                  <p><strong>Domain:</strong> {selectedAgentForWidget.domain}</p>
+                  <p className="widget-note">
+                    <strong>Note:</strong> This widget code should only be used on <strong>{selectedAgentForWidget.domain}</strong> or its subdomains.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <pre className="widget-code">
-            <code>{widgetCode || "Loading..."}</code>
-          </pre>
-
-          <div className="widget-info">
-            <p><strong>Widget ID:</strong> {widgetId || "N/A"}</p>
-            <p><strong>Agent ID:</strong> {selectedAgentForWidget.id}</p>
-            <p><strong>Domain:</strong> {selectedAgentForWidget.domain}</p>
-            <p className="widget-note">
-              <strong>Note:</strong> This widget code should only be used on <strong>{selectedAgentForWidget.domain}</strong> or its subdomains.
-            </p>
-          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
 
 
@@ -870,11 +870,11 @@ ${"hello"}
               <button className="modal-close" onClick={() => setSelectedInstructionsAgent(null)}>×</button>
             </div>
             <div className="modal-body">
-             <div className="instructions-text"
-  dangerouslySetInnerHTML={{
-    __html: convertJsonPrompt(selectedInstructionsAgent.instructions),
-  }}
-></div>
+              <div className="instructions-text"
+                dangerouslySetInnerHTML={{
+                  __html: convertJsonPrompt(selectedInstructionsAgent.instructions),
+                }}
+              ></div>
             </div>)
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { openAIKeyService } from '../services/services'
-import './OpenAIKeys.css'
+import '../assets/OpenAIKeys.css'
 
 function OpenAIKeys() {
   const queryClient = useQueryClient()
