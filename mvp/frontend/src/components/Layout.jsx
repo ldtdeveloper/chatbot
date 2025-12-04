@@ -55,14 +55,14 @@ function Layout() {
               <div className="dropdown-menu">
                 {/* Edit Profile - only for non-superadmin */}
                 {user?.role !== 'superadmin' && (
-                  <button
+                  <Link
+                    to={`/users/${user.id}/profile-update`}
                     onClick={() => {
                       setDropdownOpen(false)
-                      navigate(`/users/${user.id}/profile-update`)
                     }}
                   >
                     Edit Profile
-                  </button>
+                  </Link>
                 )}
 
                 {/* Manage Users - only superadmin */}
