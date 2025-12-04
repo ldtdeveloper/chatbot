@@ -2,19 +2,19 @@ import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { userService } from '../services/services'
-import './UserProfile.css'
+import '../assets/UserProfile.css'
 
 function UserProfile() {
   const { userId } = useParams()
   const navigate = useNavigate()
-  
+
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ['user-profile', userId],
     queryFn: () => userService.getProfile(userId),
     retry: 1,
   })
-  
-// console.log(profile)
+
+  // console.log(profile)
 
   if (isLoading) {
     return (
@@ -85,7 +85,7 @@ function UserProfile() {
         </div>
 
         <div className="profile-section">
-          
+
           <h2>Chatbot Assistants</h2>
           {!profile.assistants || profile.assistants.length === 0 ? (
             <p className="no-data">No chatbot assistants created yet.</p>

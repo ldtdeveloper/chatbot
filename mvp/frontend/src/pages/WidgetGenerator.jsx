@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { widgetService } from '../services/services'
-import './WidgetGenerator.css'
+import '../assets/WidgetGenerator.css'
 
 function WidgetGenerator() {
   const [copied, setCopied] = useState(false)
@@ -102,15 +102,15 @@ function WidgetGenerator() {
 
       {selectedAssistantId && (
         <div className="widget-code-container">
-        <div className="code-header">
-          <span>Widget Code</span>
-          <button onClick={handleCopy} className="copy-btn">
-            {copied ? '✓ Copied!' : 'Copy Code'}
-          </button>
-        </div>
-        <pre className="widget-code">
-          <code>{widgetData?.widget_code || 'No widget code available'}</code>
-        </pre>
+          <div className="code-header">
+            <span>Widget Code</span>
+            <button onClick={handleCopy} className="copy-btn">
+              {copied ? '✓ Copied!' : 'Copy Code'}
+            </button>
+          </div>
+          <pre className="widget-code">
+            <code>{widgetData?.widget_code || 'No widget code available'}</code>
+          </pre>
         </div>
       )}
 
