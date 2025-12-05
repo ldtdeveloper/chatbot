@@ -740,25 +740,25 @@
         </div>
     </footer>
 
-<!-- Voice Assistant Widget: Vi Assistant (Embedded) -->
+<!-- Voice Assistant Widget: Jarvis -->
 <script>
-(function() {
-    // API base URL for widget backend connection
-    let apiBaseUrl = '//chat-api.ldttechnology.in';
-    
-    // Create and load embedded widget script
-    const script = document.createElement('script');
-    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget-static.js';
-    script.setAttribute('data-agent-id', '1');
-    script.setAttribute('data-api-url', apiBaseUrl);
-    script.setAttribute('data-agent-name', 'Samantha');
-    script.setAttribute('data-target-id', 'chatbot'); // Target div for embedded widget
-    script.async = true;
-    document.head.appendChild(script);
-})();
-</script>
+    (function() {
+        // API base URL for widget backend connection
+        let apiBaseUrl = 'http://localhost:8081';
+        
+        // Create and load widget script-
+        const script = document.createElement('script');
+        script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
+        script.setAttribute('data-agent-id', '6');
+        script.setAttribute('data-api-url', apiBaseUrl);
+        script.setAttribute('data-agent-name', 'Jarvis');
+        script.async = true;
+        
+        document.head.appendChild(script);
+    })();
+    </script>
 
-    <script>
+    <script>u
         // Smooth scrolling for navigation links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
