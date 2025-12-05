@@ -7,7 +7,7 @@ from sqlalchemy import func, and_, cast, Date
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.openai_key import OpenAIKey
 from app.models.agent import Agent
 from app.models.interaction import Interaction
@@ -61,6 +61,7 @@ def get_previous_period_range(days: str) -> tuple:
 async def get_dashboard_stats(
     days: str = Query(default="30d", regex="^(7d|30d|90d)$"),
     key_id: Optional[int] = Query(default=None, description="Filter by specific API key ID"),
+    user_id: Optional[int] = Query(default=None, description="Filter by user ID (superadmin only)"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -69,12 +70,28 @@ async def get_dashboard_stats(
     
     - **days**: Time range filter (7d, 30d, 90d)
     - **key_id**: Optional API key ID filter (null = all keys)
+    - **user_id**: Optional user ID filter (superadmin only, null = all users for superadmin)
     """
     start_date, end_date = get_date_range(days)
     prev_start, prev_end = get_previous_period_range(days)
     
-    # Get user's API keys
-    keys_query = db.query(OpenAIKey).filter(OpenAIKey.user_id == current_user.id)
+    # Check if user is superadmin
+    is_superadmin = current_user.role == UserRole.SUPERADMIN
+    
+    # Determine which user(s) to query for
+    if is_superadmin:
+        # Superadmin can see all users or filter by specific user
+        if user_id:
+            target_user_ids = [user_id]
+        else:
+            # Get all user IDs
+            target_user_ids = [u.id for u in db.query(User).all()]
+    else:
+        # Regular users can only see their own data
+        target_user_ids = [current_user.id]
+    
+    # Get API keys for target users
+    keys_query = db.query(OpenAIKey).filter(OpenAIKey.user_id.in_(target_user_ids))
     all_keys = keys_query.all()
     
     # Filter keys if specific key_id provided
@@ -88,7 +105,7 @@ async def get_dashboard_stats(
     # Build base query for interactions
     def build_interaction_query(start, end, key_ids_list):
         query = db.query(Interaction).filter(
-            Interaction.user_id == current_user.id,
+            Interaction.user_id.in_(target_user_ids),
             Interaction.started_at >= start,
             Interaction.started_at <= end
         )
@@ -118,7 +135,7 @@ async def get_dashboard_stats(
         expenses_change = 100.0 if total_expenses > 0 else 0.0
     
     # Get agent count
-    agents_query = db.query(Agent).filter(Agent.user_id == current_user.id)
+    agents_query = db.query(Agent).filter(Agent.user_id.in_(target_user_ids))
     if key_ids:
         agents_query = agents_query.filter(Agent.openai_key_id.in_(key_ids))
     total_agents = agents_query.count()
@@ -166,7 +183,7 @@ async def get_dashboard_stats(
     agents_per_key = []
     for idx, key in enumerate(filtered_keys):
         agent_count = db.query(Agent).filter(
-            Agent.user_id == current_user.id,
+            Agent.user_id.in_(target_user_ids),
             Agent.openai_key_id == key.id
         ).count()
         agents_per_key.append({

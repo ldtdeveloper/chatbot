@@ -1,796 +1,892 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vodafone Idea - Customer Care Portal</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        :root {
-            --primary-color: #E60012;
-            --secondary-color: #FF6B9D;
-            --accent-color: #FF1744;
-            --dark-bg: #1a1a1a;
-            --light-bg: #f8fafc;
-            --text-dark: #1e293b;
-            --text-light: #64748b;
-            --white: #ffffff;
-        }
+      :root {
+        --primary-color: #e60012;
+        --secondary-color: #ff6b9d;
+        --accent-color: #ff1744;
+        --dark-bg: #1a1a1a;
+        --light-bg: #f8fafc;
+        --text-dark: #1e293b;
+        --text-light: #64748b;
+        --white: #ffffff;
+      }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: var(--text-dark);
-            overflow-x: hidden;
-        }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: var(--text-dark);
+        overflow-x: hidden;
+      }
 
-        /* Navigation */
-        nav {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
+      /* Navigation */
+      nav {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 1rem 5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 1000;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
 
-        .logo img {
-            height: 60px;
-            width: auto;
-        }
+      .logo img {
+        height: 60px;
+        width: auto;
+      }
 
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            letter-spacing: -0.5px;
-        }
+      .logo-text {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        letter-spacing: -0.5px;
+      }
 
+      .nav-links {
+        display: flex;
+        gap: 2rem;
+        list-style: none;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+        color: var(--text-dark);
+        font-weight: 500;
+        transition: color 0.3s;
+      }
+
+      .nav-links a:hover {
+        color: var(--primary-color);
+      }
+
+      .cta-button {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        color: var(--white);
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.3s, box-shadow 0.3s;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(39, 97, 126, 0.3);
+      }
+
+      /* Hero Section */
+      .hero {
+        margin-top: 80px;
+        padding: 6rem 5%;
+        background: linear-gradient(135deg, #e60012 0%, #ff6b9d 100%);
+        color: var(--white);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+        opacity: 0.3;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .hero h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        line-height: 1.2;
+        animation: fadeInUp 0.8s ease-out;
+      }
+
+      .hero p {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        opacity: 0.95;
+        animation: fadeInUp 0.8s ease-out 0.2s both;
+      }
+
+      .hero-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        animation: fadeInUp 0.8s ease-out 0.4s both;
+      }
+
+      .btn-primary {
+        background: var(--white);
+        color: var(--primary-color);
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--white);
+        padding: 1rem 2rem;
+        border: 2px solid var(--white);
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background 0.3s, color 0.3s;
+      }
+
+      .btn-secondary:hover {
+        background: var(--white);
+        color: var(--primary-color);
+      }
+
+      /* Features Section */
+      .features {
+        padding: 6rem 5%;
+        background: var(--light-bg);
+      }
+
+      .section-title {
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: var(--text-dark);
+      }
+
+      .section-subtitle {
+        text-align: center;
+        font-size: 1.2rem;
+        color: var(--text-light);
+        margin-bottom: 4rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .feature-card {
+        background: var(--white);
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+      }
+
+      .feature-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .feature-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: var(--text-dark);
+      }
+
+      .feature-card p {
+        color: var(--text-light);
+        line-height: 1.8;
+      }
+
+      /* How It Works */
+      .how-it-works {
+        padding: 6rem 5%;
+        background: var(--white);
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 3rem;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+
+      .step {
+        text-align: center;
+        position: relative;
+      }
+
+      .step-number {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        color: var(--white);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0 auto 1.5rem;
+      }
+
+      .step h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: var(--text-dark);
+      }
+
+      .step p {
+        color: var(--text-light);
+        line-height: 1.8;
+      }
+
+      /* Benefits Section */
+      .benefits {
+        padding: 6rem 5%;
+        background: linear-gradient(135deg, #e60012 0%, #ff6b9d 100%);
+        color: var(--white);
+      }
+
+      .benefits-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .benefit-item {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 2rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .benefit-item h3 {
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .benefit-item h3::before {
+        content: "✓";
+        width: 30px;
+        height: 30px;
+        background: var(--white);
+        color: var(--primary-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+      }
+
+      .benefit-item p {
+        opacity: 0.9;
+        line-height: 1.8;
+      }
+
+      /* Testimonials */
+      .testimonials {
+        padding: 6rem 5%;
+        background: var(--light-bg);
+      }
+
+      .testimonials-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .testimonial-card {
+        background: var(--white);
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .testimonial-text {
+        font-style: italic;
+        color: var(--text-light);
+        margin-bottom: 1.5rem;
+        line-height: 1.8;
+        font-size: 1.1rem;
+      }
+
+      .testimonial-author {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .author-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-weight: 700;
+      }
+
+      .author-info h4 {
+        color: var(--text-dark);
+        margin-bottom: 0.25rem;
+      }
+
+      .author-info p {
+        color: var(--text-light);
+        font-size: 0.9rem;
+      }
+
+      /* CTA Section */
+      .cta-section {
+        padding: 6rem 5%;
+        background: var(--dark-bg);
+        color: var(--white);
+        text-align: center;
+      }
+
+      .cta-section h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .cta-section p {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Footer */
+      footer {
+        background: var(--dark-bg);
+        color: var(--white);
+        padding: 3rem 5%;
+        text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .footer-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .footer-section h3 {
+        margin-bottom: 1rem;
+        color: var(--white);
+      }
+
+      .footer-section a {
+        color: rgba(255, 255, 255, 0.7);
+        text-decoration: none;
+        display: block;
+        margin-bottom: 0.5rem;
+        transition: color 0.3s;
+      }
+
+      .footer-section a:hover {
+        color: var(--white);
+      }
+
+      .footer-bottom {
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      /* Animations */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .fade-in {
+        animation: fadeInUp 0.8s ease-out;
+      }
+
+      /* Embedded Widget Section */
+      .widget-section {
+        padding: 4rem 5%;
+        background: var(--light-bg);
+      }
+
+      .widget-container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      #chatbot {
+        min-height: 500px;
+        background: var(--white);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        padding: 2rem;
+        position: relative;
+      }
+
+      /* Override widget header to match Vi branding */
+      #voice-widget-header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        ) !important;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
         .nav-links {
-            display: flex;
-            gap: 2rem;
-            list-style: none;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-dark);
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        .nav-links a:hover {
-            color: var(--primary-color);
-        }
-
-        .cta-button {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: var(--white);
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.3s, box-shadow 0.3s;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(39, 97, 126, 0.3);
-        }
-
-        /* Hero Section */
-        .hero {
-            margin-top: 80px;
-            padding: 6rem 5%;
-            background: linear-gradient(135deg, #E60012 0%, #FF6B9D 100%);
-            color: var(--white);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
-            opacity: 0.3;
-        }
-
-        .hero-content {
-            position: relative;
-            z-index: 1;
-            max-width: 800px;
-            margin: 0 auto;
+          display: none;
         }
 
         .hero h1 {
-            font-size: 3.5rem;
-            font-weight: 800;
-            margin-bottom: 1.5rem;
-            line-height: 1.2;
-            animation: fadeInUp 0.8s ease-out;
+          font-size: 2.5rem;
         }
 
         .hero p {
-            font-size: 1.25rem;
-            margin-bottom: 2rem;
-            opacity: 0.95;
-            animation: fadeInUp 0.8s ease-out 0.2s both;
-        }
-
-        .hero-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            animation: fadeInUp 0.8s ease-out 0.4s both;
-        }
-
-        .btn-primary {
-            background: var(--white);
-            color: var(--primary-color);
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--white);
-            padding: 1rem 2rem;
-            border: 2px solid var(--white);
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: background 0.3s, color 0.3s;
-        }
-
-        .btn-secondary:hover {
-            background: var(--white);
-            color: var(--primary-color);
-        }
-
-        /* Features Section */
-        .features {
-            padding: 6rem 5%;
-            background: var(--light-bg);
+          font-size: 1.1rem;
         }
 
         .section-title {
-            text-align: center;
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: var(--text-dark);
+          font-size: 2rem;
         }
 
-        .section-subtitle {
-            text-align: center;
-            font-size: 1.2rem;
-            color: var(--text-light);
-            margin-bottom: 4rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .feature-card {
-            background: var(--white);
-            padding: 2.5rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-        }
-
-        .feature-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .feature-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--text-dark);
-        }
-
-        .feature-card p {
-            color: var(--text-light);
-            line-height: 1.8;
-        }
-
-        /* How It Works */
-        .how-it-works {
-            padding: 6rem 5%;
-            background: var(--white);
-        }
-
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 3rem;
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        .step {
-            text-align: center;
-            position: relative;
-        }
-
-        .step-number {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: var(--white);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 0 auto 1.5rem;
-        }
-
-        .step h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--text-dark);
-        }
-
-        .step p {
-            color: var(--text-light);
-            line-height: 1.8;
-        }
-
-        /* Benefits Section */
-        .benefits {
-            padding: 6rem 5%;
-            background: linear-gradient(135deg, #E60012 0%, #FF6B9D 100%);
-            color: var(--white);
-        }
-
-        .benefits-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .benefit-item {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 2rem;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .benefit-item h3 {
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .benefit-item h3::before {
-            content: '✓';
-            width: 30px;
-            height: 30px;
-            background: var(--white);
-            color: var(--primary-color);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1rem;
-        }
-
-        .benefit-item p {
-            opacity: 0.9;
-            line-height: 1.8;
-        }
-
-        /* Testimonials */
-        .testimonials {
-            padding: 6rem 5%;
-            background: var(--light-bg);
-        }
-
+        .features-grid,
+        .benefits-grid,
         .testimonials-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .testimonial-card {
-            background: var(--white);
-            padding: 2.5rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-
-        .testimonial-text {
-            font-style: italic;
-            color: var(--text-light);
-            margin-bottom: 1.5rem;
-            line-height: 1.8;
-            font-size: 1.1rem;
-        }
-
-        .testimonial-author {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .author-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white);
-            font-weight: 700;
-        }
-
-        .author-info h4 {
-            color: var(--text-dark);
-            margin-bottom: 0.25rem;
-        }
-
-        .author-info p {
-            color: var(--text-light);
-            font-size: 0.9rem;
-        }
-
-        /* CTA Section */
-        .cta-section {
-            padding: 6rem 5%;
-            background: var(--dark-bg);
-            color: var(--white);
-            text-align: center;
-        }
-
-        .cta-section h2 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .cta-section p {
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-            opacity: 0.9;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Footer */
-        footer {
-            background: var(--dark-bg);
-            color: var(--white);
-            padding: 3rem 5%;
-            text-align: center;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .footer-section h3 {
-            margin-bottom: 1rem;
-            color: var(--white);
-        }
-
-        .footer-section a {
-            color: rgba(255, 255, 255, 0.7);
-            text-decoration: none;
-            display: block;
-            margin-bottom: 0.5rem;
-            transition: color 0.3s;
-        }
-
-        .footer-section a:hover {
-            color: var(--white);
-        }
-
-        .footer-bottom {
-            padding-top: 2rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .fade-in {
-            animation: fadeInUp 0.8s ease-out;
-        }
-
-        /* Embedded Widget Section */
-        .widget-section {
-            padding: 4rem 5%;
-            background: var(--light-bg);
-        }
-
-        .widget-container {
-            max-width: 1200px;
-            margin: 0 auto;
+          grid-template-columns: 1fr;
         }
 
         #chatbot {
-            min-height: 500px;
-            background: var(--white);
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            padding: 2rem;
-            position: relative;
+          min-height: 400px;
+          padding: 1rem;
         }
-
-        /* Override widget header to match Vi branding */
-        #voice-widget-header {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-
-            .hero p {
-                font-size: 1.1rem;
-            }
-
-            .section-title {
-                font-size: 2rem;
-            }
-
-            .features-grid,
-            .benefits-grid,
-            .testimonials-grid {
-                grid-template-columns: 1fr;
-            }
-
-            #chatbot {
-                min-height: 400px;
-                padding: 1rem;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Navigation -->
     <nav>
-        <div class="logo">
-            <div class="logo-text">Vi</div>
-        </div>
-        <ul class="nav-links">
-            <li><a href="#services">Services</a></li>
-            <li><a href="#self-service">Self Service</a></li>
-            <li><a href="#support">Support</a></li>
-            <li><a href="#contact">Contact Us</a></li>
-        </ul>
-        <a href="#self-service" class="cta-button">My Account</a>
+      <div class="logo">
+        <div class="logo-text">Vi</div>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#services">Services</a></li>
+        <li><a href="#self-service">Self Service</a></li>
+        <li><a href="#support">Support</a></li>
+        <li><a href="#contact">Contact Us</a></li>
+      </ul>
+      <a href="#self-service" class="cta-button">My Account</a>
     </nav>
 
     <!-- Hero Section -->
     <section class="hero">
-        <div class="hero-content">
-            <h1>Welcome to Vi Customer Care</h1>
-            <p>Your trusted partner for seamless connectivity. Get instant support, manage your account, and explore our services - all in one place.</p>
-            <div class="hero-buttons">
-                <button class="btn-primary">Check Balance</button>
-                <button class="btn-secondary">Recharge Now</button>
-            </div>
+      <div class="hero-content">
+        <h1>Welcome to Vi Customer Care</h1>
+        <p>
+          Your trusted partner for seamless connectivity. Get instant support,
+          manage your account, and explore our services - all in one place.
+        </p>
+        <div class="hero-buttons">
+          <button class="btn-primary">Check Balance</button>
+          <button class="btn-secondary">Recharge Now</button>
         </div>
+      </div>
     </section>
 
     <!-- Features Section -->
     <section class="features" id="services">
-        <h2 class="section-title">Our Services</h2>
-        <p class="section-subtitle">Everything you need to stay connected and manage your account</p>
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">📱</div>
-                <h3>Mobile Recharge</h3>
-                <p>Recharge your prepaid number instantly with our quick and secure payment options. Get the best plans and offers tailored for you.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">💳</div>
-                <h3>Postpaid Bill Payment</h3>
-                <p>Pay your postpaid bills online with ease. View detailed usage, download invoices, and set up auto-pay for hassle-free billing.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">📊</div>
-                <h3>Usage & Balance</h3>
-                <p>Check your data balance, voice minutes, and SMS quota in real-time. Monitor your usage patterns and manage your account efficiently.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">📦</div>
-                <h3>Data Packs & Plans</h3>
-                <p>Explore our wide range of data packs, voice plans, and combo offers. Find the perfect plan that suits your communication needs.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🔄</div>
-                <h3>Number Portability</h3>
-                <p>Port your number to Vi or switch to a different network. Our seamless porting process ensures you stay connected without interruption.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🛠️</div>
-                <h3>Technical Support</h3>
-                <p>Get 24/7 technical support for network issues, device configuration, and connectivity problems. We're here to help you stay connected.</p>
-            </div>
+      <h2 class="section-title">Our Services</h2>
+      <p class="section-subtitle">
+        Everything you need to stay connected and manage your account
+      </p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>Mobile Recharge</h3>
+          <p>
+            Recharge your prepaid number instantly with our quick and secure
+            payment options. Get the best plans and offers tailored for you.
+          </p>
         </div>
+        <div class="feature-card">
+          <div class="feature-icon">💳</div>
+          <h3>Postpaid Bill Payment</h3>
+          <p>
+            Pay your postpaid bills online with ease. View detailed usage,
+            download invoices, and set up auto-pay for hassle-free billing.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Usage & Balance</h3>
+          <p>
+            Check your data balance, voice minutes, and SMS quota in real-time.
+            Monitor your usage patterns and manage your account efficiently.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📦</div>
+          <h3>Data Packs & Plans</h3>
+          <p>
+            Explore our wide range of data packs, voice plans, and combo offers.
+            Find the perfect plan that suits your communication needs.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <h3>Number Portability</h3>
+          <p>
+            Port your number to Vi or switch to a different network. Our
+            seamless porting process ensures you stay connected without
+            interruption.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🛠️</div>
+          <h3>Technical Support</h3>
+          <p>
+            Get 24/7 technical support for network issues, device configuration,
+            and connectivity problems. We're here to help you stay connected.
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- How It Works -->
     <section class="how-it-works" id="self-service">
-        <h2 class="section-title">Quick Self Service</h2>
-        <p class="section-subtitle">Manage your account in three simple steps</p>
-        <div class="steps">
-            <div class="step">
-                <div class="step-number">1</div>
-                <h3>Login</h3>
-                <p>Sign in to your Vi account using your mobile number or email ID. Quick OTP verification ensures secure access to your account.</p>
-            </div>
-            <div class="step">
-                <div class="step-number">2</div>
-                <h3>Manage</h3>
-                <p>View your balance, check usage, recharge, pay bills, and explore plans. All account management tools at your fingertips.</p>
-            </div>
-            <div class="step">
-                <div class="step-number">3</div>
-                <h3>Support</h3>
-                <p>Get instant help through our AI assistant, live chat, or call support. We're available 24/7 to resolve your queries.</p>
-            </div>
+      <h2 class="section-title">Quick Self Service</h2>
+      <p class="section-subtitle">Manage your account in three simple steps</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3>Login</h3>
+          <p>
+            Sign in to your Vi account using your mobile number or email ID.
+            Quick OTP verification ensures secure access to your account.
+          </p>
         </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3>Manage</h3>
+          <p>
+            View your balance, check usage, recharge, pay bills, and explore
+            plans. All account management tools at your fingertips.
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3>Support</h3>
+          <p>
+            Get instant help through our AI assistant, live chat, or call
+            support. We're available 24/7 to resolve your queries.
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- Benefits Section -->
     <section class="benefits">
-        <h2 class="section-title" style="color: white;">Why Choose Vi</h2>
-        <p class="section-subtitle" style="color: rgba(255,255,255,0.9);">India's leading telecom network with unmatched services</p>
-        <div class="benefits-grid">
-            <div class="benefit-item">
-                <h3>24/7 Support</h3>
-                <p>Round-the-clock customer care support through multiple channels - call, chat, email, and AI assistant. We're always here for you.</p>
-            </div>
-            <div class="benefit-item">
-                <h3>Wide Network Coverage</h3>
-                <p>Experience seamless connectivity across India with our extensive 4G and 5G network coverage in urban and rural areas.</p>
-            </div>
-            <div class="benefit-item">
-                <h3>Best Plans & Offers</h3>
-                <p>Enjoy the most competitive data plans, voice packs, and exclusive offers designed to give you maximum value for money.</p>
-            </div>
-            <div class="benefit-item">
-                <h3>Easy Account Management</h3>
-                <p>Manage everything from one place - recharge, pay bills, check usage, change plans, and more with our user-friendly portal.</p>
-            </div>
+      <h2 class="section-title" style="color: white">Why Choose Vi</h2>
+      <p class="section-subtitle" style="color: rgba(255, 255, 255, 0.9)">
+        India's leading telecom network with unmatched services
+      </p>
+      <div class="benefits-grid">
+        <div class="benefit-item">
+          <h3>24/7 Support</h3>
+          <p>
+            Round-the-clock customer care support through multiple channels -
+            call, chat, email, and AI assistant. We're always here for you.
+          </p>
         </div>
+        <div class="benefit-item">
+          <h3>Wide Network Coverage</h3>
+          <p>
+            Experience seamless connectivity across India with our extensive 4G
+            and 5G network coverage in urban and rural areas.
+          </p>
+        </div>
+        <div class="benefit-item">
+          <h3>Best Plans & Offers</h3>
+          <p>
+            Enjoy the most competitive data plans, voice packs, and exclusive
+            offers designed to give you maximum value for money.
+          </p>
+        </div>
+        <div class="benefit-item">
+          <h3>Easy Account Management</h3>
+          <p>
+            Manage everything from one place - recharge, pay bills, check usage,
+            change plans, and more with our user-friendly portal.
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- Testimonials -->
     <section class="testimonials" id="support">
-        <h2 class="section-title">What Our Customers Say</h2>
-        <p class="section-subtitle">Join millions of satisfied Vi customers across India</p>
-        <div class="testimonials-grid">
-            <div class="testimonial-card">
-                <p class="testimonial-text">"Vi's customer care portal is incredibly user-friendly. I can recharge, check my balance, and pay bills all in one place. The AI assistant is very helpful too!"</p>
-                <div class="testimonial-author">
-                    <div class="author-avatar">RK</div>
-                    <div class="author-info">
-                        <h4>Rajesh Kumar</h4>
-                        <p>Vi Customer, Mumbai</p>
-                    </div>
-                </div>
+      <h2 class="section-title">What Our Customers Say</h2>
+      <p class="section-subtitle">
+        Join millions of satisfied Vi customers across India
+      </p>
+      <div class="testimonials-grid">
+        <div class="testimonial-card">
+          <p class="testimonial-text">
+            "Vi's customer care portal is incredibly user-friendly. I can
+            recharge, check my balance, and pay bills all in one place. The AI
+            assistant is very helpful too!"
+          </p>
+          <div class="testimonial-author">
+            <div class="author-avatar">RK</div>
+            <div class="author-info">
+              <h4>Rajesh Kumar</h4>
+              <p>Vi Customer, Mumbai</p>
             </div>
-            <div class="testimonial-card">
-                <p class="testimonial-text">"The network coverage is excellent, and whenever I need support, the customer care team responds quickly. Great service and reliable connectivity!"</p>
-                <div class="testimonial-author">
-                    <div class="author-avatar">PK</div>
-                    <div class="author-info">
-                        <h4>Priya Sharma</h4>
-                        <p>Vi Customer, Delhi</p>
-                    </div>
-                </div>
-            </div>
-            <div class="testimonial-card">
-                <p class="testimonial-text">"I love the data plans and offers. The self-service portal makes account management so easy. Best telecom service I've used!"</p>
-                <div class="testimonial-author">
-                    <div class="author-avatar">AS</div>
-                    <div class="author-info">
-                        <h4>Amit Singh</h4>
-                        <p>Vi Customer, Bangalore</p>
-                    </div>
-                </div>
-            </div>
+          </div>
         </div>
+        <div class="testimonial-card">
+          <p class="testimonial-text">
+            "The network coverage is excellent, and whenever I need support, the
+            customer care team responds quickly. Great service and reliable
+            connectivity!"
+          </p>
+          <div class="testimonial-author">
+            <div class="author-avatar">PK</div>
+            <div class="author-info">
+              <h4>Priya Sharma</h4>
+              <p>Vi Customer, Delhi</p>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <p class="testimonial-text">
+            "I love the data plans and offers. The self-service portal makes
+            account management so easy. Best telecom service I've used!"
+          </p>
+          <div class="testimonial-author">
+            <div class="author-avatar">AS</div>
+            <div class="author-info">
+              <h4>Amit Singh</h4>
+              <p>Vi Customer, Bangalore</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- CTA Section -->
     <section class="cta-section">
-        <h2>Need Help? We're Here For You</h2>
-        <p>Get instant support through our AI assistant, live chat, or call us at 199. Our customer care team is available 24/7.</p>
-        <a href="#contact" class="cta-button" style="font-size: 1.2rem; padding: 1.2rem 2.5rem;">Contact Support</a>
+      <h2>Need Help? We're Here For You</h2>
+      <p>
+        Get instant support through our AI assistant, live chat, or call us at
+        199. Our customer care team is available 24/7.
+      </p>
+      <a
+        href="#contact"
+        class="cta-button"
+        style="font-size: 1.2rem; padding: 1.2rem 2.5rem"
+        >Contact Support</a
+      >
     </section>
 
     <!-- Voice Assistant Widget Container (Embedded) -->
     <section class="widget-section">
-        <div class="widget-container">
-            <h2 class="section-title">Chat with Samantha</h2>
-            <p class="section-subtitle">Get instant help with your queries using our AI-powered voice assistant</p>
-            <div id="chatbot"></div>
-        </div>
+      <div class="widget-container">
+        <h2 class="section-title">Chat with Samantha</h2>
+        <p class="section-subtitle">
+          Get instant help with your queries using our AI-powered voice
+          assistant
+        </p>
+        <div id="chatbot"></div>
+      </div>
     </section>
 
     <!-- Footer -->
     <footer id="contact">
-        <div class="footer-content">
-            <div class="footer-section">
-                <h3>Services</h3>
-                <a href="#services">Mobile Recharge</a>
-                <a href="#services">Postpaid Bills</a>
-                <a href="#services">Data Packs</a>
-                <a href="#services">Plans & Offers</a>
-            </div>
-            <div class="footer-section">
-                <h3>Account</h3>
-                <a href="#self-service">My Account</a>
-                <a href="#self-service">Usage & Balance</a>
-                <a href="#self-service">Bill History</a>
-                <a href="#self-service">Manage Plans</a>
-            </div>
-            <div class="footer-section">
-                <h3>Support</h3>
-                <a href="#support">Help Center</a>
-                <a href="#support">FAQs</a>
-                <a href="#support">Network Coverage</a>
-                <a href="#support">Contact Us</a>
-            </div>
-            <div class="footer-section">
-                <h3>Contact</h3>
-                <a href="tel:199">Call: 199 (Toll Free)</a>
-                <a href="mailto:care@vi.co.in">care@vi.co.in</a>
-                <a href="https://www.myvi.in" target="_blank">Visit MyVi Portal</a>
-                <a href="#">Store Locator</a>
-            </div>
+      <div class="footer-content">
+        <div class="footer-section">
+          <h3>Services</h3>
+          <a href="#services">Mobile Recharge</a>
+          <a href="#services">Postpaid Bills</a>
+          <a href="#services">Data Packs</a>
+          <a href="#services">Plans & Offers</a>
         </div>
-        <div class="footer-bottom">
-            <p>&copy; 2024 Vodafone Idea Limited. All rights reserved.</p>
+        <div class="footer-section">
+          <h3>Account</h3>
+          <a href="#self-service">My Account</a>
+          <a href="#self-service">Usage & Balance</a>
+          <a href="#self-service">Bill History</a>
+          <a href="#self-service">Manage Plans</a>
         </div>
+        <div class="footer-section">
+          <h3>Support</h3>
+          <a href="#support">Help Center</a>
+          <a href="#support">FAQs</a>
+          <a href="#support">Network Coverage</a>
+          <a href="#support">Contact Us</a>
+        </div>
+        <div class="footer-section">
+          <h3>Contact</h3>
+          <a href="tel:199">Call: 199 (Toll Free)</a>
+          <a href="mailto:care@vi.co.in">care@vi.co.in</a>
+          <a href="https://www.myvi.in" target="_blank">Visit MyVi Portal</a>
+          <a href="#">Store Locator</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024 Vodafone Idea Limited. All rights reserved.</p>
+      </div>
     </footer>
 
-<!-- Voice Assistant Widget: Jarvis -->
-<script>
-    (function() {
+    <!-- Voice Assistant Widget: Friday -->
+    <script>
+      (function () {
         // API base URL for widget backend connection
-        let apiBaseUrl = 'http://localhost:8081';
-        
+        let apiBaseUrl = "http://localhost:8081";
+
         // Create and load widget script-
-        const script = document.createElement('script');
-        script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
-        script.setAttribute('data-agent-id', '6');
-        script.setAttribute('data-api-url', apiBaseUrl);
-        script.setAttribute('data-agent-name', 'Jarvis');
+        const script = document.createElement("script");
+        script.src = apiBaseUrl.replace(/\/$/, "") + "/api/widget/widget.js";
+        script.setAttribute("data-agent-id", "8");
+        script.setAttribute("data-api-url", apiBaseUrl);
+        script.setAttribute("data-agent-name", "Friday");
         script.async = true;
-        
+
         document.head.appendChild(script);
-    })();
+      })();
     </script>
 
-    <script>u
-        // Smooth scrolling for navigation links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
+    <script>
+      u;
+      // Smooth scrolling for navigation links
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute("href"));
+          if (target) {
+            target.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
             });
+          }
         });
+      });
 
-        // Add fade-in animation on scroll
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
+      // Add fade-in animation on scroll
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px",
+      };
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('fade-in');
-                }
-            });
-        }, observerOptions);
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("fade-in");
+          }
+        });
+      }, observerOptions);
 
-        document.querySelectorAll('.feature-card, .step, .benefit-item, .testimonial-card').forEach(el => {
-            observer.observe(el);
+      document
+        .querySelectorAll(
+          ".feature-card, .step, .benefit-item, .testimonial-card"
+        )
+        .forEach((el) => {
+          observer.observe(el);
         });
     </script>
-</body>
+  </body>
 </html>
-

@@ -1,12 +1,14 @@
 """
 OpenAI Key management routes
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.user import User
 from app.models.openai_key import OpenAIKey
+from app.models.agent import Agent
+from app.models.interaction import Interaction
 from app.schemas import OpenAIKeyCreate, OpenAIKeyResponse, OpenAIKeyMaskedResponse
 from app.dependencies import get_current_user
 from app.utils.encryption import encrypt_api_key, decrypt_api_key
@@ -67,10 +69,16 @@ async def get_openai_key(
 @router.delete("/{key_id}")
 async def delete_openai_key(
     key_id: int,
+    force: bool = Query(default=False, description="Force delete and cascade to agents/interactions"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete an OpenAI key"""
+    """
+    Delete an OpenAI key
+    
+    - If key is used by agents, returns error with list of agents
+    - Use force=true to cascade delete agents and interactions
+    """
     key = db.query(OpenAIKey).filter(
         OpenAIKey.id == key_id,
         OpenAIKey.user_id == current_user.id
@@ -80,9 +88,43 @@ async def delete_openai_key(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="OpenAI key not found"
         )
+    
+    # Check for dependent agents
+    agents = db.query(Agent).filter(Agent.openai_key_id == key_id).all()
+    
+    # Check for dependent interactions
+    interactions = db.query(Interaction).filter(Interaction.openai_key_id == key_id).all()
+    
+    if agents and not force:
+        agent_names = [a.name for a in agents]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "message": f"Cannot delete key. It is used by {len(agents)} agent(s).",
+                "agents": agent_names,
+                "hint": "Delete the agents first, or use force=true to cascade delete"
+            }
+        )
+    
+    # Force delete - cascade to agents and interactions
+    if force:
+        # Delete interactions first
+        for interaction in interactions:
+            db.delete(interaction)
+        
+        # Delete agents
+        for agent in agents:
+            db.delete(agent)
+    
+    # Delete the key
     db.delete(key)
     db.commit()
-    return {"message": "OpenAI key deleted successfully"}
+    
+    return {
+        "message": "OpenAI key deleted successfully",
+        "deleted_agents": len(agents) if force else 0,
+        "deleted_interactions": len(interactions) if force else 0
+    }
 
 
 @router.patch("/{key_id}/toggle")
