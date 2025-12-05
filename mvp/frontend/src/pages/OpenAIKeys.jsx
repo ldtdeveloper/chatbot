@@ -9,6 +9,7 @@ function OpenAIKeys() {
   const [formData, setFormData] = useState({ key_name: '', api_key: '' })
   const [visibleKeys, setVisibleKeys] = useState({}) // Track which keys are visible
   const [maskedKeys, setMaskedKeys] = useState({}) // Cache masked keys
+  const [errorMessage, setErrorMessage] = useState(null) // Error message state
 
   const { data: keys, isLoading } = useQuery({
     queryKey: ['openai-keys'],
@@ -21,6 +22,10 @@ function OpenAIKeys() {
       queryClient.invalidateQueries(['openai-keys'])
       setShowAddForm(false)
       setFormData({ key_name: '', api_key: '' })
+      setErrorMessage(null)
+    },
+    onError: (error) => {
+      setErrorMessage(error.response?.data?.detail || 'Failed to create key')
     },
   })
 
@@ -28,6 +33,17 @@ function OpenAIKeys() {
     mutationFn: openAIKeyService.delete,
     onSuccess: () => {
       queryClient.invalidateQueries(['openai-keys'])
+      setErrorMessage(null)
+    },
+    onError: (error) => {
+      const detail = error.response?.data?.detail
+      if (typeof detail === 'object' && detail.message) {
+        // Handle structured error with agents list
+        const agentList = detail.agents?.join(', ') || ''
+        setErrorMessage(`${detail.message} Agents: ${agentList}. ${detail.hint || ''}`)
+      } else {
+        setErrorMessage(detail || 'Failed to delete key')
+      }
     },
   })
 
@@ -35,6 +51,10 @@ function OpenAIKeys() {
     mutationFn: openAIKeyService.toggle,
     onSuccess: () => {
       queryClient.invalidateQueries(['openai-keys'])
+      setErrorMessage(null)
+    },
+    onError: (error) => {
+      setErrorMessage(error.response?.data?.detail || 'Failed to toggle key status')
     },
   })
 
@@ -72,6 +92,13 @@ function OpenAIKeys() {
           {showAddForm ? 'Cancel' : '+ Add Key'}
         </button>
       </div>
+
+      {errorMessage && (
+        <div className="error-banner">
+          <span>{errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} className="close-btn">×</button>
+        </div>
+      )}
 
       {showAddForm && (
         <form onSubmit={handleSubmit} className="add-key-form">

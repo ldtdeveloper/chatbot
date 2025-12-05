@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.assistant_config import AssistantConfig
 from app.models.openai_key import OpenAIKey
 from app.models.agent import Agent
+from app.models.interaction import Interaction
 from app.schemas import WidgetCodeResponse
 from app.dependencies import get_current_user
 from app.utils.encryption import decrypt_api_key
@@ -19,6 +20,7 @@ import uuid
 import json
 import asyncio
 import websockets
+from datetime import datetime
 from typing import Optional, Dict
 from urllib.parse import urlparse
 
@@ -350,6 +352,8 @@ async def generate_widget_code(
 
 # WebSocket connection tracking
 client_connections: Dict[WebSocket, websockets.WebSocketClientProtocol] = {}
+# Track interactions for each WebSocket connection
+websocket_interactions: Dict[WebSocket, int] = {}  # Maps WebSocket to Interaction ID
 
 
 def validate_domain(request_domain: str, agent_domain: str) -> bool:
@@ -526,11 +530,27 @@ async def widget_websocket(
         # Store connection
         client_connections[websocket] = openai_ws
         
+        # Create interaction record for tracking
+        session_id = str(uuid.uuid4())
+        interaction = Interaction(
+            user_id=agent.user_id,
+            openai_key_id=agent.openai_key_id,
+            agent_id=agent.id,
+            session_id=session_id,
+            origin_domain=origin,
+            status="active"
+        )
+        db.add(interaction)
+        db.commit()
+        db.refresh(interaction)
+        websocket_interactions[websocket] = interaction.id
+        print(f"[Widget WS] Created interaction {interaction.id} for session {session_id}")
+        
         # Start message forwarding tasks
         asyncio.create_task(handle_openai_messages(openai_ws, websocket))
         
         # Send connection confirmation
-        await websocket.send_json({"type": "connected"})
+        await websocket.send_json({"type": "connected", "session_id": session_id})
         
         # Handle client messages
         while True:
@@ -578,6 +598,20 @@ async def widget_websocket(
         print(f"[Widget WS] Exception: {e}")
         import traceback
         traceback.print_exc()
+        
+        # Mark interaction as error if it exists
+        if websocket in websocket_interactions:
+            interaction_id = websocket_interactions.get(websocket)
+            try:
+                interaction = db.query(Interaction).filter(Interaction.id == interaction_id).first()
+                if interaction:
+                    interaction.status = "error"
+                    interaction.error_message = str(e)
+                    interaction.ended_at = datetime.utcnow()
+                    db.commit()
+            except:
+                pass
+        
         try:
             await websocket.send_json({
                 "type": "error",
@@ -587,6 +621,24 @@ async def widget_websocket(
             pass
     
     finally:
+        # Update interaction record with end time and duration
+        if websocket in websocket_interactions:
+            interaction_id = websocket_interactions.pop(websocket)
+            try:
+                interaction = db.query(Interaction).filter(Interaction.id == interaction_id).first()
+                if interaction:
+                    interaction.ended_at = datetime.utcnow()
+                    if interaction.started_at:
+                        duration = (interaction.ended_at - interaction.started_at).total_seconds()
+                        interaction.duration_seconds = duration
+                        # Estimate cost based on duration (rough estimate: $0.06 per minute for Realtime API)
+                        interaction.estimated_cost = round((duration / 60) * 0.06, 4)
+                    interaction.status = "completed"
+                    db.commit()
+                    print(f"[Widget WS] Completed interaction {interaction_id}, duration: {interaction.duration_seconds}s")
+            except Exception as e:
+                print(f"[Widget WS] Error updating interaction: {e}")
+        
         # Cleanup
         if websocket in client_connections:
             openai_ws = client_connections.pop(websocket)

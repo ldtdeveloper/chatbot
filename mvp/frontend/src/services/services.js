@@ -152,3 +152,14 @@ export const widgetService = {
     return response.data
   },
 }
+
+export const dashboardService = {
+  getStats: async (days = '30d', keyId = null) => {
+    const params = { days }
+    if (keyId && keyId !== 'all') {
+      params.key_id = keyId
+    }
+    const response = await api.get('/api/dashboard/stats', { params })
+    return response.data
+  },
+}
