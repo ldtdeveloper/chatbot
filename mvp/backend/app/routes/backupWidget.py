@@ -316,36 +316,43 @@ def validate_domain(request_domain: str, agent_domain: str) -> bool:
     # Check exact match or subdomain match
     return request_domain == agent_domain or request_domain.endswith("." + agent_domain)
 
-async def initialize_mcp_session(agent: Agent):
-    """Initialize MCP session safely"""
+async def initialize_mcp_session(agent: Agent) -> ClientSession:
+    """Initialize MCP session"""
+    # Force MCP enabled
     mcp_enabled = True
+    # Hardcoded server path (use the one from getattr or your fixed path)
     mcp_server_path = getattr(agent, 'mcp_server_path', "C:/Users/HP/OneDrive/Desktop/ldtchatbot/chatbot/mvp/backend/app/mcp_server/mcp.py")
 
+    print("[MCP] Enabled:", mcp_enabled)
+    print("[MCP] Server Path:", mcp_server_path)
+
     if not mcp_enabled or not mcp_server_path:
-        return None, None
+        return None
 
-    exit_stack = AsyncExitStack()
-    await exit_stack.__aenter__()
-    
     try:
-        stdio_transport = await stdio_client(StdioServerParameters(
+        # Use the variable, not agent attribute
+        server_params = StdioServerParameters(
             command="python",
-            args=[mcp_server_path],
+            args=[mcp_server_path],  # <-- fixed here
             env=None
-        ))
-        stdio, write = stdio_transport
+        )
 
-        session = await ClientSession(stdio, write).__aenter__()
+        exit_stack = AsyncExitStack()
+        stdio_transport = await exit_stack.enter_async_context(
+            stdio_client(server_params)
+        )
+        stdio, write = stdio_transport
+        session = await exit_stack.enter_async_context(
+            ClientSession(stdio, write)
+        )
+
         await session.initialize()
         print("[MCP] Session initialized successfully!")
-        
-        # Return both session and exit_stack so it stays alive
-        return session, exit_stack
+        return session
 
     except Exception as e:
-        await exit_stack.__aexit__(None, None, None)
         print("[MCP] Failed to initialize session:", e)
-        return None, None
+        return None
 
 @router.websocket("/ws")
 async def widget_websocket(
@@ -472,7 +479,6 @@ async def widget_websocket(
             try:
                 tools = await mcp_session.list_tools()
                 if tools:
-                    print(tools)
                     session_payload["session"]["tools"]=[
                         {
                             "type": "function",

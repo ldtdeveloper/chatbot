@@ -260,12 +260,17 @@ def get_agent_instructions(agent: Dict) -> Optional[str]:
 
 # OpenAI Connection
 async def connect_openai(client_ws: WebSocket, agent: Optional[Dict] = None):
+
     """Connect to OpenAI Realtime API and configure session with agent instructions"""
+    print("i am in the open ai area")
     ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
+        
         "OpenAI-Beta": "realtime=v1"
+        
     }
+    
     
     try:
         openai_ws = await websockets.connect(ws_url, extra_headers=headers)
@@ -323,6 +328,7 @@ async def handle_openai_messages(openai_ws, client_ws):
                 continue
 
             event_type = data.get("type", "")
+            print(event_type)
             
             if event_type == "conversation.item.input_audio_transcription.completed":
                 transcript = data.get("transcript", "")
@@ -334,6 +340,7 @@ async def handle_openai_messages(openai_ws, client_ws):
                 assistant_text += data.get("delta", "")
 
             elif event_type == "response.audio_transcript.done":
+
                 if assistant_text:
                     await client_ws.send_json({"type": "transcript_assistant", "text": assistant_text})
                     print(f"[OpenAI] Assistant: {assistant_text}")
