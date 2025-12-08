@@ -627,17 +627,29 @@ async def widget_websocket(
             try:
                 interaction = db.query(Interaction).filter(Interaction.id == interaction_id).first()
                 if interaction:
-                    interaction.ended_at = datetime.utcnow()
+                    # Use timezone-aware datetime
+                    from datetime import timezone as tz
+                    now = datetime.now(tz.utc)
+                    interaction.ended_at = now
+                    
                     if interaction.started_at:
-                        duration = (interaction.ended_at - interaction.started_at).total_seconds()
-                        interaction.duration_seconds = duration
-                        # Estimate cost based on duration (rough estimate: $0.06 per minute for Realtime API)
-                        interaction.estimated_cost = round((duration / 60) * 0.06, 4)
+                        # Handle timezone-aware comparison
+                        started = interaction.started_at
+                        if started.tzinfo is None:
+                            started = started.replace(tzinfo=tz.utc)
+                        
+                        duration = (now - started).total_seconds()
+                        interaction.duration_seconds = max(duration, 0)
+                        # Estimate cost: $0.06 per minute for Realtime API
+                        interaction.estimated_cost = round((interaction.duration_seconds / 60) * 0.06, 4)
+                    
                     interaction.status = "completed"
                     db.commit()
-                    print(f"[Widget WS] Completed interaction {interaction_id}, duration: {interaction.duration_seconds}s")
+                    print(f"[Widget WS] ✅ Completed interaction {interaction_id}, duration: {interaction.duration_seconds:.1f}s, cost: ${interaction.estimated_cost}")
             except Exception as e:
-                print(f"[Widget WS] Error updating interaction: {e}")
+                print(f"[Widget WS] ❌ Error updating interaction: {e}")
+                import traceback
+                traceback.print_exc()
         
         # Cleanup
         if websocket in client_connections:
