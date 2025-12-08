@@ -64,6 +64,14 @@ class Settings(BaseSettings):
     # Can be set via API_BASE_URL environment variable
     api_base_url: str = "http://localhost:8081"
     
+    # SMTP Email Settings (for weekly reports)
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    from_email: str = "noreply@voiceassistant.ai"
+    from_name: str = "Voice Assistant Platform"
+    
     model_config = SettingsConfigDict(
         env_file=get_env_file(),
         case_sensitive=False
