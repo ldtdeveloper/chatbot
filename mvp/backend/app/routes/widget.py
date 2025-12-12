@@ -355,6 +355,9 @@ client_connections: Dict[WebSocket, websockets.WebSocketClientProtocol] = {}
 # Track interactions for each WebSocket connection
 websocket_interactions: Dict[WebSocket, int] = {}  # Maps WebSocket to Interaction ID
 
+# Track token usage per WebSocket session (accumulated from response.done events)
+websocket_usage: Dict[WebSocket, dict] = {}  # Maps WebSocket to usage data
+
 
 def validate_domain(request_domain: str, agent_domain: str) -> bool:
     """Validate that request domain matches agent's allowed domain"""
@@ -461,8 +464,8 @@ async def widget_websocket(
         
         print(f"[Widget WS] Agent '{agent.name}' validated, connecting to OpenAI...")
         
-        # Connect to OpenAI Realtime API
-        ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
+        # Connect to OpenAI Realtime API (requested cheaper mini preview)
+        ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview"
         headers = {
             "Authorization": f"Bearer {openai_api_key}",
             "OpenAI-Beta": "realtime=v1"
@@ -495,9 +498,9 @@ async def widget_websocket(
                 "input_audio_transcription": {"model": "whisper-1"},
                 "turn_detection": {
                     "type": "server_vad",
-                    "threshold": float(agent.noise_reduction_threshold) if agent.noise_reduction_threshold else 0.5,
-                    "prefix_padding_ms": agent.noise_reduction_prefix_padding_ms or 300,
-                    "silence_duration_ms": agent.noise_reduction_silence_duration_ms or 500
+                    "threshold": float(agent.noise_reduction_threshold) if agent.noise_reduction_threshold else 0.6,  # Higher = less sensitive, fewer false starts
+                    "prefix_padding_ms": agent.noise_reduction_prefix_padding_ms or 200,  # Reduced from 300
+                    "silence_duration_ms": agent.noise_reduction_silence_duration_ms or 700  # Increased from 500 - waits longer before responding
                 },
                 "instructions": format_instructions_for_openai(agent.instructions)
             }
@@ -544,6 +547,16 @@ async def widget_websocket(
         db.commit()
         db.refresh(interaction)
         websocket_interactions[websocket] = interaction.id
+        
+        # Initialize usage tracking for this session
+        websocket_usage[websocket] = {
+            "audio_input_tokens": 0,
+            "audio_output_tokens": 0,
+            "text_input_tokens": 0,
+            "text_output_tokens": 0,
+            "total_tokens": 0
+        }
+        
         print(f"[Widget WS] Created interaction {interaction.id} for session {session_id}")
         
         # Start message forwarding tasks
@@ -621,9 +634,11 @@ async def widget_websocket(
             pass
     
     finally:
-        # Update interaction record with end time and duration
+        # Update interaction record with end time, duration, and REAL token usage
         if websocket in websocket_interactions:
             interaction_id = websocket_interactions.pop(websocket)
+            usage_data = websocket_usage.pop(websocket, None)
+            
             try:
                 interaction = db.query(Interaction).filter(Interaction.id == interaction_id).first()
                 if interaction:
@@ -632,20 +647,36 @@ async def widget_websocket(
                     now = datetime.now(tz.utc)
                     interaction.ended_at = now
                     
+                    # Calculate duration
                     if interaction.started_at:
-                        # Handle timezone-aware comparison
                         started = interaction.started_at
                         if started.tzinfo is None:
                             started = started.replace(tzinfo=tz.utc)
                         
                         duration = (now - started).total_seconds()
                         interaction.duration_seconds = max(duration, 0)
-                        # Estimate cost: $0.06 per minute for Realtime API
-                        interaction.estimated_cost = round((interaction.duration_seconds / 60) * 0.06, 4)
+                    
+                    # Apply REAL token usage and calculate cost
+                    if usage_data and usage_data.get("total_tokens", 0) > 0:
+                        # Use real token counts from OpenAI
+                        interaction.update_tokens(
+                            audio_input=usage_data.get("audio_input_tokens", 0),
+                            audio_output=usage_data.get("audio_output_tokens", 0),
+                            text_input=usage_data.get("text_input_tokens", 0),
+                            text_output=usage_data.get("text_output_tokens", 0)
+                        )
+                        print(f"[Widget WS] 💰 REAL COST: ${interaction.estimated_cost:.4f}")
+                        print(f"[Widget WS] 📊 Tokens - Audio: {interaction.audio_input_tokens}in/{interaction.audio_output_tokens}out, Text: {interaction.text_input_tokens}in/{interaction.text_output_tokens}out")
+                    else:
+                        # Fallback: estimate based on duration if no usage data
+                        # This shouldn't happen with proper OpenAI responses
+                        fallback_cost = round((interaction.duration_seconds / 60) * 0.06, 4)
+                        interaction.estimated_cost = fallback_cost
+                        print(f"[Widget WS] ⚠️ No usage data, using fallback estimate: ${fallback_cost}")
                     
                     interaction.status = "completed"
                     db.commit()
-                    print(f"[Widget WS] ✅ Completed interaction {interaction_id}, duration: {interaction.duration_seconds:.1f}s, cost: ${interaction.estimated_cost}")
+                    print(f"[Widget WS] ✅ Completed interaction {interaction_id}, duration: {interaction.duration_seconds:.1f}s, cost: ${interaction.estimated_cost:.4f}")
             except Exception as e:
                 print(f"[Widget WS] ❌ Error updating interaction: {e}")
                 import traceback
@@ -714,6 +745,35 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
             
             elif event_type == "response.done":
                 await client_ws.send_json({"type": "response_done"})
+                
+                # Extract and accumulate token usage from OpenAI response
+                response_data = data.get("response", {})
+                usage = response_data.get("usage", {})
+                
+                if usage and client_ws in websocket_usage:
+                    # Extract detailed token counts
+                    input_details = usage.get("input_token_details", {})
+                    output_details = usage.get("output_token_details", {})
+                    
+                    # Audio tokens
+                    audio_input = input_details.get("audio_tokens", 0)
+                    audio_output = output_details.get("audio_tokens", 0)
+                    
+                    # Text tokens  
+                    text_input = input_details.get("text_tokens", 0)
+                    text_output = output_details.get("text_tokens", 0)
+                    
+                    # Accumulate usage
+                    websocket_usage[client_ws]["audio_input_tokens"] += audio_input
+                    websocket_usage[client_ws]["audio_output_tokens"] += audio_output
+                    websocket_usage[client_ws]["text_input_tokens"] += text_input
+                    websocket_usage[client_ws]["text_output_tokens"] += text_output
+                    websocket_usage[client_ws]["total_tokens"] += usage.get("total_tokens", 0)
+                    
+                    total_usage = websocket_usage[client_ws]
+                    print(f"[Widget WS] 💰 Usage: audio_in={audio_input}, audio_out={audio_output}, text_in={text_input}, text_out={text_output}")
+                    print(f"[Widget WS] 📊 Session total: {total_usage['total_tokens']} tokens")
+                
                 print("[Widget WS] Response complete")
             
             elif event_type == "input_audio_buffer.speech_started":
