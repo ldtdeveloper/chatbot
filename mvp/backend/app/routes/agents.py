@@ -59,7 +59,8 @@ async def create_agent(
         noise_reduction_threshold=agent_data.noise_reduction_threshold or "0.5",
         noise_reduction_prefix_padding_ms=agent_data.noise_reduction_prefix_padding_ms or 300,
         noise_reduction_silence_duration_ms=agent_data.noise_reduction_silence_duration_ms or 500,
-        agent_config=agent_data.agent_config or {}
+        agent_config=agent_data.agent_config or {},
+        enable_mcp_server=agent_data.enable_mcp_server or False
     )
     db.add(db_agent)
     db.commit()
@@ -147,6 +148,8 @@ async def update_agent(
         agent.noise_reduction_silence_duration_ms = agent_data.noise_reduction_silence_duration_ms
     if agent_data.agent_config is not None:
         agent.agent_config = agent_data.agent_config
+    if agent_data.enable_mcp_server is not None:
+        agent.enable_mcp_server = agent_data.enable_mcp_server
     
     db.commit()
     db.refresh(agent)

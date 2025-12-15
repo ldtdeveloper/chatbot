@@ -2,8 +2,14 @@ import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentService, openAIKeyService } from '../services/services'
 import '../assets/Agents.css'
+import Switch from '@mui/material/Switch';
+import { MdOutlineInfo } from "react-icons/md";
+import Tooltip from "@mui/material/Tooltip";
+import AppIconsCard from '../components/mcpservercard.jsx';
+import { toast } from "sonner";
 
 function Agents() {
+  console.log("compnoent re renderd ----------------")
   const queryClient = useQueryClient()
   const [showAddForm, setShowAddForm] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -14,6 +20,8 @@ function Agents() {
   const [selectedApiKeyId, setSelectedApiKeyId] = useState('')
   const [tab, setTab] = useState("float");
   const [fetchApiKeyId, setFetchApiKeyId] = useState('')
+  const [checked, setChecked] = useState(false);
+  const [showMcpServerCard, setShowMcpServerCard] = useState(false);
   const [Instructions, setInstructions] = useState({
     // company_name: '',
     // company_website: '',
@@ -49,12 +57,52 @@ function Agents() {
     restrictions: '',
     tone_examples: '',
     additional_instructions: ''
-
-
-
   });
 
-  const InstructionSet = (e) => {
+  useEffect(() => {
+    if (selectedAgent) {
+      console.log("Selected Agent changed:", selectedAgent.enable_mcp_server);
+          setChecked(selectedAgent.enable_mcp_server);  
+          setShowMcpServerCard(true)
+        }
+      }, [selectedAgent]);
+
+  const handleChange = async (e) => {
+    if(e.target.checked){
+      try{
+        const response = await agentService.update(
+        selectedAgent.id,
+        { enable_mcp_server: true});
+        setChecked(true);
+        setShowMcpServerCard(true);
+        setTimeout(() => {
+        document.getElementById("mcpservercard").scrollIntoView({
+        behavior: "smooth",
+      });
+        }, 200);
+        toast.success("MCP server enabled")
+      }
+      catch(error){
+        toast.error("Something went wrong while enabling the MCP server.");
+      }
+    } 
+    else{
+      try{
+        const response = await agentService.update(
+        selectedAgent.id,
+        { enable_mcp_server: false }
+        );
+        // Always trust backend
+        setChecked(false);
+        setShowMcpServerCard(false);
+        toast.success("MCP server disabled")
+        } catch(error){
+          toast.error("Something went wrong while disabling the MCP server.");
+        }
+      }
+  }
+
+    const InstructionSet = (e) => {
 
     const { name, value } = e.target;
     setInstructions((prev) => ({
@@ -591,18 +639,28 @@ ${"hello"}
             >
               <div className="agent-card-header">
                 <h3>{agent.name}</h3>
-                <button
+                <div
                   className="view-instructions-btn"
                   onClick={(e) => {
                     e.stopPropagation()
-
-
                     setSelectedInstructionsAgent(agent)
                   }}
                   title="View Instructions"
                 >
-                  ℹ️
-                </button>
+                  <MdOutlineInfo />
+                </div>
+                {selectedAgent && 
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                  <Tooltip title="MCP Server">
+                  <Switch
+                      size= "small"
+                      checked={checked}
+                      onChange={handleChange}
+                      slotProps={{ input: { 'aria-label': 'controlled' } }}
+                    />
+                  </Tooltip>
+                </div>
+   }
               </div>
               <div className="agent-meta">
                 <span><strong>Domain:</strong> {agent.domain}</span>
@@ -665,7 +723,7 @@ ${"hello"}
           </div>
         </div>
       )}
-
+      {showMcpServerCard && <AppIconsCard setShowMcpServerCard={setShowMcpServerCard} setChecked = {setChecked} selectedAgent = {selectedAgent}/>}
       {showEditModal && editingAgent && (
         <div className="modal-overlay" onClick={() => handleCancelEdit()}>
           <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
@@ -793,7 +851,6 @@ ${"hello"}
           </div>
         </div>
       )}
-
       {showWidgetModal && selectedAgentForWidget && (
         <div className="modal-overlay" onClick={() => {
           setShowWidgetModal(false)
@@ -859,9 +916,6 @@ ${"hello"}
           </div>
         </div>
       )}
-
-
-
       {selectedInstructionsAgent && (
         <div className="modal-overlay" onClick={() => setSelectedInstructionsAgent(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

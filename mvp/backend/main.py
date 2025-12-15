@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.routes import auth, openai_keys, agents, assistant_config, widget, users, dashboard, reports
+from app.routes import auth, openai_keys, agents, assistant_config, widget, users, dashboard, reports, integration_config
 
 # Configure logging for OpenAI requests logger
 logging.basicConfig(
@@ -61,6 +61,7 @@ app.include_router(assistant_config.router)  # Now handles multiple assistants
 app.include_router(widget.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
+app.include_router(integration_config.router)
 
 
 @app.get("/")

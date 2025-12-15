@@ -12,6 +12,7 @@ import Assistants from './pages/Assistants'
 import WidgetGenerator from './pages/WidgetGenerator'
 import { useAuthStore } from './context/authStore'
 import Layout from './components/Layout'
+import { Toaster } from "sonner";
 
 const queryClient = new QueryClient()
 
@@ -44,10 +45,10 @@ function App() {
             <Route path="widget-generator" element={<WidgetGenerator />} />
           </Route>
         </Routes>
+        <Toaster position="top-center" richColors />
       </Router>
     </QueryClientProvider>
   )
 }
 
 export default App
-
