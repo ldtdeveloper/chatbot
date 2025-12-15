@@ -1,0 +1,106 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Container Styles */
+.app-container {
+    width: 100%;
+    margin-top: 20px;
+    /* padding: 2rem; */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Card Styles */
+.app-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    width: 100%;
+    position: relative;
+    margin: 20px auto;
+}
+
+
+.close-icon {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  color: #b0b0b0;      /* light grey */
+  font-size: 24px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.close-icon:hover {
+  color: #999;         /* slight darken on hover */
+} */
+
+/* Title Styles */
+.app-card-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 1.5rem;
+    margin-top: 0;
+}
+
+/* Grid Styles */
+.apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .apps-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+}
+
+/* App Item Styles */
+.app-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.app-item:hover {
+    transform: scale(1.05);
+}
+
+/* App Icon Styles */
+.app-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease;
+}
+
+.app-icon:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.app-icon svg {
+    width: 2rem;
+    height: 2rem;
+    color: white;
+}
+
+/* App Name Styles */
+.app-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    text-align: center;
+}

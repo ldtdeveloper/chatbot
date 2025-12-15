@@ -74,6 +74,7 @@ class AgentCreate(BaseModel):
     noise_reduction_prefix_padding_ms: Optional[int] = 300
     noise_reduction_silence_duration_ms: Optional[int] = 500
     agent_config: Optional[dict] = {}  # Additional RealtimeAgent configuration (tools, handoffs, etc.)
+    enable_mcp_server: Optional[bool] = False  # Whether to enable MCP server for this agent
 
 
 class AgentUpdate(BaseModel):
@@ -86,6 +87,7 @@ class AgentUpdate(BaseModel):
     noise_reduction_prefix_padding_ms: Optional[int] = None
     noise_reduction_silence_duration_ms: Optional[int] = None
     agent_config: Optional[dict] = None
+    enable_mcp_server: Optional[bool] = None
 
 
 class AgentResponse(BaseModel):
@@ -102,6 +104,7 @@ class AgentResponse(BaseModel):
     agent_config: dict
     created_at: datetime
     updated_at: Optional[datetime]
+    enable_mcp_server: Optional[bool]
     
     class Config:
         from_attributes = True
@@ -184,3 +187,29 @@ class DashboardStats(BaseModel):
     # Available keys for filter dropdown
     available_keys: List[dict]  # [{id, name}]
 
+class IntegrationConfigCreate(BaseModel):
+    provider: str
+    encrypted_key: str
+    instructions: str
+    agent_id : int
+
+class IntegrationConfigUpdate(BaseModel):
+    provider: Optional[str] = None
+    encrypted_key: Optional[str] = None
+    instructions: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class IntegrationConfigResponse(BaseModel):
+    id: int
+    provider: str
+    instructions: str
+    is_active: Optional[bool]
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
+    masked_key : Optional[str]
+    
+    class Config:
+        from_attributes = True
+
+class IntegrationConfigMasked(BaseModel):
+    masked_key: str
