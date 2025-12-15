@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentService, openAIKeyService } from '../services/services'
 import '../assets/Agents.css'
@@ -14,6 +14,9 @@ function Agents() {
   const [selectedApiKeyId, setSelectedApiKeyId] = useState('')
   const [tab, setTab] = useState("float");
   const [fetchApiKeyId, setFetchApiKeyId] = useState('')
+  const [activeCategory, setActiveCategory] = useState('web')
+  const [phoneApiKeyId, setPhoneApiKeyId] = useState('')
+  const [showPhoneAddForm, setShowPhoneAddForm] = useState(false)
   const [Instructions, setInstructions] = useState({
     // company_name: '',
     // company_website: '',
@@ -88,24 +91,53 @@ function Agents() {
     instructions: '',
     voice: 'alloy',
     noise_reduction_mode: 'near_field',
-    noise_reduction_threshold: '0.5',
-    noise_reduction_prefix_padding_ms: 300,
-    noise_reduction_silence_duration_ms: 500
+    noise_reduction_threshold: '0.65',  // Optimized: higher = fewer false starts = lower cost
+    noise_reduction_prefix_padding_ms: 150,  // Optimized: reduced from 300 = faster responses
+    noise_reduction_silence_duration_ms: 600  // Optimized: balanced for speed and quality
+  })
+
+  const [phoneFormData, setPhoneFormData] = useState({
+    name: '',
+    phone_number: '',
+    sip_server: '',
+    sip_username: '',
+    sip_password: '',
+    sip_domain: '',
+    instructions: '',
+    voice: 'alloy',
+    noise_reduction_mode: 'near_field',
+    noise_reduction_threshold: '0.65',  // Optimized: higher = fewer false starts = lower cost
+    noise_reduction_prefix_padding_ms: 150,  // Optimized: reduced from 300 = faster responses
+    noise_reduction_silence_duration_ms: 600  // Optimized: balanced for speed and quality
   })
   const [selectedAgentForWidget, setSelectedAgentForWidget] = useState(null)
   const [widgetCode, setWidgetCode] = useState(null)
   const [widgetId, setWidgetId] = useState(null)
   const [copied, setCopied] = useState(false)
+  const cardsContainerRef = useRef(null)
+  const phoneCardsRef = useRef(null)
+  const [selectedPhoneAgentId, setSelectedPhoneAgentId] = useState(null)
 
   const { data: agents, isLoading } = useQuery({
-    queryKey: ['agents', fetchApiKeyId],
+    queryKey: ['agents', fetchApiKeyId, 'WEB'],
     queryFn: () => {
       if (!fetchApiKeyId) {
         return Promise.resolve([])
       }
-      return agentService.list(parseInt(fetchApiKeyId))
+      return agentService.list(parseInt(fetchApiKeyId), 'WEB')
     },
     enabled: !!fetchApiKeyId,
+  })
+
+  const { data: phoneAgents, isLoading: phoneAgentsLoading } = useQuery({
+    queryKey: ['agents', phoneApiKeyId, 'PHONE'],
+    queryFn: () => {
+      if (!phoneApiKeyId) {
+        return Promise.resolve([])
+      }
+      return agentService.list(parseInt(phoneApiKeyId), 'PHONE')
+    },
+    enabled: !!phoneApiKeyId,
   })
 
 
@@ -122,6 +154,15 @@ function Agents() {
       queryClient.invalidateQueries(['agents'])
       setShowAddForm(false)
       handleCancelEdit()
+    },
+  })
+
+  const createPhoneMutation = useMutation({
+    mutationFn: agentService.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['agents'])
+      setShowPhoneAddForm(false)
+      handleCancelPhoneEdit()
     },
   })
 
@@ -314,54 +355,86 @@ function Agents() {
   }
 
 
-  const handleCopyWidgetCode = async () => {
-    if (widgetCode) {
+  const handleCopyWidgetCode = async (e) => {
+    // CRITICAL: Stop event propagation immediately to prevent modal from closing
+    if (e) {
+      e.stopPropagation()
+      e.preventDefault()
+    }
+    
+    console.log('Copy button clicked, widgetCode:', widgetCode ? 'exists' : 'null', 'Length:', widgetCode?.length)
+    
+    if (!widgetCode) {
+      console.warn('No widget code to copy')
+      alert('No widget code available to copy. Please wait for it to load.')
+      return
+    }
+    
+    // Method 1: Try modern Clipboard API (works on HTTPS and localhost)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
       try {
-        // Try modern Clipboard API first (requires HTTPS or localhost)
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(widgetCode)
-          setCopied(true)
-          setTimeout(() => setCopied(false), 2000)
-        } else {
-          // Fallback for browsers without Clipboard API (HTTP, older browsers)
-          const textArea = document.createElement('textarea')
-          textArea.value = widgetCode
-          textArea.style.position = 'fixed'
-          textArea.style.left = '-999999px'
-          textArea.style.top = '-999999px'
-          document.body.appendChild(textArea)
-          textArea.focus()
-          textArea.select()
-          try {
-            document.execCommand('copy')
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
-          } catch (err) {
-            console.error('Fallback copy failed:', err)
-            alert('Failed to copy. Please select and copy the code manually.')
-          }
-          document.body.removeChild(textArea)
-        }
-      } catch (err) {
-        console.error('Copy failed:', err)
-        // Fallback method
-        const textArea = document.createElement('textarea')
-        textArea.value = widgetCode
-        textArea.style.position = 'fixed'
-        textArea.style.left = '-999999px'
-        textArea.style.top = '-999999px'
-        document.body.appendChild(textArea)
-        textArea.focus()
+        await navigator.clipboard.writeText(widgetCode)
+        console.log('✅ Copied using Clipboard API')
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+        return
+      } catch (clipboardErr) {
+        console.warn('Clipboard API failed:', clipboardErr)
+        // Continue to fallback
+      }
+    }
+    
+    // Method 2: Fallback using textarea (works everywhere)
+    try {
+      const textArea = document.createElement('textarea')
+      textArea.value = widgetCode
+      textArea.style.position = 'fixed'
+      textArea.style.top = '0'
+      textArea.style.left = '0'
+      textArea.style.width = '2em'
+      textArea.style.height = '2em'
+      textArea.style.padding = '0'
+      textArea.style.border = 'none'
+      textArea.style.outline = 'none'
+      textArea.style.boxShadow = 'none'
+      textArea.style.background = 'transparent'
+      textArea.style.opacity = '0'
+      textArea.setAttribute('readonly', '')
+      textArea.setAttribute('aria-hidden', 'true')
+      
+      document.body.appendChild(textArea)
+      
+      // For iOS devices
+      if (navigator.userAgent.match(/ipad|iphone/i)) {
+        const range = document.createRange()
+        range.selectNodeContents(textArea)
+        const selection = window.getSelection()
+        selection.removeAllRanges()
+        selection.addRange(range)
+        textArea.setSelectionRange(0, 999999)
+      } else {
         textArea.select()
-        try {
-          document.execCommand('copy')
-          setCopied(true)
-          setTimeout(() => setCopied(false), 2000)
-        } catch (fallbackErr) {
-          console.error('Fallback copy failed:', fallbackErr)
-          alert('Failed to copy. Please select and copy the code manually.')
-        }
-        document.body.removeChild(textArea)
+        textArea.setSelectionRange(0, widgetCode.length)
+      }
+      
+      const successful = document.execCommand('copy')
+      document.body.removeChild(textArea)
+      
+      if (successful) {
+        console.log('✅ Copied using execCommand')
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } else {
+        throw new Error('execCommand returned false')
+      }
+    } catch (err) {
+      console.error('All copy methods failed:', err)
+      // Last resort: Show the code in an alert or prompt
+      const userConfirmed = confirm(
+        'Automatic copy failed. Would you like to see the code to copy it manually?'
+      )
+      if (userConfirmed) {
+        prompt('Copy this code:', widgetCode)
       }
     }
   }
@@ -370,6 +443,32 @@ function Agents() {
 voice&behaviour
 ${"hello"}
 `
+  }
+
+  const handleCardClick = (agent) => {
+    if (selectedAgent?.id === agent.id) {
+      setSelectedAgent(null)
+      setSelectedAgentForWidget(null)
+      setShowWidgetModal(false)
+    } else {
+      setSelectedAgent(agent)
+      setSelectedPhoneAgentId(null)
+    }
+  }
+
+  const handlePhoneCardClick = (agent, e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    // Toggle: if this card is already selected, deselect it
+    const willBeSelected = selectedPhoneAgentId !== agent.id
+    if (willBeSelected) {
+      // Select only this card - clear web agent selection
+      setSelectedAgent(null)
+      setSelectedAgentForWidget(null)
+      setShowWidgetModal(false)
+    }
+    // Update phone agent selection
+    setSelectedPhoneAgentId(willBeSelected ? agent.id : null)
   }
 
   const handleCancelEdit = () => {
@@ -382,11 +481,86 @@ ${"hello"}
       instructions: '',
       voice: 'alloy',
       noise_reduction_mode: 'near_field',
-      noise_reduction_threshold: '0.5',
-      noise_reduction_prefix_padding_ms: 300,
-      noise_reduction_silence_duration_ms: 500
+      noise_reduction_threshold: '0.65',  // Optimized: higher = fewer false starts = lower cost
+      noise_reduction_prefix_padding_ms: 150,  // Optimized: reduced from 300 = faster responses
+      noise_reduction_silence_duration_ms: 600  // Optimized: balanced for speed and quality
     })
     setSelectedApiKeyId('')
+    setInstructions({
+      voice_behaviour: "",
+      scope: '',
+      contact_details: '',
+      privacy_rules: '',
+      top_features: '',
+      product: '',
+      services: '',
+      office_locations: '',
+      pricing_rules: '',
+      restrictions: '',
+      tone_examples: '',
+      additional_instructions: ''
+    })
+  }
+
+  const handleCancelPhoneEdit = () => {
+    setShowPhoneAddForm(false)
+    setPhoneFormData({
+      name: '',
+      phone_number: '',
+      sip_server: '',
+      sip_username: '',
+      sip_password: '',
+      sip_domain: '',
+      instructions: '',
+      voice: 'alloy',
+      noise_reduction_mode: 'near_field',
+      noise_reduction_threshold: '0.65',  // Optimized: higher = fewer false starts = lower cost
+      noise_reduction_prefix_padding_ms: 150,  // Optimized: reduced from 300 = faster responses
+      noise_reduction_silence_duration_ms: 600  // Optimized: balanced for speed and quality
+    })
+    setInstructions({
+      voice_behaviour: "",
+      scope: '',
+      contact_details: '',
+      privacy_rules: '',
+      top_features: '',
+      product: '',
+      services: '',
+      office_locations: '',
+      pricing_rules: '',
+      restrictions: '',
+      tone_examples: '',
+      additional_instructions: ''
+    })
+  }
+
+  const handlePhoneSubmit = (e) => {
+    e.preventDefault()
+    const finalFormData = {
+      ...phoneFormData,
+      agent_type: 'PHONE',
+      instructions: JSON.stringify(Instructions)
+    }
+    if (!phoneApiKeyId) {
+      alert('Please select an API key')
+      return
+    }
+    if (!finalFormData.instructions.trim()) {
+      alert('Instructions are required')
+      return
+    }
+    if (!finalFormData.phone_number) {
+      alert('Phone number is required')
+      return
+    }
+    if (!finalFormData.sip_server) {
+      alert('SIP server is required')
+      return
+    }
+    createPhoneMutation.mutate({
+      ...finalFormData,
+      openai_key_id: parseInt(phoneApiKeyId)
+    })
   }
 
 
@@ -396,6 +570,63 @@ ${"hello"}
       setFetchApiKeyId(String(activeApiKeys[0].id))
     }
   }, [activeApiKeys, fetchApiKeyId])
+
+  // Auto-select first API key for phone agents if none selected
+  useEffect(() => {
+    if (!phoneApiKeyId && activeApiKeys.length > 0) {
+      setPhoneApiKeyId(String(activeApiKeys[0].id))
+    }
+  }, [activeApiKeys, phoneApiKeyId])
+
+
+  // Close selected card on outside click
+  useEffect(() => {
+    function handleOutsideClick(e) {
+      if (!selectedAgent) return
+      
+      const target = e.target
+      
+      // Don't close if clicking inside any modal
+      const clickedModal = target.closest('.modal-overlay') || target.closest('.modal-content')
+      if (clickedModal) {
+        return // Don't close when clicking inside modals
+      }
+      
+      // Don't close if clicking on buttons or interactive elements
+      if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea')) {
+        return
+      }
+      
+      const container = cardsContainerRef.current
+      if (!container) return
+      
+      const selectedCard = container.querySelector('.agent-card.selected')
+      // If click is inside the selected card, do nothing
+      if (selectedCard && selectedCard.contains(target)) return
+      
+      // Close when click is outside the selected card (anywhere else, but not in modals)
+      setSelectedAgent(null)
+      setSelectedAgentForWidget(null)
+      // Don't close widget modal here - let it handle its own closing
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [selectedAgent])
+
+  // Close selected phone card on outside click
+  useEffect(() => {
+    function handleOutsideClickPhone(e) {
+      if (!selectedPhoneAgentId) return
+      const container = phoneCardsRef.current
+      if (!container) return
+      const target = e.target
+      const selectedCard = container.querySelector('.agent-card.selected')
+      if (selectedCard && selectedCard.contains(target)) return
+      setSelectedPhoneAgentId(null)
+    }
+    document.addEventListener('mousedown', handleOutsideClickPhone)
+    return () => document.removeEventListener('mousedown', handleOutsideClickPhone)
+  }, [selectedPhoneAgentId])
 
   if (keysLoading) return <div>Loading...</div>
 
@@ -417,36 +648,338 @@ ${"hello"}
     <div className="agents">
       <div className="page-header">
         <h1>Agents</h1>
-        <div className="header-actions">
-          <select
-            value={fetchApiKeyId}
-            onChange={(e) => {
-              setFetchApiKeyId(e.target.value)
-              queryClient.invalidateQueries(['agents'])
-            }}
-            className="api-key-selector"
-            title="Select API Key to fetch agents"
-            required
-          >
-            <option value="">Select API Key</option>
-            {activeApiKeys.map((key) => (
-              <option key={key.id} value={key.id}>
-                {key.key_name}
-              </option>
-            ))}
-          </select>
-          <button onClick={() => {
-            if (showAddForm) {
-              handleCancelEdit()
-            } else {
-              setShowAddForm(true)
-              setShowEditModal(false)
-            }
-          }}>
-            {showAddForm ? 'Cancel' : '+ Create Agent'}
-          </button>
+      </div>
+
+      {/* Category selector */}
+      <div className="agent-category-grid">
+        <div
+          className={`agent-category-card ${activeCategory === 'web' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveCategory('web')
+            const el = document.getElementById('web-agents-section')
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+        >
+          <div className="agent-category-pill">Web</div>
+          <h3>Web Agents</h3>
+          <p>Embed on sites and apps, manage widgets, and edit instructions.</p>
+          <span className="agent-category-link">Go to web agents →</span>
+        </div>
+        <div
+          className={`agent-category-card ${activeCategory === 'phone' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveCategory('phone')
+            const el = document.getElementById('phone-agents-section')
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+        >
+          <div className="agent-category-pill phone">Phone</div>
+          <h3>Phone Agents</h3>
+          <p>IVR-style assistants for calls. Configure routing and voice flows.</p>
+          <span className="agent-category-link">Go to phone agents →</span>
         </div>
       </div>
+
+      {activeCategory === 'phone' && (
+        <div id="phone-agents-section" className="phone-agents-container">
+          <div className="page-header">
+            <h2>Phone Agents</h2>
+            <div className="header-actions">
+              <select
+                value={phoneApiKeyId}
+                onChange={(e) => setPhoneApiKeyId(e.target.value)}
+                className="api-key-selector"
+                title="Select API Key for phone agents"
+              >
+                <option value="">Select API Key</option>
+                {activeApiKeys.map((key) => (
+                  <option key={key.id} value={key.id}>
+                    {key.key_name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => setShowPhoneAddForm((prev) => !prev)}
+              >
+                {showPhoneAddForm ? 'Cancel' : '+ Create Phone Agent'}
+              </button>
+            </div>
+          </div>
+          {showPhoneAddForm && (
+            <form onSubmit={handlePhoneSubmit} className="add-agent-form">
+              <div className="form-info">
+                <p><strong>Note:</strong> Configure your phone agent with SIP settings. Only <strong>Phone Number</strong> and <strong>SIP Server</strong> are required. Username, Password, and Domain are optional and only needed if your SIP server requires authentication.</p>
+              </div>
+              <select
+                value={phoneApiKeyId}
+                onChange={(e) => {
+                  setPhoneApiKeyId(e.target.value)
+                  queryClient.invalidateQueries(['agents'])
+                }}
+                className="api-key-selector"
+                title="Select API Key for phone agents"
+                required
+              >
+                <option value="">Select API Key</option>
+                {activeApiKeys.map((key) => (
+                  <option key={key.id} value={key.id}>
+                    {key.key_name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Agent Name"
+                value={phoneFormData.name}
+                onChange={(e) => setPhoneFormData({ ...phoneFormData, name: e.target.value })}
+                autoComplete="off"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Phone Number (e.g., +1234567890)"
+                value={phoneFormData.phone_number}
+                onChange={(e) => setPhoneFormData({ ...phoneFormData, phone_number: e.target.value })}
+                autoComplete="off"
+                required
+              />
+              <input
+                type="text"
+                placeholder="SIP Server (e.g., sip.example.com)"
+                value={phoneFormData.sip_server}
+                onChange={(e) => setPhoneFormData({ ...phoneFormData, sip_server: e.target.value })}
+                autoComplete="off"
+                required
+              />
+              <input
+                type="text"
+                placeholder="SIP Username (optional - for SIP server authentication)"
+                value={phoneFormData.sip_username}
+                onChange={(e) => setPhoneFormData({ ...phoneFormData, sip_username: e.target.value })}
+                autoComplete="off"
+              />
+              <input
+                type="password"
+                placeholder="SIP Password (optional - for SIP server authentication)"
+                value={phoneFormData.sip_password}
+                onChange={(e) => setPhoneFormData({ ...phoneFormData, sip_password: e.target.value })}
+                autoComplete="off"
+              />
+              <input
+                type="text"
+                placeholder="SIP Domain/Realm (optional - e.g., sip.example.com)"
+                value={phoneFormData.sip_domain}
+                onChange={(e) => setPhoneFormData({ ...phoneFormData, sip_domain: e.target.value })}
+                autoComplete="off"
+              />
+              <div className="form-info" style={{ marginTop: '10px', padding: '10px', background: '#f0f9ff', borderRadius: '6px', fontSize: '14px' }}>
+                <p><strong>💡 SIP Configuration Help:</strong></p>
+                <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+                  <li><strong>SIP Server:</strong> Required - Your SIP server address (e.g., sip.provider.com or 192.168.1.100)</li>
+                  <li><strong>Username/Password:</strong> Only needed if your SIP server requires authentication</li>
+                  <li><strong>SIP Domain:</strong> Usually optional - Some SIP providers require a realm/domain for authentication</li>
+                </ul>
+              </div>
+              <label>Voice & Behavior</label>
+              <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off' rows={5} placeholder="Voice and Behavior (example: You are Maria, a personal assistant. You are a female. Answer in a soft tone. For any background noise, miswritten or understandable questions, tell the user - I didn't understand that, can you please repeat what you asked?)" onChange={InstructionSet} />
+              <label>Scope/What I Can Talk About</label>
+              <textarea value={Instructions.scope} name="scope" autoComplete='off' rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet} />
+              <label>Allowed Contact Details</label>
+              <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off' rows={5} placeholder="Contact Details (example: Email, sales (phone no), HR)" onChange={InstructionSet} />
+              <label>Privacy Rules</label>
+              <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off' rows={5} placeholder="Privacy Rules (example: Do not share personal information)" onChange={InstructionSet} />
+              <label>Top Features</label>
+              <textarea value={Instructions.top_features} name="top_features" autoComplete='off' rows={5} placeholder="Top Features (example: 1. Web and Mobile Development)" onChange={InstructionSet} />
+              <label>Products</label>
+              <textarea value={Instructions.product} name="product" autoComplete='off' rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet} />
+              <label>Services</label>
+              <textarea value={Instructions.services} name="services" autoComplete='off' rows={5} placeholder="Services (example: Add the services you provide)" onChange={InstructionSet} />
+              <label>Office Locations</label>
+              <textarea value={Instructions.office_locations} name="office_locations" autoComplete='off' rows={5} placeholder="Office Locations (example: USA, India)" onChange={InstructionSet} />
+              <label>Pricing Rules</label>
+              <textarea value={Instructions.pricing_rules} name="pricing_rules" autoComplete="off" rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet} />
+              <label>Restrictions</label>
+              <textarea value={Instructions.restrictions} name="restrictions" autoComplete="off" rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet} />
+              <label>Tone Examples</label>
+              <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off' rows={5} placeholder="Tone Examples (example: 1. Greeting: Enter your type)" onChange={InstructionSet} />
+              <label>Additional Instructions</label>
+              <textarea value={Instructions.additional_instructions} name="additional_instructions" autoComplete="off" rows={5} placeholder="Additional Instructions (example: Add the additional instructions you want to enhance your assistant)" onChange={InstructionSet} />
+              <label>
+                Assistant Voice:
+                <select
+                  value={phoneFormData.voice}
+                  onChange={(e) => setPhoneFormData({ ...phoneFormData, voice: e.target.value })}
+                  autoComplete="off"
+                >
+                  <option value="alloy">Alloy</option>
+                  <option value="ash">Ash</option>
+                  <option value="ballad">Ballad</option>
+                  <option value="cedar">Cedar</option>
+                  <option value="coral">Coral</option>
+                  <option value="echo">Echo</option>
+                  <option value="marin">Marin</option>
+                  <option value="sage">Sage</option>
+                  <option value="shimmer">Shimmer</option>
+                  <option value="verse">Verse</option>
+                </select>
+              </label>
+              <label>
+                Noise Reduction:
+                <select
+                  value={phoneFormData.noise_reduction_mode}
+                  onChange={(e) => setPhoneFormData({ ...phoneFormData, noise_reduction_mode: e.target.value })}
+                  autoComplete="off"
+                >
+                  <option value="near_field">Near Field</option>
+                  <option value="far_field">Far Field</option>
+                </select>
+              </label>
+              <label>
+                VAD Threshold:
+                <input
+                  type="text"
+                  value={phoneFormData.noise_reduction_threshold}
+                  onChange={(e) => setPhoneFormData({ ...phoneFormData, noise_reduction_threshold: e.target.value })}
+                  autoComplete="off"
+                  placeholder="0.65"
+                />
+              </label>
+              <label>
+                Prefix Padding (ms):
+                <input
+                  type="number"
+                  value={phoneFormData.noise_reduction_prefix_padding_ms}
+                  onChange={(e) => setPhoneFormData({ ...phoneFormData, noise_reduction_prefix_padding_ms: parseInt(e.target.value) || 150 })}
+                  autoComplete="off"
+                  min="0"
+                />
+              </label>
+              <label>
+                Silence Duration (ms):
+                <input
+                  type="number"
+                  value={phoneFormData.noise_reduction_silence_duration_ms}
+                  onChange={(e) => setPhoneFormData({ ...phoneFormData, noise_reduction_silence_duration_ms: parseInt(e.target.value) || 600 })}
+                  autoComplete="off"
+                  min="0"
+                />
+              </label>
+              <button type="submit" disabled={createPhoneMutation.isLoading}>
+                {createPhoneMutation.isLoading ? 'Creating...' : 'Create Phone Agent'}
+              </button>
+            </form>
+          )}
+      <div className="agents-list" ref={phoneCardsRef}>
+            {phoneAgentsLoading ? (
+              <div>Loading phone agents...</div>
+            ) : phoneAgents?.length === 0 ? (
+              <p>No phone agents created yet.</p>
+            ) : (
+              phoneAgents?.map((agent) => {
+                const isSelected = selectedPhoneAgentId === agent.id
+                const cardClassName = isSelected ? 'agent-card selected' : 'agent-card'
+                return (
+                  <div
+                    key={`phone-agent-${agent.id}`}
+                    className={cardClassName}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      e.preventDefault()
+                      handlePhoneCardClick(agent, e)
+                    }}
+                  >
+                    <div className="agent-card-header">
+                      <h3>{agent.name}</h3>
+                    </div>
+                    <div className="agent-meta">
+                      <span><strong>Phone:</strong> {agent.phone_number || 'N/A'}</span>
+                      <span>Voice: {agent.voice}</span>
+                      <span>Noise Reduction: {agent.noise_reduction_mode}</span>
+                    </div>
+                    {selectedPhoneAgentId === agent.id && (
+                      <>
+                        <div className="agent-actions">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEdit(agent)
+                            }}
+                            className="edit-btn"
+                          >
+                            <span className="btn-icon">✏️</span>
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (window.confirm('Are you sure you want to delete this phone agent?')) {
+                                deleteMutation.mutate(agent.id)
+                              }
+                            }}
+                            className="delete-btn"
+                          >
+                            <span className="btn-icon">🗑️</span>
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                        <div className="selected-agent-details">
+                          <h4>Configuration</h4>
+                          <div className="settings-grid">
+                            <div><strong>Phone Number:</strong> {agent.phone_number || 'N/A'}</div>
+                            <div><strong>SIP Server:</strong> {agent.sip_server || 'N/A'}</div>
+                            <div><strong>SIP Username:</strong> {agent.sip_username || 'N/A'}</div>
+                            <div><strong>SIP Domain:</strong> {agent.sip_domain || 'N/A'}</div>
+                            <div><strong>Voice:</strong> {agent.voice}</div>
+                            <div><strong>Noise Reduction:</strong> {agent.noise_reduction_mode}</div>
+                            <div><strong>VAD Threshold:</strong> {agent.noise_reduction_threshold}</div>
+                            <div><strong>Prefix Padding:</strong> {agent.noise_reduction_prefix_padding_ms}ms</div>
+                            <div><strong>Silence Duration:</strong> {agent.noise_reduction_silence_duration_ms}ms</div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeCategory === 'web' && (
+        <div id="web-agents-section" className="web-agents-container" ref={cardsContainerRef}>
+          <div className="page-header">
+            <h2>Web Agents</h2>
+            <div className="header-actions">
+              <select
+                value={fetchApiKeyId}
+                onChange={(e) => {
+                  setFetchApiKeyId(e.target.value)
+                  queryClient.invalidateQueries(['agents'])
+                }}
+                className="api-key-selector"
+                title="Select API Key to fetch agents"
+                required
+              >
+                <option value="">Select API Key</option>
+                {activeApiKeys.map((key) => (
+                  <option key={key.id} value={key.id}>
+                    {key.key_name}
+                  </option>
+                ))}
+              </select>
+              <button onClick={() => {
+                if (showAddForm) {
+                  handleCancelEdit()
+                } else {
+                  setShowAddForm(true)
+                  setShowEditModal(false)
+                }
+              }}>
+                {showAddForm ? 'Cancel' : '+ Create Web Agent'}
+              </button>
+            </div>
+          </div>
 
       {showAddForm && (
         <form onSubmit={handleSubmit} className="add-agent-form">
@@ -556,7 +1089,7 @@ ${"hello"}
             <input
               type="number"
               value={formData.noise_reduction_prefix_padding_ms}
-              onChange={(e) => setFormData({ ...formData, noise_reduction_prefix_padding_ms: parseInt(e.target.value) || 300 })}
+              onChange={(e) => setFormData({ ...formData, noise_reduction_prefix_padding_ms: parseInt(e.target.value) || 150 })}
               autoComplete="off"
               min="0"
             />
@@ -566,7 +1099,7 @@ ${"hello"}
             <input
               type="number"
               value={formData.noise_reduction_silence_duration_ms}
-              onChange={(e) => setFormData({ ...formData, noise_reduction_silence_duration_ms: parseInt(e.target.value) || 500 })}
+              onChange={(e) => setFormData({ ...formData, noise_reduction_silence_duration_ms: parseInt(e.target.value) || 600 })}
               autoComplete="off"
               min="0"
             />
@@ -577,7 +1110,7 @@ ${"hello"}
         </form>
       )}
 
-      <div className="agents-list">
+      <div className="agents-list" ref={cardsContainerRef}>
         {isLoading ? (
           <div>Loading agents...</div>
         ) : agents?.length === 0 ? (
@@ -587,7 +1120,7 @@ ${"hello"}
             <div
               key={agent.id}
               className={`agent-card ${selectedAgent?.id === agent.id ? 'selected' : ''}`}
-              onClick={() => setSelectedAgent(agent)}
+              onClick={() => handleCardClick(agent)}
             >
               <div className="agent-card-header">
                 <h3>{agent.name}</h3>
@@ -610,61 +1143,58 @@ ${"hello"}
                 <span>Noise Reduction: {agent.noise_reduction_mode}</span>
               </div>
               {selectedAgent?.id === agent.id && (
-                <div className="agent-actions">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleGenerateWidget(agent)
-                    }}
-                    className="widget-btn"
-                  >
-                    Get Widget Code
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleEdit(agent)
-                    }}
-                    className="edit-btn"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (window.confirm('Are you sure you want to delete this agent?')) {
-                        deleteMutation.mutate(agent.id)
-                      }
-                    }}
-                    className="delete-btn"
-                  >
-                    Delete
-                  </button>
-                </div>
+                <>
+                  <div className="agent-actions">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleGenerateWidget(agent)
+                      }}
+                      className="widget-btn"
+                    >
+                      <span className="btn-icon">🧩</span>
+                      <span>Widget</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEdit(agent)
+                      }}
+                      className="edit-btn"
+                    >
+                      <span className="btn-icon">✏️</span>
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (window.confirm('Are you sure you want to delete this agent?')) {
+                          deleteMutation.mutate(agent.id)
+                        }
+                      }}
+                      className="delete-btn"
+                    >
+                      <span className="btn-icon">🗑️</span>
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                  <div className="selected-agent-details">
+                    <h4>Configuration</h4>
+                    <div className="settings-grid">
+                      <div><strong>Domain:</strong> {agent.domain}</div>
+                      <div><strong>Voice:</strong> {agent.voice}</div>
+                      <div><strong>Noise Reduction:</strong> {agent.noise_reduction_mode}</div>
+                      <div><strong>VAD Threshold:</strong> {agent.noise_reduction_threshold}</div>
+                      <div><strong>Prefix Padding:</strong> {agent.noise_reduction_prefix_padding_ms}ms</div>
+                      <div><strong>Silence Duration:</strong> {agent.noise_reduction_silence_duration_ms}ms</div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           ))
         )}
       </div>
-
-      {selectedAgent && (
-        <div className="agent-details">
-          <h2>{selectedAgent.name} - Configuration</h2>
-          <div className="agent-info">
-            <div className="info-section">
-              <h3>Settings</h3>
-              <div className="settings-grid">
-                <div><strong>Domain:</strong> {selectedAgent.domain}</div>
-                <div><strong>Voice:</strong> {selectedAgent.voice}</div>
-                <div><strong>Noise Reduction:</strong> {selectedAgent.noise_reduction_mode}</div>
-                <div><strong>VAD Threshold:</strong> {selectedAgent.noise_reduction_threshold}</div>
-                <div><strong>Prefix Padding:</strong> {selectedAgent.noise_reduction_prefix_padding_ms}ms</div>
-                <div><strong>Silence Duration:</strong> {selectedAgent.noise_reduction_silence_duration_ms}ms</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showEditModal && editingAgent && (
         <div className="modal-overlay" onClick={() => handleCancelEdit()}>
@@ -757,7 +1287,7 @@ ${"hello"}
                     value={formData.noise_reduction_threshold}
                     onChange={(e) => setFormData({ ...formData, noise_reduction_threshold: e.target.value })}
                     autoComplete="off"
-                    placeholder="0.5"
+                    placeholder="0.65"
                   />
                 </label>
                 <label>
@@ -765,7 +1295,7 @@ ${"hello"}
                   <input
                     type="number"
                     value={formData.noise_reduction_prefix_padding_ms}
-                    onChange={(e) => setFormData({ ...formData, noise_reduction_prefix_padding_ms: parseInt(e.target.value) || 300 })}
+                    onChange={(e) => setFormData({ ...formData, noise_reduction_prefix_padding_ms: parseInt(e.target.value) || 150 })}
                     autoComplete="off"
                     min="0"
                   />
@@ -775,7 +1305,7 @@ ${"hello"}
                   <input
                     type="number"
                     value={formData.noise_reduction_silence_duration_ms}
-                    onChange={(e) => setFormData({ ...formData, noise_reduction_silence_duration_ms: parseInt(e.target.value) || 500 })}
+                    onChange={(e) => setFormData({ ...formData, noise_reduction_silence_duration_ms: parseInt(e.target.value) || 600 })}
                     autoComplete="off"
                     min="0"
                   />
@@ -795,12 +1325,19 @@ ${"hello"}
       )}
 
       {showWidgetModal && selectedAgentForWidget && (
-        <div className="modal-overlay" onClick={() => {
-          setShowWidgetModal(false)
-          setWidgetCode(null)
-          setWidgetId(null)
-          setCopied(false)
-        }}>
+        <div 
+          className="modal-overlay" 
+          onClick={(e) => {
+            console.log('modal-overlay clicked', e)
+            // Only close if clicking directly on the overlay, not on child elements
+            if (e.target === e.currentTarget) {
+              setShowWidgetModal(false)
+              setWidgetCode(null)
+              setWidgetId(null)
+              setCopied(false)
+            }
+          }}
+        >
           <div
             className="modal-content"
             onClick={(e) => e.stopPropagation()}
@@ -819,25 +1356,48 @@ ${"hello"}
 
               <div className="chrome-tabs">
                 <button
+                  type="button"
                   className={tab === "float" ? "active" : ""}
-                  onClick={() => handleTabChange("float")}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleTabChange("float")
+                  }}
                 >
                   Floating
                 </button>
                 <button
+                  type="button"
                   className={tab === "static" ? "active" : ""}
-                  onClick={() => handleTabChange("static")}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleTabChange("static")
+                  }}
                 >
                   Static
                 </button>
               </div>
 
               <div className="widget-code-section">
-                <div className="code-header">
+                <div className="code-header" onClick={(e) => e.stopPropagation()}>
                   <span>
                     Copy this code to integrate the widget on <strong>{selectedAgentForWidget.domain}</strong>
                   </span>
-                  <button onClick={handleCopyWidgetCode} className="copy-btn">
+                  <button 
+                    type="button"
+                    disabled={!widgetCode}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      e.preventDefault()
+                      if (widgetCode) {
+                        handleCopyWidgetCode(e)
+                      }
+                    }} 
+                    className="copy-btn"
+                    style={{ 
+                      opacity: widgetCode ? 1 : 0.6,
+                      cursor: widgetCode ? 'pointer' : 'not-allowed'
+                    }}
+                  >
                     {copied ? "✓ Copied!" : "Copy Code"}
                   </button>
                 </div>
@@ -858,6 +1418,9 @@ ${"hello"}
             </div>
           </div>
         </div>
+      )}
+
+      </div>
       )}
 
 
