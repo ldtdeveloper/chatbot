@@ -33,15 +33,35 @@ WIDGET_DIR = Path(__file__).parent.parent.parent / "widget"
 def format_instructions_for_openai(instructions: str) -> str:
     """
     Convert instructions from JSON format to plain text format for OpenAI.
+    Enhanced with ultra-strict response length constraints for cost optimization.
     
     Args:
         instructions: Instructions as JSON string or plain text
         
     Returns:
-        Plain text instructions formatted for OpenAI
+        Plain text instructions formatted for OpenAI with strict response length limits
     """
     if not instructions:
         return ""
+    
+    # ULTRA-STRICT RESPONSE LENGTH RULES - ENFORCE AT ALL TIMES
+    response_length_rules = """⚠️ CRITICAL RESPONSE LENGTH RULES - MANDATORY ENFORCEMENT ⚠️
+
+1. MAXIMUM LENGTH: Your response MUST be EXACTLY 2-3 lines maximum. NEVER exceed 3 lines.
+2. WORD COUNT: Your response MUST be between 40-45 words maximum. Count your words before responding.
+3. SHORTER IS BETTER: If you can answer in 1-2 lines (20-30 words), DO IT. Only use 2-3 lines if absolutely necessary.
+4. NO EXCEPTIONS: These limits apply to ALL responses, regardless of question complexity.
+5. BULLET POINTS: For lists or multiple items, use bullet points (•) to stay within limits.
+6. DIRECT ANSWERS: Get straight to the point. No greetings, no fluff, no unnecessary words.
+7. PRIORITIZE: If multiple points exist, mention only the most important 1-2 points.
+
+Example of CORRECT response (2 lines, ~42 words):
+"Complex decisions involve judgment and context. Examples: resource allocation, risk management, and customer support. These require data analysis and human judgment for dynamic scenarios."
+
+Example of WRONG response (too long):
+[Any response over 3 lines or 45 words is WRONG and must be shortened]
+
+REMEMBER: Every word counts. Be concise. Be direct. Stay within limits."""
     
     # Try to parse as JSON
     try:
@@ -49,11 +69,11 @@ def format_instructions_for_openai(instructions: str) -> str:
         
         # If it's a dict, format it as readable text
         if isinstance(instructions_dict, dict):
-            formatted_parts = []
+            formatted_parts = [response_length_rules]
             
             # Add each field as a section
             if instructions_dict.get("voice_behaviour"):
-                formatted_parts.append(f"VOICE & BEHAVIOUR\n{instructions_dict['voice_behaviour']}")
+                formatted_parts.append(f"\nVOICE & BEHAVIOUR\n{instructions_dict['voice_behaviour']}")
             
             if instructions_dict.get("scope"):
                 formatted_parts.append(f"\nSCOPE\n{instructions_dict['scope']}")
@@ -86,15 +106,15 @@ def format_instructions_for_openai(instructions: str) -> str:
                 formatted_parts.append(f"\nTONE EXAMPLES\n{instructions_dict['tone_examples']}")
             
             if instructions_dict.get("additional_instructions"):
-                formatted_parts.append(f"\nADDITIONAL INSTRUCTIONS ----->\n\n{instructions_dict['additional_instructions']}")
+                formatted_parts.append(f"\nADDITIONAL INSTRUCTIONS\n{instructions_dict['additional_instructions']}")
             
             return "\n".join(formatted_parts)
         else:
-            # If parsed but not a dict, return as string
-            return str(instructions_dict)
+            # If parsed but not a dict, return as string with rules
+            return f"{response_length_rules}\n\n{str(instructions_dict)}"
     except (json.JSONDecodeError, TypeError):
-        # If it's not JSON, return as plain text
-        return instructions
+        # If it's not JSON, return as plain text with rules
+        return f"{response_length_rules}\n\n{instructions}"
 
 
 @router.get("/widget.css")

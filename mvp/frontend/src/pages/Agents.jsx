@@ -617,11 +617,27 @@ ${"hello"}
   useEffect(() => {
     function handleOutsideClickPhone(e) {
       if (!selectedPhoneAgentId) return
+      
+      const target = e.target
+      
+      // Don't close if clicking inside any modal
+      const clickedModal = target.closest('.modal-overlay') || target.closest('.modal-content')
+      if (clickedModal) {
+        return // Don't close when clicking inside modals
+      }
+      
+      // Don't close if clicking on buttons or interactive elements
+      if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea')) {
+        return
+      }
+      
       const container = phoneCardsRef.current
       if (!container) return
-      const target = e.target
+      
       const selectedCard = container.querySelector('.agent-card.selected')
       if (selectedCard && selectedCard.contains(target)) return
+      
+      // Close when click is outside the selected card (anywhere else, but not in modals)
       setSelectedPhoneAgentId(null)
     }
     document.addEventListener('mousedown', handleOutsideClickPhone)
