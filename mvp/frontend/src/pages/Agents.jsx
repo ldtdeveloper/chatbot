@@ -66,18 +66,39 @@ function Agents() {
     if (selectedAgent) {
       console.log("Selected Agent changed:", selectedAgent.enable_mcp_server);
           setChecked(selectedAgent.enable_mcp_server);
-          setShowMcpServerCard(true)
+          setShowMcpServerCard(selectedAgent.enable_mcp_server || false)
         }
-      }, [checked]);
+      }, [selectedAgent]);
 
   const handleChange = async (e) => {
+    // Stop event propagation to prevent card from closing
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
+    
     if(e.target.checked){
       try{
         const response = await agentService.update(
         selectedAgent.id,
         { enable_mcp_server: true});
+        // Update the query cache directly to keep state in sync
+        queryClient.setQueryData(['agents', fetchApiKeyId, 'WEB'], (oldData) => {
+          if (!oldData) return oldData;
+          return oldData.map(agent => 
+            agent.id === selectedAgent.id 
+              ? { ...agent, enable_mcp_server: true }
+              : agent
+          );
+        });
+        // Update selectedAgent with the response data to keep state in sync
+        // agentService.update returns the full response, so access response.data
+        const updatedAgent = response?.data || { ...selectedAgent, enable_mcp_server: true };
+        setSelectedAgent(updatedAgent);
         setChecked(true);
         setShowMcpServerCard(true);
+        // Also invalidate to refetch and ensure consistency
+        queryClient.invalidateQueries(['agents']);
+        // Keep the card open when enabling
         setTimeout(() => {
         document.getElementById("mcpservercard").scrollIntoView({
         behavior: "smooth",
@@ -95,9 +116,24 @@ function Agents() {
         selectedAgent.id,
         { enable_mcp_server: false }
         );
-        // Always trust backend
+        // Update the query cache directly to keep state in sync
+        queryClient.setQueryData(['agents', fetchApiKeyId, 'WEB'], (oldData) => {
+          if (!oldData) return oldData;
+          return oldData.map(agent => 
+            agent.id === selectedAgent.id 
+              ? { ...agent, enable_mcp_server: false }
+              : agent
+          );
+        });
+        // Also invalidate to refetch and ensure consistency
+        queryClient.invalidateQueries(['agents']);
+        // Always trust backend - update state immediately
         setChecked(false);
         setShowMcpServerCard(false);
+        // Close the agent card when disabling
+        setSelectedAgent(null);
+        setSelectedAgentForWidget(null);
+        setShowWidgetModal(false);
         toast.success("MCP server disabled")
         } catch(error){
           toast.error("Something went wrong while disabling the MCP server.");
@@ -640,8 +676,8 @@ ${"hello"}
         return // Don't close when clicking inside modals
       }
 
-      // Don't close if clicking on buttons or interactive elements
-      if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea')) {
+      // Don't close if clicking on buttons or interactive elements (including Switch)
+      if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea') || target.closest('[role="switch"]') || target.closest('.MuiSwitch-root')) {
         return
       }
 
@@ -674,8 +710,8 @@ ${"hello"}
         return // Don't close when clicking inside modals
       }
 
-      // Don't close if clicking on buttons or interactive elements
-      if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea')) {
+      // Don't close if clicking on buttons or interactive elements (including Switch)
+      if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea') || target.closest('[role="switch"]') || target.closest('.MuiSwitch-root')) {
         return
       }
 
@@ -1199,12 +1235,16 @@ ${"hello"}
                   <MdOutlineInfo />
                 </div>
                 {selectedAgent &&
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                <div 
+                  style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Tooltip title="MCP Server">
                   <Switch
                       size= "small"
                       checked={checked}
                       onChange={handleChange}
+                      onClick={(e) => e.stopPropagation()}
                       slotProps={{ input: { 'aria-label': 'controlled' } }}
                     />
                   </Tooltip>
@@ -1252,23 +1292,25 @@ ${"hello"}
                       <span>Delete</span>
                     </button>
                   </div>
-                  <div className="selected-agent-details">
-                    <h4>Configuration</h4>
-                    <div className="settings-grid">
-                      <div><strong>Domain:</strong> {agent.domain}</div>
-                      <div><strong>Voice:</strong> {agent.voice}</div>
-                      <div><strong>Noise Reduction:</strong> {agent.noise_reduction_mode}</div>
-                      <div><strong>VAD Threshold:</strong> {agent.noise_reduction_threshold}</div>
-                      <div><strong>Prefix Padding:</strong> {agent.noise_reduction_prefix_padding_ms}ms</div>
-                      <div><strong>Silence Duration:</strong> {agent.noise_reduction_silence_duration_ms}ms</div>
-                    </div>
-                  </div>
                 </>
               )}
             </div>
           ))
         )}
       </div>
+      {selectedAgent && (
+        <div className="selected-agent-details">
+          <h4>Configuration - {selectedAgent.name}</h4>
+          <div className="settings-grid">
+            <div><strong>Domain:</strong> {selectedAgent.domain}</div>
+            <div><strong>Voice:</strong> {selectedAgent.voice}</div>
+            <div><strong>Noise Reduction:</strong> {selectedAgent.noise_reduction_mode}</div>
+            <div><strong>VAD Threshold:</strong> {selectedAgent.noise_reduction_threshold}</div>
+            <div><strong>Prefix Padding:</strong> {selectedAgent.noise_reduction_prefix_padding_ms}ms</div>
+            <div><strong>Silence Duration:</strong> {selectedAgent.noise_reduction_silence_duration_ms}ms</div>
+          </div>
+        </div>
+      )}
         </div>
       )}
       {showMcpServerCard && <AppIconsCard setShowMcpServerCard={setShowMcpServerCard} setChecked = {setChecked} selectedAgent = {selectedAgent}/>}
