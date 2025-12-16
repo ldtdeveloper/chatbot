@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../assets/mcpserver.css';
 import {integrationConfigService} from '../services/services'
 import { IoCloseOutline } from "react-icons/io5";
@@ -6,20 +6,31 @@ import { toast } from "sonner";
 
 
 export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selectedAgent,hubspotformdata }) {
-  const [intialformdata, setIntialFormData] = useState(() => {
+  const [formData, setFormData] = useState({
+    instructions: '',
+    hubspotKey: ''
+  });
+
+  // Update form data when hubspotformdata changes
+  useEffect(() => {
     if (hubspotformdata && hubspotformdata.length > 0) {
       console.log("Decrypted Key " + hubspotformdata[0].masked_key)
-      return {
+      setFormData({
         instructions: hubspotformdata[0].instructions || '',
         hubspotKey: hubspotformdata[0].masked_key || ''
-      };
+      });
+    } else {
+      setFormData({
+        instructions: '',
+        hubspotKey: ''
+      });
     }
-    return {
-      instructions: '',
-      hubspotKey: ''
-    };
-  });
-  const [formData, setFormData] = useState(intialformdata);
+  }, [hubspotformdata]);
+
+  // Don't render if no agent is selected - check after all hooks
+  if (!selectedAgent || !selectedAgent.id) {
+    return null;
+  }
 
   const handleChange = (e) => {
     console.log(e.target.value);
@@ -34,6 +45,10 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
   const handleSubmit = async (e) => {
     e.preventDefault();
     try{
+      if (!selectedAgent || !selectedAgent.id) {
+        toast.error("No agent selected");
+        return;
+      }
       let response; ;
       const payload = {
         instructions: formData.instructions
@@ -42,6 +57,10 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
         response = await integrationConfigService.update(hubspotformdata[0].id,payload);
       }
       else{
+        if (!formData.hubspotKey) {
+          toast.error("HubSpot API key is required");
+          return;
+        }
         payload.encrypted_key = formData.hubspotKey,
         payload.agent_id = selectedAgent.id,
         payload.provider = "hubspot"
@@ -54,7 +73,7 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
     } catch (error) {
         setShowHubSpotForm(false);
         setCheckedLocal(false);
-        toast.error("Something went wrong")
+        toast.error("Something went wrong: " + (error.message || error))
     }
   };
 
@@ -63,8 +82,8 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
   }
 
   return (
-    <div className="container">
-      <div className="form-card">
+    <div className="container" onClick={(e) => e.stopPropagation()}>
+      <div className="form-card" onClick={(e) => e.stopPropagation()}>
         <h2 className="form-title">Configuration</h2>
         
         <div className="form-content">
