@@ -2,8 +2,14 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentService, openAIKeyService } from '../services/services'
 import '../assets/Agents.css'
+import Switch from '@mui/material/Switch';
+import { MdOutlineInfo } from "react-icons/md";
+import Tooltip from "@mui/material/Tooltip";
+import AppIconsCard from '../components/mcpservercard.jsx';
+import { toast } from "sonner";
 
 function Agents() {
+  console.log("compnoent re renderd ----------------")
   const queryClient = useQueryClient()
   const [showAddForm, setShowAddForm] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -17,6 +23,8 @@ function Agents() {
   const [activeCategory, setActiveCategory] = useState('web')
   const [phoneApiKeyId, setPhoneApiKeyId] = useState('')
   const [showPhoneAddForm, setShowPhoneAddForm] = useState(false)
+  const [checked, setChecked] = useState(false);
+  const [showMcpServerCard, setShowMcpServerCard] = useState(false);
   const [Instructions, setInstructions] = useState({
     // company_name: '',
     // company_website: '',
@@ -52,12 +60,52 @@ function Agents() {
     restrictions: '',
     tone_examples: '',
     additional_instructions: ''
-
-
-
   });
 
-  const InstructionSet = (e) => {
+  useEffect(() => {
+    if (selectedAgent) {
+      console.log("Selected Agent changed:", selectedAgent.enable_mcp_server);
+          setChecked(selectedAgent.enable_mcp_server);
+          setShowMcpServerCard(true)
+        }
+      }, [selectedAgent]);
+
+  const handleChange = async (e) => {
+    if(e.target.checked){
+      try{
+        const response = await agentService.update(
+        selectedAgent.id,
+        { enable_mcp_server: true});
+        setChecked(true);
+        setShowMcpServerCard(true);
+        setTimeout(() => {
+        document.getElementById("mcpservercard").scrollIntoView({
+        behavior: "smooth",
+      });
+        }, 200);
+        toast.success("MCP server enabled")
+      }
+      catch(error){
+        toast.error("Something went wrong while enabling the MCP server.");
+      }
+    }
+    else{
+      try{
+        const response = await agentService.update(
+        selectedAgent.id,
+        { enable_mcp_server: false }
+        );
+        // Always trust backend
+        setChecked(false);
+        setShowMcpServerCard(false);
+        toast.success("MCP server disabled")
+        } catch(error){
+          toast.error("Something went wrong while disabling the MCP server.");
+        }
+      }
+  }
+
+    const InstructionSet = (e) => {
 
     const { name, value } = e.target;
     setInstructions((prev) => ({
@@ -361,15 +409,15 @@ function Agents() {
       e.stopPropagation()
       e.preventDefault()
     }
-    
+
     console.log('Copy button clicked, widgetCode:', widgetCode ? 'exists' : 'null', 'Length:', widgetCode?.length)
-    
+
     if (!widgetCode) {
       console.warn('No widget code to copy')
       alert('No widget code available to copy. Please wait for it to load.')
       return
     }
-    
+
     // Method 1: Try modern Clipboard API (works on HTTPS and localhost)
     if (navigator.clipboard && navigator.clipboard.writeText) {
       try {
@@ -383,7 +431,7 @@ function Agents() {
         // Continue to fallback
       }
     }
-    
+
     // Method 2: Fallback using textarea (works everywhere)
     try {
       const textArea = document.createElement('textarea')
@@ -401,9 +449,9 @@ function Agents() {
       textArea.style.opacity = '0'
       textArea.setAttribute('readonly', '')
       textArea.setAttribute('aria-hidden', 'true')
-      
+
       document.body.appendChild(textArea)
-      
+
       // For iOS devices
       if (navigator.userAgent.match(/ipad|iphone/i)) {
         const range = document.createRange()
@@ -416,10 +464,10 @@ function Agents() {
         textArea.select()
         textArea.setSelectionRange(0, widgetCode.length)
       }
-      
+
       const successful = document.execCommand('copy')
       document.body.removeChild(textArea)
-      
+
       if (successful) {
         console.log('✅ Copied using execCommand')
         setCopied(true)
@@ -583,27 +631,27 @@ ${"hello"}
   useEffect(() => {
     function handleOutsideClick(e) {
       if (!selectedAgent) return
-      
+
       const target = e.target
-      
+
       // Don't close if clicking inside any modal
       const clickedModal = target.closest('.modal-overlay') || target.closest('.modal-content')
       if (clickedModal) {
         return // Don't close when clicking inside modals
       }
-      
+
       // Don't close if clicking on buttons or interactive elements
       if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea')) {
         return
       }
-      
+
       const container = cardsContainerRef.current
       if (!container) return
-      
+
       const selectedCard = container.querySelector('.agent-card.selected')
       // If click is inside the selected card, do nothing
       if (selectedCard && selectedCard.contains(target)) return
-      
+
       // Close when click is outside the selected card (anywhere else, but not in modals)
       setSelectedAgent(null)
       setSelectedAgentForWidget(null)
@@ -617,26 +665,26 @@ ${"hello"}
   useEffect(() => {
     function handleOutsideClickPhone(e) {
       if (!selectedPhoneAgentId) return
-      
+
       const target = e.target
-      
+
       // Don't close if clicking inside any modal
       const clickedModal = target.closest('.modal-overlay') || target.closest('.modal-content')
       if (clickedModal) {
         return // Don't close when clicking inside modals
       }
-      
+
       // Don't close if clicking on buttons or interactive elements
       if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea')) {
         return
       }
-      
+
       const container = phoneCardsRef.current
       if (!container) return
-      
+
       const selectedCard = container.querySelector('.agent-card.selected')
       if (selectedCard && selectedCard.contains(target)) return
-      
+
       // Close when click is outside the selected card (anywhere else, but not in modals)
       setSelectedPhoneAgentId(null)
     }
@@ -1140,18 +1188,28 @@ ${"hello"}
             >
               <div className="agent-card-header">
                 <h3>{agent.name}</h3>
-                <button
+                <div
                   className="view-instructions-btn"
                   onClick={(e) => {
                     e.stopPropagation()
-
-
                     setSelectedInstructionsAgent(agent)
                   }}
                   title="View Instructions"
                 >
-                  ℹ️
-                </button>
+                  <MdOutlineInfo />
+                </div>
+                {selectedAgent &&
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                  <Tooltip title="MCP Server">
+                  <Switch
+                      size= "small"
+                      checked={checked}
+                      onChange={handleChange}
+                      slotProps={{ input: { 'aria-label': 'controlled' } }}
+                    />
+                  </Tooltip>
+                </div>
+   }
               </div>
               <div className="agent-meta">
                 <span><strong>Domain:</strong> {agent.domain}</span>
@@ -1211,7 +1269,7 @@ ${"hello"}
           ))
         )}
       </div>
-
+      {showMcpServerCard && <AppIconsCard setShowMcpServerCard={setShowMcpServerCard} setChecked = {setChecked} selectedAgent = {selectedAgent}/>}
       {showEditModal && editingAgent && (
         <div className="modal-overlay" onClick={() => handleCancelEdit()}>
           <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
@@ -1339,10 +1397,9 @@ ${"hello"}
           </div>
         </div>
       )}
-
       {showWidgetModal && selectedAgentForWidget && (
-        <div 
-          className="modal-overlay" 
+        <div
+          className="modal-overlay"
           onClick={(e) => {
             console.log('modal-overlay clicked', e)
             // Only close if clicking directly on the overlay, not on child elements
@@ -1398,7 +1455,7 @@ ${"hello"}
                   <span>
                     Copy this code to integrate the widget on <strong>{selectedAgentForWidget.domain}</strong>
                   </span>
-                  <button 
+                  <button
                     type="button"
                     disabled={!widgetCode}
                     onClick={(e) => {
@@ -1407,9 +1464,9 @@ ${"hello"}
                       if (widgetCode) {
                         handleCopyWidgetCode(e)
                       }
-                    }} 
+                    }}
                     className="copy-btn"
-                    style={{ 
+                    style={{
                       opacity: widgetCode ? 1 : 0.6,
                       cursor: widgetCode ? 'pointer' : 'not-allowed'
                     }}
@@ -1435,12 +1492,6 @@ ${"hello"}
           </div>
         </div>
       )}
-
-      </div>
-      )}
-
-
-
       {selectedInstructionsAgent && (
         <div className="modal-overlay" onClick={() => setSelectedInstructionsAgent(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

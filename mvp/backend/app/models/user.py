@@ -29,4 +29,5 @@ class User(Base):
     openai_keys = relationship("OpenAIKey", back_populates="user", cascade="all, delete-orphan")
     agents = relationship("Agent", back_populates="user", cascade="all, delete-orphan")
     assistant_configs = relationship("AssistantConfig", back_populates="user", cascade="all, delete-orphan")
+    integration_config = relationship("IntegrationConfig", back_populates="user", cascade="all, delete-orphan")
 

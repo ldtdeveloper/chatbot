@@ -163,3 +163,32 @@ export const dashboardService = {
     return response.data
   },
 }
+
+export const integrationConfigService = {
+   list: async (id) => {
+    const response = await api.get('/api/integration-config', {
+      params: { agent_id: id }
+    })
+    return response.data
+  },
+  
+  create: async (data) => {
+    const response = await api.post('/api/integration-config', data)
+    return response.data
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/api/integration-config/${id}`)
+    return response.data
+  },
+
+  update: async (id, data) => {
+    const response = await api.put(`/api/integration-config/${id}`, data)
+    return response.data
+  },
+
+  getDecryptedKey: async (id) => {
+    const response = await api.get(`/api/integration-config/${id}/decrypted-key`)
+    return response.data
+  },
+}

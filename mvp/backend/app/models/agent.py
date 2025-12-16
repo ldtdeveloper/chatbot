@@ -42,4 +42,6 @@ class Agent(Base):
     
     user = relationship("User", back_populates="agents")
     assistant_configs = relationship("AssistantConfig", back_populates="agent", cascade="all, delete-orphan")
+    integration_config = relationship("IntegrationConfig", back_populates="agent", cascade="all, delete-orphan")
+    enable_mcp_server = Column(Boolean, default=False)  # Whether to enable MCP server for this agent
 
