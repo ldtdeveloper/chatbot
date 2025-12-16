@@ -664,38 +664,38 @@ ${"hello"}
 
 
   // Close selected card on outside click
-  useEffect(() => {
-    function handleOutsideClick(e) {
-      if (!selectedAgent) return
+  // useEffect(() => {
+  //   function handleOutsideClick(e) {
+  //     if (!selectedAgent) return
 
-      const target = e.target
+  //     const target = e.target
 
-      // Don't close if clicking inside any modal
-      const clickedModal = target.closest('.modal-overlay') || target.closest('.modal-content')
-      if (clickedModal) {
-        return // Don't close when clicking inside modals
-      }
+  //     // Don't close if clicking inside any modal
+  //     const clickedModal = target.closest('.modal-overlay') || target.closest('.modal-content')
+  //     if (clickedModal) {
+  //       return // Don't close when clicking inside modals
+  //     }
 
-      // Don't close if clicking on buttons or interactive elements (including Switch)
-      if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea') || target.closest('[role="switch"]') || target.closest('.MuiSwitch-root')) {
-        return
-      }
+  //     // Don't close if clicking on buttons or interactive elements (including Switch)
+  //     if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea') || target.closest('[role="switch"]') || target.closest('.MuiSwitch-root')) {
+  //       return
+  //     }
 
-      const container = cardsContainerRef.current
-      if (!container) return
+  //     const container = cardsContainerRef.current
+  //     if (!container) return
 
-      const selectedCard = container.querySelector('.agent-card.selected')
-      // If click is inside the selected card, do nothing
-      if (selectedCard && selectedCard.contains(target)) return
+  //     const selectedCard = container.querySelector('.agent-card.selected')
+  //     // If click is inside the selected card, do nothing
+  //     if (selectedCard && selectedCard.contains(target)) return
 
-      // Close when click is outside the selected card (anywhere else, but not in modals)
-      setSelectedAgent(null)
-      setSelectedAgentForWidget(null)
-      // Don't close widget modal here - let it handle its own closing
-    }
-    document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
-  }, [selectedAgent])
+  //     // Close when click is outside the selected card (anywhere else, but not in modals)
+  //     setSelectedAgent(null)
+  //     setSelectedAgentForWidget(null)
+  //     // Don't close widget modal here - let it handle its own closing
+  //   }
+  //   document.addEventListener('mousedown', handleOutsideClick)
+  //   return () => document.removeEventListener('mousedown', handleOutsideClick)
+  // }, [selectedAgent])
 
   // Close selected phone card on outside click
   useEffect(() => {

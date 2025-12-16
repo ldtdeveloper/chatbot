@@ -5,21 +5,26 @@ import { IoCloseOutline } from "react-icons/io5";
 import { toast } from "sonner";
 
 
-export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selectedAgent,hubspotformdata }) {
+export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selectedAgent,hubspotformdata,onSuccess }) {
   const [formData, setFormData] = useState({
     instructions: '',
     hubspotKey: ''
   });
 
-  // Update form data when hubspotformdata changes
+  // Update form data when hubspotformdata changes or when form opens
   useEffect(() => {
+    console.log("HubSpotForm useEffect triggered, hubspotformdata:", hubspotformdata);
     if (hubspotformdata && hubspotformdata.length > 0) {
-      console.log("Decrypted Key " + hubspotformdata[0].masked_key)
+      console.log("Setting form data with:", {
+        instructions: hubspotformdata[0].instructions,
+        masked_key: hubspotformdata[0].masked_key
+      });
       setFormData({
         instructions: hubspotformdata[0].instructions || '',
         hubspotKey: hubspotformdata[0].masked_key || ''
       });
     } else {
+      console.log("No hubspotformdata, setting empty form");
       setFormData({
         instructions: '',
         hubspotKey: ''
@@ -70,6 +75,10 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
       toast.success("Configuration saved successfully.");
       setShowHubSpotForm(false);
       setCheckedLocal(true);
+      // Refetch data to get updated configId and data
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
         setShowHubSpotForm(false);
         setCheckedLocal(false);

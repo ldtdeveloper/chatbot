@@ -13,6 +13,7 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
     const [showHubSpotForm, setShowHubSpotForm] = useState(false);
     const [hubspotformdata, setHubSpotFormData] = useState(null)
     const [configId, setConfigId] = useState(null);
+    const [formKey, setFormKey] = useState(0); // Key to force form remount
     const previousAgentIdRef = useRef(null);
     
     useEffect(() => {
@@ -54,21 +55,67 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
       }
 
   fetchData();
-}, [selectedAgent?.id]); // Only depend on the ID, not the whole object 
+}, [selectedAgent?.id]); // Only depend on the ID, not the whole object
+
+    // Function to refetch data (can be called after form submission)
+    const refetchData = async () => {
+      try {
+        if (selectedAgent && selectedAgent.id) {
+          const response = await integrationConfigService.list(selectedAgent.id);
+          if (response && response.length > 0) {
+            setConfigId(response[0].id);
+            setCheckedLocal(Boolean(response[0].is_active));
+            setHubSpotFormData(response);
+          } else {
+            setConfigId(null);
+            setCheckedLocal(false);
+            setHubSpotFormData(null);
+          }
+        }
+      } catch (error) {
+        console.error("Error refetching agent data:", error);
+      }
+    }; 
 
     
-    const handleClick = (e) => {
+    const handleClick = async (e) => {
       // Stop event propagation to prevent closing
       if (e) {
         e.stopPropagation();
         e.preventDefault();
       }
       try{
-        console.log("Opening HubSpot form, current data:", hubspotformdata);
-        setShowHubSpotForm(true);
+        // If data exists, fetch fresh data from API before showing form
+        if (configId && selectedAgent?.id) {
+          const response = await integrationConfigService.list(selectedAgent.id);
+          if (response && response.length > 0) {
+            // Set the data first
+            setHubSpotFormData(response);
+            // Update form key to force remount with new data
+            setFormKey(prev => prev + 1);
+            console.log("Fetched fresh data for form:", response);
+            // Use requestAnimationFrame to ensure state is updated before opening form
+            requestAnimationFrame(() => {
+              setTimeout(() => {
+                setShowHubSpotForm(true);
+              }, 50);
+            });
+          } else {
+            // No data found, open empty form
+            setHubSpotFormData(null);
+            setShowHubSpotForm(true);
+          }
+        } else {
+          // No configId, open empty form for new configuration
+          setHubSpotFormData(null);
+          setShowHubSpotForm(true);
+        }
       }
       catch(error){
         console.error("Error opening HubSpot form:", error);
+        toast.error("Failed to load configuration data");
+        // Still open form even if fetch fails, but with existing data if available
+        setShowHubSpotForm(true);
       }
   };
 
@@ -81,6 +128,11 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
     const previousCheckedState = checked;
     const newCheckedState = Boolean(e.target.checked);
     
+    // Stop event propagation
+    if (e) {
+      e.stopPropagation();
+    }
+    
     try{
       if (!selectedAgent || !selectedAgent.id) {
         toast.error("No agent selected");
@@ -88,6 +140,7 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
       }
       
       if (configId){
+          // Data exists: Just update the toggle state (is_active) in DB
           // Optimistically update the UI immediately
           setCheckedLocal(newCheckedState);
           
@@ -100,10 +153,11 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
           // Handle different possible response structures
           const isActive = response?.is_active ?? response?.data?.is_active ?? newCheckedState;
           setCheckedLocal(Boolean(isActive));
-          setShowHubSpotForm(false);
-          toast.success("Configuration saved successfully.");
+          // Don't open/close form, just update toggle state
+          toast.success(newCheckedState ? "Integration activated" : "Integration deactivated");
       }
       else{
+        // No data exists: Open form to create new configuration
         setShowHubSpotForm(true);
       }
     }
@@ -141,6 +195,6 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
           </div>
         </div>
       </div>
-        {showHubSpotForm && <HubSpotForm setShowHubSpotForm = {setShowHubSpotForm} setCheckedLocal = {setCheckedLocal} selectedAgent = {selectedAgent} hubspotformdata = {hubspotformdata}/>}
+        {showHubSpotForm && <HubSpotForm key={`${configId || 'new'}-${formKey}`} setShowHubSpotForm = {setShowHubSpotForm} setCheckedLocal = {setCheckedLocal} selectedAgent = {selectedAgent} hubspotformdata = {hubspotformdata} onSuccess = {refetchData}/>}
     </div>  );
 }
