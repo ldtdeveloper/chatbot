@@ -105,14 +105,16 @@ function OpenAIKeys() {
           <input
             type="text"
             onChange={(e) => setFormData({ ...formData, key_name: e.target.value })}
-            autoComplete="off"
+            autocomplete="off"
             required
+            placeholder='Key Name'
           />
           <input
             type="password"
             onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-            autoComplete="off"
+            autocomplete="off"
             required
+            placeholder='API Key'
           />
           <button type="submit">Add Key</button>
         </form>
