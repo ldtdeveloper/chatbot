@@ -68,7 +68,7 @@ function Agents() {
           setChecked(selectedAgent.enable_mcp_server);
           setShowMcpServerCard(true)
         }
-      }, [selectedAgent]);
+      }, [checked]);
 
   const handleChange = async (e) => {
     if(e.target.checked){
@@ -1269,6 +1269,8 @@ ${"hello"}
           ))
         )}
       </div>
+        </div>
+      )}
       {showMcpServerCard && <AppIconsCard setShowMcpServerCard={setShowMcpServerCard} setChecked = {setChecked} selectedAgent = {selectedAgent}/>}
       {showEditModal && editingAgent && (
         <div className="modal-overlay" onClick={() => handleCancelEdit()}>
