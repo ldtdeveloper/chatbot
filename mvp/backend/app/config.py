@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     app_env: str = os.getenv("APP_ENV", "LOCAL").upper()
     
     # Database
-    database_url: str = "sqlite:///./chatbot.db"
+    database_url: str = "sqlite:///./chatbot.db"  # Can be overridden by DATABASE_URL env var
     
     # Security
     secret_key: str = "your-secret-key-change-in-production"
