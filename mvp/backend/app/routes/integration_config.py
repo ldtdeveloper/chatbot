@@ -100,6 +100,10 @@ async def update_integration_config(
     # Update fields
     update_data = config_data.dict(exclude_unset=True)
     for field, value in update_data.items():
+        if field=='encrypted_key':
+            encrypted_key = encrypt_api_key(value)
+            value = encrypted_key
+
         setattr(config, field, value)
     
     db.commit()

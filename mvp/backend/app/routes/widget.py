@@ -378,6 +378,9 @@ websocket_interactions: Dict[WebSocket, int] = {}  # Maps WebSocket to Interacti
 # Track token usage per WebSocket session (accumulated from response.done events)
 websocket_usage: Dict[WebSocket, dict] = {}  # Maps WebSocket to usage data
 
+# Track MCP clients for each WebSocket connection
+websocket_mcp_clients: Dict[WebSocket, any] = {}  # Maps WebSocket to MCP client
+
 
 def validate_domain(request_domain: str, agent_domain: str) -> bool:
     """Validate that request domain matches agent's allowed domain"""
@@ -505,10 +508,16 @@ async def widget_websocket(
             })
             await websocket.close()
             return
-        
         # Configure OpenAI session with agent settings
         agent_config = agent.agent_config if agent.agent_config else {}
-        
+        hubspot_token = None
+        if agent.enable_mcp_server:
+            try:
+                from app.services.integration_config_service import get_integration_config
+                hubspot_token = get_integration_config(agent.id)
+            except Exception as e:
+                print(e)
+
         session_payload = {
             "type": "session.update",
             "session": {
@@ -525,10 +534,22 @@ async def widget_websocket(
                 "instructions": format_instructions_for_openai(agent.instructions)
             }
         }
-        
         # Add voice if specified
         if agent.voice:
             session_payload["session"]["voice"] = agent.voice
+
+        if hubspot_token:
+            from app.mcp_server.hubspot_mcp_server import start_local_mcp_server
+            mcp_process = start_local_mcp_server(agent.id)
+            
+            Tools = [{
+                    "type": "mcp",
+                    "server_label" : "hubspot",
+                    "server_url": "https://mcp.hubspot.com",# To do expose local mcp server with ngrok and put the url here
+                    "require_approval": "never"
+            }]
+
+            session_payload["session"]["tools"]=Tools
         
         # Add noise reduction mode if specified
         if agent.noise_reduction_mode:
@@ -720,7 +741,6 @@ async def widget_websocket(
             # Close database session
             db.close()
 
-
 async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, client_ws: WebSocket):
     """Receive messages from OpenAI and forward to widget client"""
     assistant_text = ""
@@ -820,4 +840,3 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                 await openai_ws.close()
         except:
             pass
-
