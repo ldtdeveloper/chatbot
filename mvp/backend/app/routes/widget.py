@@ -510,13 +510,47 @@ async def widget_websocket(
             return
         # Configure OpenAI session with agent settings
         agent_config = agent.agent_config if agent.agent_config else {}
-        hubspot_token = None
+        hubspot_config = None
+        
+        # Only attempt to load MCP config if MCP server is enabled for this agent
         if agent.enable_mcp_server:
             try:
                 from app.services.integration_config_service import get_integration_config
-                hubspot_token = get_integration_config(agent.id)
+                hubspot_config = get_integration_config(agent.id)
+                if not hubspot_config:
+                    print(f"[Widget WS] MCP server enabled for agent '{agent.name}' but no integration config found")
             except Exception as e:
-                print(e)
+                print(f"[Widget WS] Error getting integration config: {e}")
+                hubspot_config = None
+        else:
+            print(f"[Widget WS] MCP server disabled for agent '{agent.name}' - proceeding with normal call flow")
+
+        # Prepare instructions - merge agent instructions with MCP instructions if MCP is enabled
+        agent_instructions = format_instructions_for_openai(agent.instructions)
+        final_instructions = agent_instructions
+        
+        # Only merge MCP instructions if MCP is enabled and config exists
+        if hubspot_config and hubspot_config.get('instructions'):
+            mcp_instructions = hubspot_config['instructions']
+            # Merge MCP instructions with agent instructions
+            # MCP instructions guide how to use HubSpot tools (when to save contacts, etc.)
+            final_instructions = f"""{agent_instructions}
+
+--- HUBSPOT INTEGRATION INSTRUCTIONS ---
+{mcp_instructions}
+
+IMPORTANT: When interacting with users, actively listen for:
+- Phone numbers (any format: +1-xxx-xxx-xxxx, (xxx) xxx-xxxx, xxx-xxx-xxxx, etc.)
+- Requests for callbacks
+- Contact information (email, name, company)
+- Interest in products/services
+
+When you detect any of the above information or user requests a callback, IMMEDIATELY use the appropriate HubSpot MCP tool to:
+1. Create or update a contact in HubSpot with the collected information
+2. Log the interaction details
+3. Set up any requested follow-ups
+
+Always confirm with the user that their information has been saved before ending the conversation."""
 
         session_payload = {
             "type": "session.update",
@@ -531,25 +565,34 @@ async def widget_websocket(
                     "prefix_padding_ms": agent.noise_reduction_prefix_padding_ms or 200,  # Reduced from 300
                     "silence_duration_ms": agent.noise_reduction_silence_duration_ms or 700  # Increased from 500 - waits longer before responding
                 },
-                "instructions": format_instructions_for_openai(agent.instructions)
+                "instructions": final_instructions
             }
         }
         # Add voice if specified
         if agent.voice:
             session_payload["session"]["voice"] = agent.voice
 
-        if hubspot_token:
-            from app.mcp_server.hubspot_mcp_server import start_local_mcp_server
-            mcp_process = start_local_mcp_server(agent.id)
-            
-            Tools = [{
-                    "type": "mcp",
-                    "server_label" : "hubspot",
-                    "server_url": "https://mcp.hubspot.com",# To do expose local mcp server with ngrok and put the url here
-                    "require_approval": "never"
-            }]
+        # Only add MCP tools if MCP is enabled and valid config exists
+        # When MCP is disabled, session_payload will not include tools, allowing normal OpenAI operation
+        if hubspot_config and hubspot_config.get('token'):
+            try:
+                from app.mcp_server.hubspot_mcp_server import start_local_mcp_server
+                mcp_process = start_local_mcp_server(agent.id)
+                
+                if mcp_process:
+                    Tools = [{
+                            "type": "mcp",
+                            "server_label" : "hubspot",
+                            "server_url": "https://mcp.hubspot.com",# To do expose local mcp server with ngrok and put the url here
+                            "require_approval": "never"
+                    }]
 
-            session_payload["session"]["tools"]=Tools
+                    session_payload["session"]["tools"]=Tools
+                    print(f"[Widget WS] MCP server enabled for agent '{agent.name}' with HubSpot integration")
+                else:
+                    print(f"[Widget WS] Failed to start MCP server for agent '{agent.name}' - proceeding without MCP tools")
+            except Exception as e:
+                print(f"[Widget WS] Error starting MCP server for agent '{agent.name}': {e} - proceeding without MCP tools")
         
         # Add noise reduction mode if specified
         if agent.noise_reduction_mode:
