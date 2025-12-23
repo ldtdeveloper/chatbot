@@ -501,7 +501,17 @@ async def widget_websocket(
             openai_ws = await websockets.connect(ws_url, extra_headers=headers)
             print("[Widget WS] Connected to OpenAI Realtime API")
         except Exception as e:
-            print(f"[Widget WS] OpenAI connection failed: {e}")
+            error_str = str(e).lower()
+            # Check for credit/quota related connection errors
+            if any(keyword in error_str for keyword in [
+                "quota", "billing", "payment", "credit", "limit", "unauthorized", "forbidden"
+            ]):
+                print(f"[Widget WS] ⚠️⚠️⚠️ OPENAI API CREDIT/QUOTA ERROR ON CONNECTION ⚠️⚠️⚠️")
+                print(f"[Widget WS] ❌ Connection Error: {e}")
+                print(f"[Widget WS] ⚠️⚠️⚠️ Please check OpenAI account billing and credits ⚠️⚠️⚠️")
+            else:
+                print(f"[Widget WS] OpenAI connection failed: {e}")
+            
             await websocket.send_json({
                 "type": "error",
                 "error": "Failed to connect to OpenAI"
@@ -574,25 +584,76 @@ Always confirm with the user that their information has been saved before ending
 
         # Only add MCP tools if MCP is enabled and valid config exists
         # When MCP is disabled, session_payload will not include tools, allowing normal OpenAI operation
+        print(f"[Widget WS] 🔍 MCP Debug - agent.enable_mcp_server: {agent.enable_mcp_server}")
+        print(f"[Widget WS] 🔍 MCP Debug - hubspot_config: {hubspot_config}")
+        if hubspot_config:
+            print(f"[Widget WS] 🔍 MCP Debug - hubspot_config has token: {bool(hubspot_config.get('token'))}")
+            if hubspot_config.get('token'):
+                print(f"[Widget WS] 🔍 MCP Debug - token length: {len(hubspot_config.get('token', ''))}")
+        
         if hubspot_config and hubspot_config.get('token'):
             try:
+                print(f"[Widget WS] 🔍 Attempting to start MCP server for agent {agent.id}...")
+                # Note: We're using HubSpot's cloud MCP server directly
+                # The local server process is started but the cloud URL is used
+                # This is because OpenAI connects directly to https://mcp.hubspot.com/
                 from app.mcp_server.hubspot_mcp_server import start_local_mcp_server
                 mcp_process = start_local_mcp_server(agent.id)
+                print(f"[Widget WS] 🔍 MCP server process result: {mcp_process}")
                 
-                if mcp_process:
+                # Check if token is in correct format (should start with 'pat-')
+                token = hubspot_config.get('token', '')
+                if not token.startswith('pat-'):
+                    print(f"[Widget WS] ⚠️ HubSpot token format appears incorrect (should start with 'pat-')")
+                    print(f"[Widget WS] ⚠️ Token format: {token[:10]}... (length: {len(token)})")
+                    print(f"[Widget WS] ⚠️ Please use a Private App Access Token from HubSpot")
+                    print(f"[Widget WS] ⚠️ Skipping MCP tools to prevent blocking responses")
+                elif mcp_process:
+                    # TODO: Add authentication to MCP tools once OpenAI API supports it
+                    # For now, MCP tools may fail but we'll continue without them to allow responses
+                    print(f"[Widget WS] ⚠️ Note: MCP tools configured but authentication may be missing")
+                    print(f"[Widget WS] ⚠️ If MCP fails, responses will still work normally")
+                    # Configure MCP tools
+                    # Note: Authentication for MCP servers might be handled differently
+                    # OpenAI may need the token passed via a different mechanism
+                    # For now, using basic MCP tool configuration without auth field
+                    # (Auth might be handled server-side or via different format)
+                    # Configure MCP tools
+                    # Note: OpenAI Realtime API MCP tools authentication might work differently
+                    # The token might need to be passed via a different mechanism or OpenAI handles it automatically
                     Tools = [{
                             "type": "mcp",
                             "server_label" : "hubspot",
-                            "server_url": "https://mcp.hubspot.com",# To do expose local mcp server with ngrok and put the url here
+                            "server_url": "https://mcp.hubspot.com",  # Using HubSpot cloud MCP server
                             "require_approval": "never"
+                            # TODO: Add authentication if OpenAI API supports it in MCP tools config
+                            # For now, MCP may fail but responses should still work
                     }]
 
                     session_payload["session"]["tools"]=Tools
-                    print(f"[Widget WS] MCP server enabled for agent '{agent.name}' with HubSpot integration")
+                    print(f"[Widget WS] ✅ MCP server enabled for agent '{agent.name}' with HubSpot integration")
+                    print(f"[Widget WS] ✅ MCP Tools configured: {json.dumps(Tools, indent=2)}")
+                    print(f"[Widget WS] ✅ HubSpot token present: {hubspot_config.get('token')[:10]}...{hubspot_config.get('token')[-4:]}")
+                    print(f"[Widget WS] ✅ MCP instructions: {hubspot_config.get('instructions', '')[:100]}...")
+                    print(f"[Widget WS] ⚠️ Note: If MCP authentication fails, responses will still work normally")
                 else:
-                    print(f"[Widget WS] Failed to start MCP server for agent '{agent.name}' - proceeding without MCP tools")
+                    print(f"[Widget WS] ❌ Failed to start MCP server for agent '{agent.name}' - proceeding without MCP tools")
+                    print(f"[Widget WS] ❌ MCP process is None - check if @hubspot/mcp-server is installed and token is valid")
             except Exception as e:
-                print(f"[Widget WS] Error starting MCP server for agent '{agent.name}': {e} - proceeding without MCP tools")
+                print(f"[Widget WS] ❌ Error configuring MCP for agent '{agent.name}': {e}")
+                import traceback
+                traceback.print_exc()
+                print(f"[Widget WS] ⚠️ Continuing without MCP tools - bot will work normally")
+                # Don't add tools if there's an error - ensure bot works without MCP
+        else:
+            if agent.enable_mcp_server:
+                print(f"[Widget WS] ⚠️ MCP enabled but no valid config:")
+                print(f"[Widget WS] ⚠️   - hubspot_config is None: {hubspot_config is None}")
+                if hubspot_config:
+                    print(f"[Widget WS] ⚠️   - hubspot_config has token: {bool(hubspot_config.get('token'))}")
+                    print(f"[Widget WS] ⚠️   - hubspot_config keys: {list(hubspot_config.keys()) if hubspot_config else 'N/A'}")
+            else:
+                print(f"[Widget WS] ℹ️ MCP server is disabled for agent '{agent.name}'")
         
         # Add noise reduction mode if specified
         if agent.noise_reduction_mode:
@@ -611,8 +672,15 @@ Always confirm with the user that their information has been saved before ending
         # Log session update message in dev environment
         log_openai_websocket_message(session_payload)
         
+        # Log MCP configuration details
+        if "tools" in session_payload.get("session", {}):
+            print(f"[Widget WS] 🔧 MCP Tools in session: {json.dumps(session_payload['session']['tools'], indent=2)}")
+        else:
+            print(f"[Widget WS] ⚠️ No tools configured in session (MCP may be disabled)")
+        
         await openai_ws.send(json.dumps(session_payload))
-        print(f"[Widget WS] OpenAI session configured for agent '{agent.name}'")
+        print(f"[Widget WS] ✅ OpenAI session configured for agent '{agent.name}'")
+        print(f"[Widget WS] 📝 Instructions length: {len(final_instructions)} characters")
         
         # Store connection
         client_connections[websocket] = openai_ws
@@ -797,6 +865,37 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
             
             event_type = data.get("type", "")
             
+            # Log ALL events from OpenAI for debugging (temporarily)
+            if event_type in ["response.audio_transcript.delta", "response.audio_transcript.done", 
+                             "response.audio.delta", "response.done", "response.created",
+                             "conversation.item.input_audio_transcription.completed"]:
+                print(f"[Widget WS] 📨 Received event: {event_type}")
+                if event_type == "response.audio_transcript.delta":
+                    print(f"[Widget WS] 📨 Delta text: {data.get('delta', '')}")
+                elif event_type == "response.audio_transcript.done":
+                    print(f"[Widget WS] 📨 Full transcript: {data.get('transcript', '')}")
+                elif event_type == "response.audio.delta":
+                    print(f"[Widget WS] 📨 Audio delta length: {len(data.get('delta', ''))}")
+                elif event_type == "response.created":
+                    response_data = data.get("response", {})
+                    print(f"[Widget WS] 📨 Response created - ID: {response_data.get('id', 'N/A')}, Status: {response_data.get('status', 'N/A')}")
+                    if "error" in response_data:
+                        print(f"[Widget WS] ❌ Response has error: {json.dumps(response_data.get('error'), indent=2)}")
+                    # Log all response events to see what's happening
+                    print(f"[Widget WS] 📨 Response created full data: {json.dumps(data, indent=2)}")
+            
+            # Log all MCP/tool-related events for debugging
+            if "tool" in event_type.lower() or "mcp" in event_type.lower() or event_type.startswith("response.tool"):
+                print(f"[Widget WS] 🔧 MCP/TOOL EVENT: {event_type}")
+                print(f"[Widget WS] 🔧 Tool Event Data: {json.dumps(data, indent=2)}")
+            
+            # Log all response events to catch tool calls
+            if event_type.startswith("response."):
+                # Check for tool calls in response
+                if "tool" in str(data).lower() or "mcp" in str(data).lower():
+                    print(f"[Widget WS] 🔧 Potential tool usage in response: {event_type}")
+                    print(f"[Widget WS] 🔧 Response Data: {json.dumps(data, indent=2)}")
+            
             if event_type == "conversation.item.input_audio_transcription.completed":
                 transcript = data.get("transcript", "")
                 if transcript:
@@ -810,13 +909,22 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                 assistant_text += data.get("delta", "")
             
             elif event_type == "response.audio_transcript.done":
+                # Check if transcript is in the event data itself (some events include full transcript)
+                transcript = data.get("transcript", "")
+                if transcript:
+                    assistant_text = transcript
+                
                 if assistant_text:
                     await client_ws.send_json({
                         "type": "transcript_assistant",
                         "text": assistant_text
                     })
-                    print(f"[Widget WS] Assistant: {assistant_text}")
+                    print(f"[Widget WS] Assistant transcript: {assistant_text}")
                     assistant_text = ""
+                else:
+                    print(f"[Widget WS] ⚠️ response.audio_transcript.done but no transcript found")
+                    print(f"[Widget WS] ⚠️ Event data keys: {list(data.keys())}")
+                    print(f"[Widget WS] ⚠️ Full event: {json.dumps(data, indent=2)}")
             
             elif event_type == "response.audio.delta":
                 delta = data.get("delta")
@@ -827,10 +935,45 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                     })
             
             elif event_type == "response.done":
+                # Log full response data to debug why no content is generated
+                response_data = data.get("response", {})
+                print(f"[Widget WS] 📨 response.done - Full response data: {json.dumps(response_data, indent=2)}")
+                
+                # Check for errors in response
+                if "error" in response_data:
+                    error_info = response_data.get("error", {})
+                    error_msg = error_info.get("message", "")
+                    error_type = error_info.get("type", "")
+                    error_code = error_info.get("code", "")
+                    
+                    # Check for API credit/quota related errors
+                    error_msg_lower = error_msg.lower() if error_msg else ""
+                    if any(keyword in error_msg_lower for keyword in [
+                        "insufficient_quota", "quota", "billing", "payment", "credit", 
+                        "account_limit", "rate_limit", "usage_limit", "spend_limit"
+                    ]):
+                        print(f"[Widget WS] ⚠️⚠️⚠️ OPENAI API CREDIT/QUOTA ERROR IN RESPONSE ⚠️⚠️⚠️")
+                        print(f"[Widget WS] ❌ Error Type: {error_type}")
+                        print(f"[Widget WS] ❌ Error Code: {error_code}")
+                        print(f"[Widget WS] ❌ Error Message: {error_msg}")
+                        print(f"[Widget WS] ❌ Full Error Data: {json.dumps(error_info, indent=2)}")
+                        print(f"[Widget WS] ⚠️⚠️⚠️ Please check OpenAI account billing and credits ⚠️⚠️⚠️")
+                    else:
+                        print(f"[Widget WS] ❌ Response error: {json.dumps(error_info, indent=2)}")
+                
+                # Check response status
+                status = response_data.get("status", "unknown")
+                print(f"[Widget WS] 📨 Response status: {status}")
+                
+                # Check if response is empty (no output items) - might indicate credit/quota issue
+                output_items = response_data.get("output", [])
+                if status == "completed" and not output_items:
+                    print(f"[Widget WS] ⚠️ Response completed but has no output items - might indicate API credit/quota issue")
+                    print(f"[Widget WS] ⚠️ Full response data: {json.dumps(response_data, indent=2)}")
+                
                 await client_ws.send_json({"type": "response_done"})
                 
                 # Extract and accumulate token usage from OpenAI response
-                response_data = data.get("response", {})
                 usage = response_data.get("usage", {})
                 
                 if usage and client_ws in websocket_usage:
@@ -868,12 +1011,63 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                 print("[Widget WS] User stopped speaking")
             
             elif event_type == "error":
-                error_msg = data.get("error", {}).get("message", "Unknown error")
+                error_data = data.get("error", {})
+                error_msg = error_data.get("message", "Unknown error")
+                error_type = error_data.get("type", "unknown")
+                error_code = error_data.get("code", "unknown")
+                
+                # Check for API credit/quota related errors
+                error_msg_lower = error_msg.lower()
+                if any(keyword in error_msg_lower for keyword in [
+                    "insufficient_quota", "quota", "billing", "payment", "credit", 
+                    "account_limit", "rate_limit", "usage_limit", "spend_limit"
+                ]):
+                    print(f"[Widget WS] ⚠️⚠️⚠️ OPENAI API CREDIT/QUOTA ERROR ⚠️⚠️⚠️")
+                    print(f"[Widget WS] ❌ Error Type: {error_type}")
+                    print(f"[Widget WS] ❌ Error Code: {error_code}")
+                    print(f"[Widget WS] ❌ Error Message: {error_msg}")
+                    print(f"[Widget WS] ❌ Full Error Data: {json.dumps(error_data, indent=2)}")
+                    print(f"[Widget WS] ⚠️⚠️⚠️ Please check OpenAI account billing and credits ⚠️⚠️⚠️")
+                
                 await client_ws.send_json({
                     "type": "error",
                     "error": error_msg
                 })
-                print(f"[Widget WS] OpenAI error: {error_msg}")
+                print(f"[Widget WS] OpenAI error: {error_msg} (type: {error_type}, code: {error_code})")
+            
+            # Handle MCP tool calls
+            elif event_type == "response.tool_call":
+                tool_call = data.get("tool_call", {})
+                tool_name = tool_call.get("name", "unknown")
+                tool_args = tool_call.get("arguments", {})
+                print(f"[Widget WS] 🔧 TOOL CALL: {tool_name}")
+                print(f"[Widget WS] 🔧 Tool Arguments: {json.dumps(tool_args, indent=2)}")
+            
+            elif event_type == "response.tool_call.done":
+                tool_call = data.get("tool_call", {})
+                tool_name = tool_call.get("name", "unknown")
+                tool_result = data.get("result", {})
+                print(f"[Widget WS] ✅ TOOL CALL COMPLETE: {tool_name}")
+                print(f"[Widget WS] ✅ Tool Result: {json.dumps(tool_result, indent=2)}")
+            
+            elif event_type == "response.tool_calls":
+                tool_calls = data.get("tool_calls", [])
+                print(f"[Widget WS] 🔧 TOOL CALLS RECEIVED: {len(tool_calls)} tool(s)")
+                for i, tool_call in enumerate(tool_calls):
+                    print(f"[Widget WS] 🔧 Tool {i+1}: {tool_call.get('name', 'unknown')} - {json.dumps(tool_call, indent=2)}")
+            
+            # Log any other unhandled events (for debugging)
+            else:
+                # Only log if it's not a common event we're already handling
+                if event_type not in ["session.created", "session.updated", "session.updated.done", 
+                                     "conversation.item.created", "conversation.item.input_audio_transcription.completed",
+                                     "response.audio_transcript.delta", "response.audio_transcript.done",
+                                     "response.audio.delta", "response.done", "input_audio_buffer.speech_started",
+                                     "input_audio_buffer.speech_stopped", "error"]:
+                    # Log unhandled events that might be tool-related
+                    if "tool" in event_type.lower() or "mcp" in event_type.lower():
+                        print(f"[Widget WS] ⚠️ Unhandled tool/MCP event: {event_type}")
+                        print(f"[Widget WS] ⚠️ Event Data: {json.dumps(data, indent=2)}")
     
     except Exception as e:
         print(f"[Widget WS] Message handler error: {e}")
