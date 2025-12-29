@@ -12,7 +12,7 @@ from app.models.openai_key import OpenAIKey
 from app.models.agent import Agent
 from app.models.interaction import Interaction
 from app.schemas import DashboardStats
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_active_subscription
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -62,7 +62,7 @@ async def get_dashboard_stats(
     days: str = Query(default="30d", regex="^(7d|30d|90d)$"),
     key_id: Optional[int] = Query(default=None, description="Filter by specific API key ID"),
     user_id: Optional[int] = Query(default=None, description="Filter by user ID (superadmin only)"),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_subscription),
     db: Session = Depends(get_db)
 ):
     """

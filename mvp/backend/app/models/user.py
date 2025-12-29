@@ -19,9 +19,10 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=True)  # Nullable - set after payment
     role = Column(Enum(UserRole), default=UserRole.DEFAULT, nullable=False)
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=False)  # Inactive until password is set
+    password_set = Column(Boolean, default=False)  # Track if password has been set
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -30,4 +31,6 @@ class User(Base):
     agents = relationship("Agent", back_populates="user", cascade="all, delete-orphan")
     assistant_configs = relationship("AssistantConfig", back_populates="user", cascade="all, delete-orphan")
     integration_config = relationship("IntegrationConfig", back_populates="user", cascade="all, delete-orphan")
+    subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
+    payment_tokens = relationship("PaymentToken", back_populates="user", cascade="all, delete-orphan")
 

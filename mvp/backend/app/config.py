@@ -54,7 +54,17 @@ class Settings(BaseSettings):
     debug: bool = True
     
     # CORS - Will be overridden by environment-specific logic
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins: List[str] = [
+        "http://localhost:3000", 
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8080",
+        "http://localhost",
+        "http://127.0.0.1",
+        "null"  # Allow file:// protocol (browsers send "null" as origin)
+    ]
     
     # OpenAI
     openai_api_base: str = "https://api.openai.com/v1"
@@ -71,6 +81,10 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     from_email: str = "noreply@voiceassistant.ai"
     from_name: str = "Voice Assistant Platform"
+    
+    # Razorpay Settings
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
     
     model_config = SettingsConfigDict(
         env_file=get_env_file(),

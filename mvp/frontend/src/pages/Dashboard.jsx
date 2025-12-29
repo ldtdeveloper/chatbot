@@ -97,6 +97,43 @@ function Dashboard() {
 
   // Error state
   if (error) {
+    // Check if it's a payment required error (402)
+    const isPaymentRequired = error?.response?.status === 402 || error?.message?.includes('subscription') || error?.message?.includes('payment')
+    
+    if (isPaymentRequired) {
+      return (
+        <div className="dashboard">
+          <div className="dashboard-header">
+            <h1>Dashboard</h1>
+          </div>
+          <div className="error-state" style={{ textAlign: 'center', padding: '40px' }}>
+            <h2 style={{ color: '#667eea', marginBottom: '20px' }}>Payment Required</h2>
+            <p style={{ marginBottom: '20px', fontSize: '16px' }}>
+              {error?.response?.data?.detail || 'Active subscription required to access the dashboard.'}
+            </p>
+            <p style={{ marginBottom: '30px', color: '#666' }}>
+              Please complete your payment to continue using the platform.
+            </p>
+            <button 
+              onClick={() => window.location.href = '/landing.html'}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '600'
+              }}
+            >
+              Go to Payment
+            </button>
+          </div>
+        </div>
+      )
+    }
+    
     return (
       <div className="dashboard">
         <div className="dashboard-header">

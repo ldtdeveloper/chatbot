@@ -11,8 +11,13 @@ from app.models.assistant_config import NoiseReductionMode
 class UserCreate(BaseModel):
     email: EmailStr
     username: str
-    password: str
+    password: Optional[str] = None  # Optional - not required for initial registration
     role: Optional[str] = "default"  # Only superadmin can set role
+
+class UserRegisterRequest(BaseModel):
+    email: EmailStr
+    username: str
+    plan: str  # starter, pro, enterprise
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     username: Optional[str] = None
@@ -213,3 +218,7 @@ class IntegrationConfigResponse(BaseModel):
 
 class IntegrationConfigMasked(BaseModel):
     masked_key: str
+
+class SetupPasswordRequest(BaseModel):
+    token: str  # Payment token
+    password: str
