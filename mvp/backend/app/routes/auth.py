@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.payment_token import PaymentToken
+from app.models.subscription import Subscription, PaymentStatus
 from app.schemas import UserCreate, UserLogin, UserResponse, Token, UserRegisterRequest, SetupPasswordRequest
 from app.utils.auth import verify_password, get_password_hash, create_access_token
 from app.dependencies import get_current_user
@@ -290,4 +291,85 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
     return current_user
+
+
+@router.post("/setup-password", response_model=Token)
+async def setup_password_endpoint(
+    password_data: SetupPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Set password after successful payment.
+    Requires a valid payment token and verified payment status.
+    """
+    # Find payment token
+    db_token = db.query(PaymentToken).filter(
+        PaymentToken.token == password_data.token,
+        PaymentToken.is_used == False
+    ).first()
+    
+    if not db_token:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired payment token"
+        )
+    
+    # Check if token expired
+    if datetime.now(timezone.utc) > db_token.expires_at:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment token has expired"
+        )
+    
+    # Get user
+    user = db.query(User).filter(User.id == db_token.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Verify payment was successful
+    subscription = db.query(Subscription).filter(
+        Subscription.user_id == user.id,
+        Subscription.payment_status == PaymentStatus.SUCCESS
+    ).first()
+    
+    if not subscription:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment not completed. Please complete payment first."
+        )
+    
+    # Check if password already set
+    if user.password_set:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password has already been set. Please login instead."
+        )
+    
+    # Set password
+    user.hashed_password = get_password_hash(password_data.password)
+    user.password_set = True
+    user.is_active = True  # Activate user account
+    
+    # Mark payment token as used
+    db_token.is_used = True
+    db_token.used_at = datetime.now(timezone.utc)
+    
+    db.commit()
+    db.refresh(user)
+    
+    # Generate access token for auto-login
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = create_access_token(
+        data={"sub": user.id},
+        expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "message": "Password set successfully"
+    }
 
