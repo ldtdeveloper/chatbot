@@ -18,8 +18,7 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
 # Plan pricing
 PLAN_PRICES = {
-    "starter": 100.0,
-    "pro": 200.0,
+    "pro": 29.0,
     "enterprise": 0.0  # Custom pricing
 }
 

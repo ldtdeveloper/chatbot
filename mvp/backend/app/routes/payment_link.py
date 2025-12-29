@@ -608,7 +608,7 @@ async def setup_password_page(token: str, request: Request, db: Session = Depend
                     // Redirect to dashboard (adjust URL based on your frontend)
                     setTimeout(() => {{
                         // If frontend is on different port, adjust this
-                        window.location.href = 'http://localhost:5173/';
+                        window.location.href = 'http://localhost:3000/';
                     }}, 2000);
                     
                 }} catch (err) {{

@@ -83,8 +83,8 @@ class Settings(BaseSettings):
     from_name: str = "Voice Assistant Platform"
     
     # Razorpay Settings
-    razorpay_key_id: str = ""
-    razorpay_key_secret: str = ""
+    razorpay_key_id: str = os.getenv("RAZORPAY_KEY_ID","")
+    razorpay_key_secret: str = os.getenv("RAZORPAY_KEY_SECRET","")
     
     model_config = SettingsConfigDict(
         env_file=get_env_file(),

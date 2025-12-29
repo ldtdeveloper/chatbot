@@ -14,7 +14,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -568,56 +570,7 @@
             </div>
             
             <!-- Pricing Cards -->
-            <div class="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
-                <!-- Starter Plan -->
-                <div class="glass-card rounded-2xl p-6 md:p-8 card-hover">
-                    <div class="text-center mb-8">
-                        <h3 class="text-2xl font-bold mb-2 text-gray-800">Starter</h3>
-                        <p class="text-gray-500 mb-4">For individuals & small projects</p>
-                        <div class="text-5xl font-extrabold gradient-text">
-                            $100
-                            <span class="text-lg font-normal text-gray-400">/month</span>
-                        </div>
-                    </div>
-                    
-                    <ul class="space-y-4 mb-8">
-                        <li class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            <span class="text-gray-600">1 API Key</span>
-                        </li>
-                        <li class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            <span class="text-gray-600">2 Agents</span>
-                        </li>
-                        <li class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            <span class="text-gray-600">Basic Analytics</span>
-                        </li>
-                        <li class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            <span class="text-gray-600">Community Support</span>
-                        </li>
-                        <li class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                            <span class="text-gray-400">Weekly Reports</span>
-                        </li>
-                    </ul>
-                    
-                    <button onclick="selectPlan('starter', 100)" class="w-full py-3.5 rounded-full border-2 border-purple-200 text-purple-600 font-semibold hover:bg-purple-50 transition-colors">
-                        Get Started
-                    </button>
-                </div>
-                
+            <div class="grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
                 <!-- Pro Plan -->
                 <div class="glass-card rounded-2xl p-6 md:p-8 card-hover border-2 border-purple-300 relative popular-glow transform md:scale-105">
                     <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -630,7 +583,7 @@
                         <h3 class="text-2xl font-bold mb-2 text-gray-800">Pro</h3>
                         <p class="text-gray-500 mb-4">For growing businesses</p>
                         <div class="text-5xl font-extrabold gradient-text">
-                            $200
+                            $29
                             <span class="text-lg font-normal text-gray-400">/month</span>
                         </div>
                     </div>
@@ -668,7 +621,7 @@
                         </li>
                     </ul>
                     
-                    <button onclick="selectPlan('pro', 200)" class="w-full btn-gradient py-3.5 rounded-full text-white font-semibold">
+                    <button onclick="selectPlan('pro', 29)" class="w-full btn-gradient py-3.5 rounded-full text-white font-semibold">
                         Get Started
                     </button>
                 </div>
@@ -999,6 +952,7 @@
         
         // Plan selection
         function selectPlan(plan, price) {
+            console.log("Selected plan price ----> " + plan + "" + price)
             selectedPlan = plan;
             selectedPlanPrice = price;
             openRegisterModal();
@@ -1100,7 +1054,18 @@
                     loadingOverlay.classList.add('hidden');
                     
                     // Show success message
-                    alert(`Registration successful! Please check your email (${email}) for the payment link. Click the link in the email to complete payment and set up your password.`);
+                    // alert(`Registration successful! Please check your email (${email}) for the payment link. Click the link in the email to complete payment and set up your password.`);
+                    Toastify({
+                        text: `Registration successful! Check your email for the payment link.`,
+                        duration: 2000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "#16a34a",
+                        style: {
+                            borderRadius: "15px"  
+                        }
+                        }).showToast();
+
                 }, 1500);
                 
             } catch (error) {
