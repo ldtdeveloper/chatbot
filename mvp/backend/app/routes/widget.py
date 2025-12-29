@@ -522,45 +522,67 @@ async def widget_websocket(
         agent_config = agent.agent_config if agent.agent_config else {}
         hubspot_config = None
         
-        # Only attempt to load MCP config if MCP server is enabled for this agent
+        # Fixed HubSpot MCP instructions - always added when MCP is enabled
+        HUBSPOT_MCP_FIXED_INSTRUCTIONS = """--- HUBSPOT CRM INTEGRATION INSTRUCTIONS ---
+
+You have access to HubSpot CRM tools via MCP (Model Context Protocol). Your primary responsibility is to extract customer information and save it to HubSpot CRM.
+
+CRITICAL: When interacting with users, you MUST actively listen for and extract:
+- Names (first name, last name, full name)
+- Phone numbers (any format: +1-xxx-xxx-xxxx, (xxx) xxx-xxxx, xxx-xxx-xxxx, etc.)
+- Email addresses
+- Company names
+- Job titles
+- Any requests for callbacks, follow-ups, or contact
+
+WHEN TO USE HUBSPOT TOOLS:
+1. IMMEDIATELY when a user provides their name, phone number, or email
+2. IMMEDIATELY when a user requests a callback or follow-up
+3. IMMEDIATELY when a user expresses interest in products/services
+4. IMMEDIATELY when collecting any contact information
+
+REQUIRED ACTIONS:
+1. Use the appropriate HubSpot MCP tool to create or update a contact with ALL collected information
+2. Include any relevant notes about the conversation or user interest
+3. Always confirm with the user that their information has been saved before ending the conversation
+
+TOOL USAGE:
+- Use HubSpot MCP tools to create contacts, update existing contacts, or log interactions
+- Ensure all provided information is captured accurately
+- If a user provides partial information, save what you have and note what's missing"""
+        
+        # Load MCP config if MCP server is enabled
         if agent.enable_mcp_server:
             try:
                 from app.services.integration_config_service import get_integration_config
                 hubspot_config = get_integration_config(agent.id)
                 if not hubspot_config:
-                    print(f"[Widget WS] MCP server enabled for agent '{agent.name}' but no integration config found")
+                    print(f"[Widget WS] ⚠️ MCP: No integration config found for agent {agent.id}")
             except Exception as e:
-                print(f"[Widget WS] Error getting integration config: {e}")
+                print(f"[Widget WS] ❌ MCP: Error getting integration config: {e}")
                 hubspot_config = None
-        else:
-            print(f"[Widget WS] MCP server disabled for agent '{agent.name}' - proceeding with normal call flow")
 
-        # Prepare instructions - merge agent instructions with MCP instructions if MCP is enabled
+        # Prepare instructions - always add fixed HubSpot instructions if MCP is enabled
         agent_instructions = format_instructions_for_openai(agent.instructions)
         final_instructions = agent_instructions
         
-        # Only merge MCP instructions if MCP is enabled and config exists
-        if hubspot_config and hubspot_config.get('instructions'):
-            mcp_instructions = hubspot_config['instructions']
+        if agent.enable_mcp_server:
+            # Start with fixed HubSpot MCP instructions
+            mcp_instructions = HUBSPOT_MCP_FIXED_INSTRUCTIONS
+            
+            # Append user-provided instructions if they exist
+            if hubspot_config and hubspot_config.get('instructions'):
+                user_instructions = hubspot_config['instructions'].strip()
+                if user_instructions:
+                    mcp_instructions = f"""{HUBSPOT_MCP_FIXED_INSTRUCTIONS}
+
+--- ADDITIONAL USER CONFIGURED INSTRUCTIONS ---
+{user_instructions}"""
+            
             # Merge MCP instructions with agent instructions
-            # MCP instructions guide how to use HubSpot tools (when to save contacts, etc.)
             final_instructions = f"""{agent_instructions}
 
---- HUBSPOT INTEGRATION INSTRUCTIONS ---
-{mcp_instructions}
-
-IMPORTANT: When interacting with users, actively listen for:
-- Phone numbers (any format: +1-xxx-xxx-xxxx, (xxx) xxx-xxxx, xxx-xxx-xxxx, etc.)
-- Requests for callbacks
-- Contact information (email, name, company)
-- Interest in products/services
-
-When you detect any of the above information or user requests a callback, IMMEDIATELY use the appropriate HubSpot MCP tool to:
-1. Create or update a contact in HubSpot with the collected information
-2. Log the interaction details
-3. Set up any requested follow-ups
-
-Always confirm with the user that their information has been saved before ending the conversation."""
+{mcp_instructions}"""
 
         session_payload = {
             "type": "session.update",
@@ -582,78 +604,74 @@ Always confirm with the user that their information has been saved before ending
         if agent.voice:
             session_payload["session"]["voice"] = agent.voice
 
-        # Only add MCP tools if MCP is enabled and valid config exists
-        # When MCP is disabled, session_payload will not include tools, allowing normal OpenAI operation
-        print(f"[Widget WS] 🔍 MCP Debug - agent.enable_mcp_server: {agent.enable_mcp_server}")
-        print(f"[Widget WS] 🔍 MCP Debug - hubspot_config: {hubspot_config}")
-        if hubspot_config:
-            print(f"[Widget WS] 🔍 MCP Debug - hubspot_config has token: {bool(hubspot_config.get('token'))}")
-            if hubspot_config.get('token'):
-                print(f"[Widget WS] 🔍 MCP Debug - token length: {len(hubspot_config.get('token', ''))}")
-        
-        if hubspot_config and hubspot_config.get('token'):
-            try:
-                print(f"[Widget WS] 🔍 Attempting to start MCP server for agent {agent.id}...")
-                # Note: We're using HubSpot's cloud MCP server directly
-                # The local server process is started but the cloud URL is used
-                # This is because OpenAI connects directly to https://mcp.hubspot.com/
-                from app.mcp_server.hubspot_mcp_server import start_local_mcp_server
-                mcp_process = start_local_mcp_server(agent.id)
-                print(f"[Widget WS] 🔍 MCP server process result: {mcp_process}")
-                
-                # Check if token is in correct format (should start with 'pat-')
-                token = hubspot_config.get('token', '')
-                if not token.startswith('pat-'):
-                    print(f"[Widget WS] ⚠️ HubSpot token format appears incorrect (should start with 'pat-')")
-                    print(f"[Widget WS] ⚠️ Token format: {token[:10]}... (length: {len(token)})")
-                    print(f"[Widget WS] ⚠️ Please use a Private App Access Token from HubSpot")
-                    print(f"[Widget WS] ⚠️ Skipping MCP tools to prevent blocking responses")
-                elif mcp_process:
-                    # TODO: Add authentication to MCP tools once OpenAI API supports it
-                    # For now, MCP tools may fail but we'll continue without them to allow responses
-                    print(f"[Widget WS] ⚠️ Note: MCP tools configured but authentication may be missing")
-                    print(f"[Widget WS] ⚠️ If MCP fails, responses will still work normally")
-                    # Configure MCP tools
-                    # Note: Authentication for MCP servers might be handled differently
-                    # OpenAI may need the token passed via a different mechanism
-                    # For now, using basic MCP tool configuration without auth field
-                    # (Auth might be handled server-side or via different format)
-                    # Configure MCP tools
-                    # Note: OpenAI Realtime API MCP tools authentication might work differently
-                    # The token might need to be passed via a different mechanism or OpenAI handles it automatically
-                    Tools = [{
-                            "type": "mcp",
-                            "server_label" : "hubspot",
-                            "server_url": "https://mcp.hubspot.com",  # Using HubSpot cloud MCP server
-                            "require_approval": "never"
-                            # TODO: Add authentication if OpenAI API supports it in MCP tools config
-                            # For now, MCP may fail but responses should still work
-                    }]
-
-                    session_payload["session"]["tools"]=Tools
-                    print(f"[Widget WS] ✅ MCP server enabled for agent '{agent.name}' with HubSpot integration")
-                    print(f"[Widget WS] ✅ MCP Tools configured: {json.dumps(Tools, indent=2)}")
-                    print(f"[Widget WS] ✅ HubSpot token present: {hubspot_config.get('token')[:10]}...{hubspot_config.get('token')[-4:]}")
-                    print(f"[Widget WS] ✅ MCP instructions: {hubspot_config.get('instructions', '')[:100]}...")
-                    print(f"[Widget WS] ⚠️ Note: If MCP authentication fails, responses will still work normally")
+        # Configure MCP tools if MCP server is enabled
+        if agent.enable_mcp_server:
+            print(f"[Widget WS] 🔧 MCP: Starting configuration for agent {agent.id}")
+            
+            # Check for required keys
+            missing_keys = []
+            if not hubspot_config:
+                missing_keys.append("integration_config")
+                print(f"[Widget WS] 🔧 MCP: No hubspot_config found")
+            else:
+                print(f"[Widget WS] 🔧 MCP: hubspot_config found")
+                if not hubspot_config.get('token'):
+                    missing_keys.append("token")
+                    print(f"[Widget WS] 🔧 MCP: No token in hubspot_config")
                 else:
-                    print(f"[Widget WS] ❌ Failed to start MCP server for agent '{agent.name}' - proceeding without MCP tools")
-                    print(f"[Widget WS] ❌ MCP process is None - check if @hubspot/mcp-server is installed and token is valid")
+                    print(f"[Widget WS] 🔧 MCP: Token present in hubspot_config")
+            
+            # Configure MCP tools
+            try:
+                has_valid_token = hubspot_config and hubspot_config.get('token')
+                print(f"[Widget WS] 🔧 MCP: has_valid_token = {has_valid_token}")
+                
+                # Configure MCP tools according to OpenAI Realtime API documentation
+                # Reference: https://platform.openai.com/docs/guides/tools-connectors-mcp
+                # HubSpot cloud MCP server requires OAuth Bearer token authentication
+                
+                if has_valid_token:
+                    token = hubspot_config.get('token')
+                    is_oauth = hubspot_config.get('is_oauth', False)
+                    
+                    print(f"[Widget WS] 🔧 MCP: Token type - OAuth: {is_oauth}, Length: {len(token) if token else 0}")
+                    
+                    # MCP tool configuration - format per OpenAI Realtime API docs
+                    # Reference: https://platform.openai.com/docs/guides/tools-connectors-mcp
+                    Tools = [{
+                        "type": "mcp",
+                        "server_label": "hubspot",  # Required by OpenAI Realtime API
+                        "server_url": "https://mcp.hubspot.com",  # Required by OpenAI Realtime API
+                        "require_approval": "never",
+                        "headers": {
+                            "Authorization": f"Bearer {token}"
+                        }
+                    }]
+                    
+                    print(f"[Widget WS] 🔧 MCP: Tool configuration created:")
+                    print(f"[Widget WS] 🔧 MCP: {json.dumps(Tools, indent=2)}")
+                    
+                    if is_oauth:
+                        print(f"[Widget WS] ✅ MCP: OAuth token configured")
+                    else:
+                        print(f"[Widget WS] ⚠️ MCP: Legacy token (may not work with HubSpot MCP server)")
+                else:
+                    print(f"[Widget WS] ⚠️ MCP: No authentication token - tools will fail")
+                    # Don't add tools without authentication
+                    Tools = []
+                
+                # Only add tools if we have a valid configuration
+                if Tools:
+                    session_payload["session"]["tools"] = Tools
+                    print(f"[Widget WS] ✅ MCP: Tools added to session payload")
+                else:
+                    print(f"[Widget WS] ⚠️ MCP: No tools added to session (missing token)")
+                
             except Exception as e:
-                print(f"[Widget WS] ❌ Error configuring MCP for agent '{agent.name}': {e}")
+                print(f"[Widget WS] ❌ MCP: Error configuring: {e}")
                 import traceback
                 traceback.print_exc()
-                print(f"[Widget WS] ⚠️ Continuing without MCP tools - bot will work normally")
                 # Don't add tools if there's an error - ensure bot works without MCP
-        else:
-            if agent.enable_mcp_server:
-                print(f"[Widget WS] ⚠️ MCP enabled but no valid config:")
-                print(f"[Widget WS] ⚠️   - hubspot_config is None: {hubspot_config is None}")
-                if hubspot_config:
-                    print(f"[Widget WS] ⚠️   - hubspot_config has token: {bool(hubspot_config.get('token'))}")
-                    print(f"[Widget WS] ⚠️   - hubspot_config keys: {list(hubspot_config.keys()) if hubspot_config else 'N/A'}")
-            else:
-                print(f"[Widget WS] ℹ️ MCP server is disabled for agent '{agent.name}'")
         
         # Add noise reduction mode if specified
         if agent.noise_reduction_mode:
@@ -669,18 +687,33 @@ Always confirm with the user that their information has been saved before ending
                 if key not in session_payload["session"]:
                     session_payload["session"][key] = value
         
-        # Log session update message in dev environment
-        log_openai_websocket_message(session_payload)
-        
-        # Log MCP configuration details
+        # Log MCP configuration status before sending
         if "tools" in session_payload.get("session", {}):
-            print(f"[Widget WS] 🔧 MCP Tools in session: {json.dumps(session_payload['session']['tools'], indent=2)}")
+            tools_config = session_payload['session']['tools']
+            print(f"[Widget WS] 🔧 MCP: Final tools configuration ({len(tools_config)} tool(s)):")
+            for i, tool in enumerate(tools_config):
+                if tool.get("type") == "mcp":
+                    print(f"[Widget WS] 🔧 MCP Tool {i+1}:")
+                    print(f"[Widget WS] 🔧   - server_label: {tool.get('server_label')}")
+                    print(f"[Widget WS] 🔧   - server_url: {tool.get('server_url')}")
+                    print(f"[Widget WS] 🔧   - require_approval: {tool.get('require_approval')}")
+                    if "headers" in tool:
+                        has_auth = "Authorization" in tool.get("headers", {})
+                        print(f"[Widget WS] 🔧   - headers: {'✅ Present (with Authorization)' if has_auth else 'Present (no Authorization)'}")
+                        if has_auth:
+                            auth_header = tool["headers"]["Authorization"]
+                            masked_token = f"{auth_header[:20]}...{auth_header[-4:]}" if len(auth_header) > 24 else "***"
+                            print(f"[Widget WS] 🔧   - Authorization: {masked_token}")
+                        print(f"[Widget WS] ✅ MCP: Authentication headers present")
+                    else:
+                        print(f"[Widget WS] 🔧   - headers: ❌ Missing")
+                        print(f"[Widget WS] ⚠️ MCP: No authentication headers")
         else:
-            print(f"[Widget WS] ⚠️ No tools configured in session (MCP may be disabled)")
+            print(f"[Widget WS] 🔧 MCP: No tools in session payload")
         
+        print(f"[Widget WS] 🔧 MCP: Sending session.update to OpenAI...")
         await openai_ws.send(json.dumps(session_payload))
-        print(f"[Widget WS] ✅ OpenAI session configured for agent '{agent.name}'")
-        print(f"[Widget WS] 📝 Instructions length: {len(final_instructions)} characters")
+        print(f"[Widget WS] ✅ MCP: Session update sent to OpenAI")
         
         # Store connection
         client_connections[websocket] = openai_ws
@@ -865,6 +898,18 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
             
             event_type = data.get("type", "")
             
+            # Log session events to track MCP initialization
+            if event_type in ["session.created", "session.updated", "session.updated.done"]:
+                print(f"[Widget WS] 🔧 MCP: Session event: {event_type}")
+                if "session" in data:
+                    session_data = data.get("session", {})
+                    if "tools" in session_data:
+                        tools = session_data.get("tools", [])
+                        print(f"[Widget WS] 🔧 MCP: Session has {len(tools)} tool(s) configured")
+                        for i, tool in enumerate(tools):
+                            if tool.get("type") == "mcp":
+                                print(f"[Widget WS] 🔧 MCP: Tool {i+1} - {tool.get('server_label', 'unknown')} @ {tool.get('server_url', 'unknown')}")
+            
             # Log ALL events from OpenAI for debugging (temporarily)
             if event_type in ["response.audio_transcript.delta", "response.audio_transcript.done", 
                              "response.audio.delta", "response.done", "response.created",
@@ -884,17 +929,60 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                     # Log all response events to see what's happening
                     print(f"[Widget WS] 📨 Response created full data: {json.dumps(data, indent=2)}")
             
-            # Log all MCP/tool-related events for debugging
-            if "tool" in event_type.lower() or "mcp" in event_type.lower() or event_type.startswith("response.tool"):
-                print(f"[Widget WS] 🔧 MCP/TOOL EVENT: {event_type}")
-                print(f"[Widget WS] 🔧 Tool Event Data: {json.dumps(data, indent=2)}")
+            # Log all MCP-related events
+            if "mcp" in event_type.lower() or event_type.startswith("mcp_"):
+                print(f"[Widget WS] 🔧 MCP EVENT: {event_type}")
+                print(f"[Widget WS] 🔧 MCP Event Data: {json.dumps(data, indent=2)}")
+                
+                # Specific handling for MCP tool discovery events
+                if "mcp_list_tools" in event_type.lower():
+                    if "in_progress" in event_type.lower():
+                        print(f"[Widget WS] 🔧 MCP: Tool discovery started")
+                    elif "completed" in event_type.lower():
+                        print(f"[Widget WS] ✅ MCP: Tool discovery completed successfully")
+                        if "tools" in data:
+                            tools_list = data.get("tools", [])
+                            print(f"[Widget WS] ✅ MCP: {len(tools_list)} tool(s) available")
+                            for tool in tools_list:
+                                print(f"[Widget WS] ✅ MCP Tool: {tool.get('name', 'unknown')} - {tool.get('description', 'No description')[:50]}")
+                    elif "failed" in event_type.lower():
+                        print(f"[Widget WS] ❌ MCP: Tool discovery FAILED")
+                        # Log full event data to see what error information is available
+                        print(f"[Widget WS] ❌ MCP: Full failed event data: {json.dumps(data, indent=2)}")
+                        if "error" in data:
+                            print(f"[Widget WS] ❌ MCP Error: {json.dumps(data.get('error'), indent=2)}")
+                        # Check for error in different possible locations
+                        if "item" in data:
+                            item_data = data.get("item", {})
+                            if "error" in item_data:
+                                print(f"[Widget WS] ❌ MCP Item Error: {json.dumps(item_data.get('error'), indent=2)}")
+                        # Check status_details
+                        if "status_details" in data:
+                            status_details = data.get("status_details", {})
+                            print(f"[Widget WS] ❌ MCP Status Details: {json.dumps(status_details, indent=2)}")
             
-            # Log all response events to catch tool calls
-            if event_type.startswith("response."):
-                # Check for tool calls in response
-                if "tool" in str(data).lower() or "mcp" in str(data).lower():
-                    print(f"[Widget WS] 🔧 Potential tool usage in response: {event_type}")
-                    print(f"[Widget WS] 🔧 Response Data: {json.dumps(data, indent=2)}")
+            # Log tool call events
+            if event_type.startswith("response.tool"):
+                print(f"[Widget WS] 🔧 TOOL CALL EVENT: {event_type}")
+                if "tool_call" in data:
+                    tool_call = data.get("tool_call", {})
+                    tool_name = tool_call.get("name", "unknown")
+                    print(f"[Widget WS] 🔧 Tool: {tool_name}")
+                    if "arguments" in tool_call:
+                        print(f"[Widget WS] 🔧 Arguments: {json.dumps(tool_call.get('arguments'), indent=2)}")
+                if "result" in data:
+                    print(f"[Widget WS] 🔧 Tool Result: {json.dumps(data.get('result'), indent=2)}")
+                print(f"[Widget WS] 🔧 Full Tool Event: {json.dumps(data, indent=2)}")
+            
+            # Log response events that might contain tool calls
+            if event_type.startswith("response.") and ("tool" in str(data).lower() or "mcp" in str(data).lower()):
+                print(f"[Widget WS] 🔧 RESPONSE with tool/MCP content: {event_type}")
+                # Check if there are tool calls in the response
+                if "output" in data:
+                    output = data.get("output", [])
+                    for item in output:
+                        if item.get("type") == "tool_call" or "tool" in str(item).lower():
+                            print(f"[Widget WS] 🔧 Tool call detected in response output: {json.dumps(item, indent=2)}")
             
             if event_type == "conversation.item.input_audio_transcription.completed":
                 transcript = data.get("transcript", "")
@@ -1063,11 +1151,14 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                                      "conversation.item.created", "conversation.item.input_audio_transcription.completed",
                                      "response.audio_transcript.delta", "response.audio_transcript.done",
                                      "response.audio.delta", "response.done", "input_audio_buffer.speech_started",
-                                     "input_audio_buffer.speech_stopped", "error"]:
-                    # Log unhandled events that might be tool-related
-                    if "tool" in event_type.lower() or "mcp" in event_type.lower():
-                        print(f"[Widget WS] ⚠️ Unhandled tool/MCP event: {event_type}")
-                        print(f"[Widget WS] ⚠️ Event Data: {json.dumps(data, indent=2)}")
+                                     "input_audio_buffer.speech_stopped", "error", "response.tool_call", 
+                                     "response.tool_call.done", "response.tool_calls"]:
+                    # Log unhandled MCP events
+                    if "mcp" in event_type.lower():
+                        print(f"[Widget WS] ⚠️ MCP: Unhandled event: {event_type}")
+                        print(f"[Widget WS] ⚠️ MCP: Event Data: {json.dumps(data, indent=2)}")
+                        if "error" in str(data).lower() or "failed" in event_type.lower():
+                            print(f"[Widget WS] ❌ MCP: Error detected in unhandled event")
     
     except Exception as e:
         print(f"[Widget WS] Message handler error: {e}")

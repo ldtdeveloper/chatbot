@@ -72,6 +72,10 @@ class Settings(BaseSettings):
     from_email: str = "noreply@voiceassistant.ai"
     from_name: str = "Voice Assistant Platform"
     
+    # HubSpot OAuth Configuration
+    hubspot_oauth_redirect_uri: str = "http://localhost:8081/api/integration-config/hubspot/oauth/callback"  # Can be overridden via HUBSPOT_OAUTH_REDIRECT_URI
+    hubspot_oauth_scopes: str = "crm.objects.contacts.read crm.objects.contacts.write"
+    
     model_config = SettingsConfigDict(
         env_file=get_env_file(),
         case_sensitive=False
