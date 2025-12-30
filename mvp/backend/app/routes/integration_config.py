@@ -192,6 +192,9 @@ async def get_hubspot_oauth_install_url(
     db: Session = Depends(get_db)
 ):
     """Get HubSpot OAuth installation URL"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Check if integration config exists for this agent
     config = db.query(IntegrationConfig).filter(
         IntegrationConfig.agent_id == agent_id,
@@ -199,7 +202,15 @@ async def get_hubspot_oauth_install_url(
         IntegrationConfig.user_id == current_user.id
     ).first()
     
-    if not config or not config.oauth_client_id:
+    if not config:
+        logger.warning(f"[OAuth Install URL] No integration config found for agent {agent_id}, user {current_user.id}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="HubSpot integration not configured. Please save your HubSpot Client ID and Client Secret first."
+        )
+    
+    if not config.oauth_client_id:
+        logger.warning(f"[OAuth Install URL] No OAuth client ID for agent {agent_id}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="HubSpot Client ID not configured. Please provide your HubSpot app credentials first."
@@ -227,11 +238,13 @@ async def get_hubspot_oauth_install_url(
         f"&state={state_encoded}"
     )
     
+    logger.info(f"[OAuth Install URL] Generated OAuth URL for agent {agent_id}, redirect_uri={redirect_uri}")
+    
     # Store install URL for reference
     config.oauth_install_url = oauth_url
     db.commit()
     
-    return {"install_url": oauth_url, "agent_id": agent_id}
+    return {"install_url": oauth_url, "agent_id": agent_id, "redirect_uri": redirect_uri}
 
 
 @router.get("/hubspot/oauth/callback")
@@ -242,15 +255,26 @@ async def hubspot_oauth_callback(
     db: Session = Depends(get_db)
 ):
     """Handle HubSpot OAuth callback and exchange code for tokens"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"[OAuth Callback] Received callback with code={code[:20]}..., state={state}, agent_id={agent_id}")
+    
     # Determine frontend URL (default to localhost:3000 for local dev)
+    # Check CORS origins first, then fallback to API base URL
     frontend_url = "http://localhost:3000"
-    if settings.api_base_url:
+    if settings.cors_origins and len(settings.cors_origins) > 0:
+        # Use first CORS origin as frontend URL
+        frontend_url = settings.cors_origins[0]
+    elif settings.api_base_url:
         # Try to infer frontend URL from API base URL
         if "localhost" in settings.api_base_url or "127.0.0.1" in settings.api_base_url:
             frontend_url = settings.api_base_url.replace(":8081", ":3000")
         else:
             # For production, frontend might be on same domain
             frontend_url = settings.api_base_url.replace("/api", "").replace(":8081", "")
+    
+    logger.info(f"[OAuth Callback] Frontend URL: {frontend_url}")
     
     # Extract agent_id from state parameter (preferred) or query parameter (fallback)
     resolved_agent_id = None
@@ -273,7 +297,7 @@ async def hubspot_oauth_callback(
             url=f"{frontend_url}/agents?oauth_error=Agent ID not found in callback"
         )
     
-    # Find integration config
+    # Find integration config by agent_id and provider
     config = db.query(IntegrationConfig).filter(
         IntegrationConfig.agent_id == resolved_agent_id,
         IntegrationConfig.provider == "hubspot"
@@ -309,21 +333,27 @@ async def hubspot_oauth_callback(
         
         if response.status_code != 200:
             error_detail = response.text
+            logger.error(f"[OAuth Callback] Token exchange failed: {response.status_code} - {error_detail}")
+            # URL encode the error message
+            error_encoded = urllib.parse.quote(error_detail[:200])  # Limit error length
             return RedirectResponse(
-                url=f"{frontend_url}/agents?oauth_error=Failed to exchange authorization code: {error_detail}&agent_id={resolved_agent_id}"
+                url=f"{frontend_url}/agents?oauth_error=Failed to exchange authorization code: {error_encoded}&agent_id={resolved_agent_id}"
             )
         
         token_data = response.json()
+        logger.info(f"[OAuth Callback] Token exchange successful for agent {resolved_agent_id}")
         
         # Store OAuth tokens (client_id already stored, don't overwrite)
         config.oauth_access_token = token_data['access_token']
         config.oauth_refresh_token = token_data.get('refresh_token')
         # Keep existing oauth_client_id (don't overwrite with settings)
-        config.oauth_token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=token_data.get('expires_in', 21600))
+        expires_in = token_data.get('expires_in', 21600)  # Default 6 hours
+        config.oauth_token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
         config.oauth_installed_at = datetime.now(timezone.utc)
         config.is_active = True
         
         db.commit()
+        logger.info(f"[OAuth Callback] OAuth tokens saved for agent {resolved_agent_id}, expires in {expires_in}s")
         
         # Redirect to frontend with success
         return RedirectResponse(
@@ -331,8 +361,16 @@ async def hubspot_oauth_callback(
         )
         
     except requests.RequestException as e:
+        logger.error(f"[OAuth Callback] Request exception: {str(e)}")
+        error_msg = urllib.parse.quote(str(e)[:200])
         return RedirectResponse(
-            url=f"{frontend_url}/agents?oauth_error=Error exchanging authorization code"
+            url=f"{frontend_url}/agents?oauth_error=Error exchanging authorization code: {error_msg}&agent_id={resolved_agent_id}"
+        )
+    except Exception as e:
+        logger.error(f"[OAuth Callback] Unexpected error: {str(e)}")
+        error_msg = urllib.parse.quote(str(e)[:200])
+        return RedirectResponse(
+            url=f"{frontend_url}/agents?oauth_error=Unexpected error: {error_msg}&agent_id={resolved_agent_id}"
         )
 
 

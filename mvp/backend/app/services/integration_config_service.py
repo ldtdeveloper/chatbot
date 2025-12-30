@@ -3,6 +3,9 @@ from app.models.integration_config import IntegrationConfig
 from app.utils.encryption import decrypt_api_key
 from typing import Optional, Dict
 from datetime import datetime, timezone, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_integration_config(agent_id: int) -> Optional[Dict[str, str]]:
@@ -50,7 +53,15 @@ def get_integration_config(agent_id: int) -> Optional[Dict[str, str]]:
                 token = config.oauth_access_token
                 is_oauth = True
         
-        # Fallback to legacy encrypted_key if no OAuth token
+        # For HubSpot, DO NOT use legacy tokens - they don't work with HubSpot API
+        # HubSpot requires OAuth 2.0 authentication
+        if config.provider == "hubspot":
+            if not token:
+                # No OAuth token for HubSpot - return None to prevent using legacy token
+                logger.warning(f"HubSpot integration for agent {agent_id} requires OAuth token. Legacy tokens are not supported.")
+                return None
+        
+        # Fallback to legacy encrypted_key if no OAuth token (for non-HubSpot providers)
         if not token and config.encrypted_key:
             token = decrypt_api_key(config.encrypted_key)
             is_oauth = False

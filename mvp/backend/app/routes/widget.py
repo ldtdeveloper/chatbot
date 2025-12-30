@@ -378,6 +378,9 @@ websocket_interactions: Dict[WebSocket, int] = {}  # Maps WebSocket to Interacti
 # Track token usage per WebSocket session (accumulated from response.done events)
 websocket_usage: Dict[WebSocket, dict] = {}  # Maps WebSocket to usage data
 
+# Track conversation transcripts per WebSocket session
+websocket_transcripts: Dict[WebSocket, list] = {}  # Maps WebSocket to list of transcript messages
+
 # Track MCP clients for each WebSocket connection
 websocket_mcp_clients: Dict[WebSocket, any] = {}  # Maps WebSocket to MCP client
 
@@ -636,25 +639,29 @@ TOOL USAGE:
                     
                     print(f"[Widget WS] 🔧 MCP: Token type - OAuth: {is_oauth}, Length: {len(token) if token else 0}")
                     
-                    # MCP tool configuration - format per OpenAI Realtime API docs
-                    # Reference: https://platform.openai.com/docs/guides/tools-connectors-mcp
-                    Tools = [{
-                        "type": "mcp",
-                        "server_label": "hubspot",  # Required by OpenAI Realtime API
-                        "server_url": "https://mcp.hubspot.com",  # Required by OpenAI Realtime API
-                        "require_approval": "never",
-                        "headers": {
-                            "Authorization": f"Bearer {token}"
-                        }
-                    }]
-                    
-                    print(f"[Widget WS] 🔧 MCP: Tool configuration created:")
-                    print(f"[Widget WS] 🔧 MCP: {json.dumps(Tools, indent=2)}")
-                    
+                    # HubSpot MCP server REQUIRES OAuth 2.0 - legacy tokens don't work
                     if is_oauth:
+                        # MCP tool configuration - format per OpenAI Realtime API docs
+                        # Reference: https://platform.openai.com/docs/guides/tools-connectors-mcp
+                        Tools = [{
+                            "type": "mcp",
+                            "server_label": "hubspot",  # Required by OpenAI Realtime API
+                            "server_url": "https://mcp.hubspot.com",  # Required by OpenAI Realtime API
+                            "require_approval": "never",
+                            "headers": {
+                                "Authorization": f"Bearer {token}"
+                            }
+                        }]
+                        
+                        print(f"[Widget WS] 🔧 MCP: Tool configuration created:")
+                        print(f"[Widget WS] 🔧 MCP: {json.dumps(Tools, indent=2)}")
                         print(f"[Widget WS] ✅ MCP: OAuth token configured")
                     else:
-                        print(f"[Widget WS] ⚠️ MCP: Legacy token (may not work with HubSpot MCP server)")
+                        print(f"[Widget WS] ❌ MCP: Legacy token detected - HubSpot MCP requires OAuth 2.0")
+                        print(f"[Widget WS] ❌ MCP: Please set up HubSpot OAuth in Agents page")
+                        print(f"[Widget WS] ❌ MCP: MCP tools will NOT be added (legacy tokens don't work)")
+                        # Don't add tools with legacy token - they will fail
+                        Tools = []
                 else:
                     print(f"[Widget WS] ⚠️ MCP: No authentication token - tools will fail")
                     # Don't add tools without authentication
@@ -741,6 +748,9 @@ TOOL USAGE:
             "text_output_tokens": 0,
             "total_tokens": 0
         }
+        
+        # Initialize transcript storage for this session
+        websocket_transcripts[websocket] = []
         
         print(f"[Widget WS] Created interaction {interaction.id} for session {session_id}")
         
@@ -860,6 +870,73 @@ TOOL USAGE:
                         print(f"[Widget WS] ⚠️ No usage data, using fallback estimate: ${fallback_cost}")
                     
                     interaction.status = "completed"
+                    
+                    # Sync to HubSpot if MCP is enabled and agent has HubSpot config
+                    if agent and agent.enable_mcp_server:
+                        try:
+                            from app.services.integration_config_service import get_integration_config
+                            from app.services.hubspot_service import sync_conversation_to_hubspot
+                            
+                            hubspot_config = get_integration_config(agent.id)
+                            if hubspot_config and hubspot_config.get('token'):
+                                # Check if using OAuth token (required for HubSpot)
+                                is_oauth = hubspot_config.get('is_oauth', False)
+                                if not is_oauth:
+                                    interaction.hubspot_sync_status = "failed"
+                                    interaction.hubspot_sync_error = "HubSpot requires OAuth 2.0 authentication. Legacy tokens are not supported. Please set up HubSpot OAuth in the Agents page."
+                                    print(f"[Widget WS] ❌ HubSpot: Legacy token detected - OAuth required")
+                                    print(f"[Widget WS] ❌ HubSpot: Please configure OAuth in Agents page")
+                                else:
+                                    # Get conversation transcript
+                                    transcript_messages = websocket_transcripts.get(websocket, [])
+                                    if transcript_messages:
+                                        # Combine all transcript messages
+                                        full_transcript = "\n".join(transcript_messages)
+                                        
+                                        print(f"[Widget WS] 🔄 HubSpot: Syncing conversation to HubSpot...")
+                                        print(f"[Widget WS] 🔄 HubSpot: Transcript length: {len(full_transcript)} chars")
+                                        print(f"[Widget WS] 🔄 HubSpot: Transcript preview: {full_transcript[:200]}...")
+                                        print(f"[Widget WS] 🔄 HubSpot: Number of messages: {len(transcript_messages)}")
+                                        
+                                        # Sync to HubSpot
+                                        contact_id, error = sync_conversation_to_hubspot(
+                                            access_token=hubspot_config['token'],
+                                            transcript=full_transcript,
+                                            agent_name=agent.name
+                                        )
+                                        
+                                        if contact_id:
+                                            interaction.hubspot_sync_status = "success"
+                                            interaction.hubspot_contact_id = contact_id
+                                            print(f"[Widget WS] ✅ HubSpot: Successfully synced contact {contact_id}")
+                                        else:
+                                            interaction.hubspot_sync_status = "failed"
+                                            interaction.hubspot_sync_error = error or "Unknown error"
+                                            print(f"[Widget WS] ❌ HubSpot: Sync failed - {error}")
+                                    else:
+                                        # Check if we have any conversation data at all
+                                        # Even if transcripts are empty, we might have partial data
+                                        interaction.hubspot_sync_status = "skipped"
+                                        interaction.hubspot_sync_error = "No transcripts found - conversation was empty or too short"
+                                        print(f"[Widget WS] ⚠️ HubSpot: No transcripts to sync")
+                                        print(f"[Widget WS] ⚠️ HubSpot: Transcript dictionary keys: {list(websocket_transcripts.keys())}")
+                                        print(f"[Widget WS] ⚠️ HubSpot: This websocket in dict: {websocket in websocket_transcripts}")
+                                        if websocket in websocket_transcripts:
+                                            print(f"[Widget WS] ⚠️ HubSpot: Transcript list length: {len(websocket_transcripts[websocket])}")
+                            else:
+                                interaction.hubspot_sync_status = "skipped"
+                                interaction.hubspot_sync_error = "HubSpot not configured or no OAuth token. Please set up HubSpot OAuth in the Agents page."
+                                print(f"[Widget WS] ⚠️ HubSpot: Not configured for this agent or OAuth token missing")
+                        except Exception as e:
+                            interaction.hubspot_sync_status = "failed"
+                            interaction.hubspot_sync_error = f"Error: {str(e)}"
+                            print(f"[Widget WS] ❌ HubSpot: Error during sync - {e}")
+                            import traceback
+                            traceback.print_exc()
+                    else:
+                        interaction.hubspot_sync_status = "skipped"
+                        interaction.hubspot_sync_error = "MCP server not enabled"
+                    
                     db.commit()
                     print(f"[Widget WS] ✅ Completed interaction {interaction_id}, duration: {interaction.duration_seconds:.1f}s, cost: ${interaction.estimated_cost:.4f}")
             except Exception as e:
@@ -876,6 +953,10 @@ TOOL USAGE:
                 print("[Widget WS] Closed OpenAI connection")
             except:
                 pass
+        
+        # Clean up transcript storage
+        if websocket in websocket_transcripts:
+            websocket_transcripts.pop(websocket)
         
         try:
             await websocket.close()
@@ -961,8 +1042,31 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                             status_details = data.get("status_details", {})
                             print(f"[Widget WS] ❌ MCP Status Details: {json.dumps(status_details, indent=2)}")
             
-            # Log tool call events
-            if event_type.startswith("response.tool"):
+            # Handle MCP tool call events
+            if event_type in ["response.tool_call", "response.tool_call.done"]:
+                print(f"[Widget WS] 🔧 MCP TOOL CALL: {event_type}")
+                if "tool_call" in data:
+                    tool_call = data.get("tool_call", {})
+                    tool_name = tool_call.get("name", "unknown")
+                    tool_type = tool_call.get("type", "unknown")
+                    print(f"[Widget WS] 🔧 MCP: Tool '{tool_name}' (type: {tool_type})")
+                    
+                    # Log tool call details
+                    if "arguments" in tool_call:
+                        args = tool_call.get("arguments")
+                        print(f"[Widget WS] 🔧 MCP: Tool arguments: {json.dumps(args, indent=2)}")
+                    
+                    # If tool call is done, check for results
+                    if event_type == "response.tool_call.done":
+                        if "result" in tool_call:
+                            result = tool_call.get("result")
+                            print(f"[Widget WS] ✅ MCP: Tool result: {json.dumps(result, indent=2)}")
+                        if "error" in tool_call:
+                            error = tool_call.get("error")
+                            print(f"[Widget WS] ❌ MCP: Tool error: {json.dumps(error, indent=2)}")
+            
+            # Log tool call events (legacy)
+            if event_type.startswith("response.tool") and event_type not in ["response.tool_call", "response.tool_call.done"]:
                 print(f"[Widget WS] 🔧 TOOL CALL EVENT: {event_type}")
                 if "tool_call" in data:
                     tool_call = data.get("tool_call", {})
@@ -992,6 +1096,9 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                         "text": transcript
                     })
                     print(f"[Widget WS] User: {transcript}")
+                    # Store user transcript
+                    if client_ws in websocket_transcripts:
+                        websocket_transcripts[client_ws].append(f"User: {transcript}")
             
             elif event_type == "response.audio_transcript.delta":
                 assistant_text += data.get("delta", "")
@@ -1008,6 +1115,9 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                         "text": assistant_text
                     })
                     print(f"[Widget WS] Assistant transcript: {assistant_text}")
+                    # Store assistant transcript
+                    if client_ws in websocket_transcripts:
+                        websocket_transcripts[client_ws].append(f"Assistant: {assistant_text}")
                     assistant_text = ""
                 else:
                     print(f"[Widget WS] ⚠️ response.audio_transcript.done but no transcript found")
@@ -1026,6 +1136,32 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                 # Log full response data to debug why no content is generated
                 response_data = data.get("response", {})
                 print(f"[Widget WS] 📨 response.done - Full response data: {json.dumps(response_data, indent=2)}")
+                
+                # Capture assistant transcript from response.done if not already captured
+                # Sometimes the full transcript is in response.done output items
+                if client_ws in websocket_transcripts:
+                    output = response_data.get("output", [])
+                    for item in output:
+                        if item.get("type") == "message" and item.get("role") == "assistant":
+                            content = item.get("content", [])
+                            for content_item in content:
+                                # Check for audio transcript
+                                if content_item.get("type") == "audio" and content_item.get("transcript"):
+                                    transcript = content_item.get("transcript")
+                                    if transcript:
+                                        # Check if this transcript is already stored
+                                        existing_transcripts = "\n".join(websocket_transcripts[client_ws])
+                                        if transcript not in existing_transcripts:
+                                            websocket_transcripts[client_ws].append(f"Assistant: {transcript}")
+                                            print(f"[Widget WS] 📝 Captured assistant transcript from response.done: {transcript[:100]}...")
+                                # Check for text content
+                                elif content_item.get("type") == "text":
+                                    text = content_item.get("text", "")
+                                    if text:
+                                        existing_transcripts = "\n".join(websocket_transcripts[client_ws])
+                                        if text not in existing_transcripts:
+                                            websocket_transcripts[client_ws].append(f"Assistant: {text}")
+                                            print(f"[Widget WS] 📝 Captured assistant text from response.done: {text[:100]}...")
                 
                 # Check for errors in response
                 if "error" in response_data:
