@@ -92,6 +92,11 @@ class Interaction(Base):
     status = Column(String, default="active")  # active, completed, error
     error_message = Column(Text, nullable=True)
     
+    # HubSpot CRM Integration
+    hubspot_sync_status = Column(String, nullable=True)  # success, failed, skipped, pending
+    hubspot_contact_id = Column(String, nullable=True)  # HubSpot contact ID if synced
+    hubspot_sync_error = Column(Text, nullable=True)  # Error message if sync failed
+    
     # Relationships
     user = relationship("User", backref="interactions")
     openai_key = relationship("OpenAIKey", backref="interactions")
