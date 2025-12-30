@@ -191,4 +191,26 @@ export const integrationConfigService = {
     const response = await api.get(`/api/integration-config/${id}/decrypted-key`)
     return response.data
   },
+
+  // HubSpot OAuth endpoints
+  getHubSpotOAuthUrl: async (agentId) => {
+    const response = await api.get('/api/integration-config/hubspot/oauth/install-url', {
+      params: { agent_id: agentId }
+    })
+    return response.data
+  },
+
+  refreshHubSpotToken: async (agentId) => {
+    const response = await api.post('/api/integration-config/hubspot/oauth/refresh', null, {
+      params: { agent_id: agentId }
+    })
+    return response.data
+  },
+
+  disconnectHubSpotOAuth: async (agentId) => {
+    const response = await api.post('/api/integration-config/hubspot/oauth/disconnect', null, {
+      params: { agent_id: agentId }
+    })
+    return response.data
+  },
 }
