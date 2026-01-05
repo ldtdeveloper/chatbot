@@ -230,7 +230,7 @@ class SetupPasswordRequest(BaseModel):
     token: str  # Payment token
     password: str
 
-class ResetPasswordRequest(BaseModel):
+class ChangePassword(BaseModel):
     old_password : str
     new_password : str
     confirm_password : str
@@ -243,6 +243,10 @@ class ResetPasswordRequest(BaseModel):
             raise ValueError("Passwords do not match")
         return confirm_password
     
+class ResetPassword(BaseModel):
+    token: str
+    new_password : str
+    
 class ForgetPasswordRequest(BaseModel):
     email : str
 
@@ -250,3 +254,6 @@ class ForgetPasswordRequest(BaseModel):
 class PreFetchDetails(BaseModel):
     email : str
     plan : Optional [str] = None
+
+class ChangeEmail(BaseModel):
+    email : str
