@@ -3,8 +3,10 @@ Main FastAPI application
 """
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from app.config import settings
 from app.database import engine, Base
 from app.routes import auth, openai_keys, agents, assistant_config, widget, users, dashboard, reports, integration_config, payments
@@ -74,6 +76,30 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# Exception handlers - CORS middleware will automatically add headers to these responses
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler - CORS middleware will add headers automatically"""
+    import traceback
+    print(f"[Global Exception Handler] {type(exc).__name__}: {str(exc)}")
+    if settings.debug:
+        traceback.print_exc()
+    
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "detail": str(exc) if settings.debug else "Internal server error"
+        }
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle validation errors - CORS middleware will add headers automatically"""
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()}
+    )
 
 # Include routers
 app.include_router(auth.router)
