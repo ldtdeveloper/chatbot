@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.user import User
-from app.models.agent import Agent, NoiseReductionMode
+from app.models.agent import Agent, NoiseReductionMode, AgentType
 from app.schemas import (
     AgentCreate, AgentResponse, AgentUpdate
 )
@@ -53,6 +53,7 @@ async def create_agent(
     db_agent = Agent(
         user_id=current_user.id,
         openai_key_id=agent_data.openai_key_id,
+        agent_type=AgentType.WEB,  # Default to WEB for website-based agents
         name=agent_data.name,
         domain=agent_data.domain,
         instructions=agent_data.instructions,
