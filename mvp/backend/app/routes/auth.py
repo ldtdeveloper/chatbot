@@ -16,6 +16,9 @@ from datetime import timedelta, datetime, timezone
 from app.config import settings
 from app.services.email_service import EmailService
 from fastapi.responses import HTMLResponse
+from zoneinfo import ZoneInfo
+from datetime import datetime, timezone
+from datetime import datetime
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -24,7 +27,6 @@ PLAN_PRICES = {
     "pro": 29.0,
     "enterprise": 0.0  # Custom pricing
 }
-
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
@@ -111,7 +113,7 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
     
     # Send email with payment link
     email_service = EmailService()
-    email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount) 
+    email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount)
 
     try:
         email_service.send_email(
@@ -200,7 +202,10 @@ async def setup_password_endpoint(
         )
     
     # Check if token expired
-    if datetime.now(timezone.utc) > db_token.expires_at:
+    now = datetime.now(ZoneInfo("UTC"))
+    expires_at = db_token.expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at < now:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Payment token has expired"
@@ -265,10 +270,10 @@ async def change_password(password_data: ChangePassword,db: Session = Depends(ge
 
     if password_data.old_password:
         password_verification = verify_password(password_data.old_password,current_user.hashed_password)
-    
+
     if not password_verification:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail = "Incorrect old password")
-    
+
     current_user.hashed_password = get_password_hash(password_data.new_password)
     db.commit()
     db.refresh(current_user)
@@ -278,7 +283,7 @@ async def change_password(password_data: ChangePassword,db: Session = Depends(ge
         data={"sub": current_user.id},
         expires_delta=access_token_expires
     )
-    
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -313,7 +318,7 @@ def forget_password(request: ForgetPasswordRequest,db: Session = Depends(get_db)
     '''send reset password link to email '''
     db_user = db.query(User).filter(
         (User.email == request.email)).first()
-    
+
     if not db_user:
         raise HTTPException(status = status.HTTP_404_NOT_FOUND, detail = "Email not registered")
     
@@ -450,7 +455,7 @@ def change_email(request: ChangeEmail,current_user: User = Depends(get_current_u
 
 @router.post("/prefetch")
 def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_db)):
-    '''Prefetch details of User in order to sent next action 
+    '''Prefetch details of User in order to sent next action
     complete setup with subscription and payment/login/setup password'''
 
     db_user = db.query(User).filter(User.email == request.email).first()
@@ -470,7 +475,7 @@ def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_db)):
         "next_action": None,
         "message": None
     }
-    
+
     if db_user.password_set:
         response["next_action"] = "LOGIN"
         response["message"] = "Proceed to login"
@@ -492,8 +497,8 @@ def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_db)):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid plan. Must be one of: {list(PLAN_PRICES.keys())}"
             )
-    
-    if request.plan:   
+
+    if request.plan:
         plan = request.plan.lower()
         amount = PLAN_PRICES[plan]
 
@@ -505,7 +510,7 @@ def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_db)):
             # Generate payment token
             payment_token = PaymentToken.generate_token()
             expires_at = datetime.now(timezone.utc) + timedelta(days=7)  # Token valid for 7 days
-            
+
             db_token = PaymentToken(
                 user_id=db_user.id,
                 token=payment_token,
@@ -515,13 +520,13 @@ def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_db)):
             )
             db.add(db_token)
             db.commit()
-        
+
         # Generate payment link
         payment_link = f"{settings.api_base_url}/payment/{payment_token}"
-        
+
         # Send email with payment link
         email_service = EmailService()
-        email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount) 
+        email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount)
 
         try:
             email_service.send_email(
@@ -543,7 +548,7 @@ def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_db)):
         response["next_action"] = "COMPLETE_PAYMENT"
         response["message"] = "Subscription expired"
         return response
-    
+
     # SUCCESS but password not set
     response["next_action"] = "SET_PASSWORD"
     response["message"] = "Set your password to continue"

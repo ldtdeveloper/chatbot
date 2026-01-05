@@ -82,6 +82,12 @@ class Settings(BaseSettings):
     from_email: str = "noreply@voiceassistant.ai"
     from_name: str = "Voice Assistant Platform"
     
+    # Razorpay Settings
+    razorpay_key_id: str = os.getenv("RAZORPAY_KEY_ID","")
+    razorpay_key_secret: str = os.getenv("RAZORPAY_KEY_SECRET","")
+    ADMIN_KEY:str = os.getenv("ADMIN_KEY","")
+    PROJECT_ID:str = os.getenv("PROJECT_ID","")
+
     # HubSpot OAuth Configuration
     hubspot_oauth_redirect_uri: str = "http://localhost:8081/api/integration-config/hubspot/oauth/callback"  # Can be overridden via HUBSPOT_OAUTH_REDIRECT_URI
     hubspot_oauth_scopes: str = "crm.objects.contacts.read crm.objects.contacts.write"
@@ -91,15 +97,11 @@ class Settings(BaseSettings):
     client_secret_key: str = ""
     oauth_url: str = ""
     redirect_uri: str = ""
-    
-    # Razorpay Settings
-    razorpay_key_id: str = os.getenv("RAZORPAY_KEY_ID","")
-    razorpay_key_secret: str = os.getenv("RAZORPAY_KEY_SECRET","")
-    
+
     model_config = SettingsConfigDict(
         env_file=get_env_file(),
         case_sensitive=False,
-        extra="ignore"  # Ignore extra fields in .env that aren't defined here
+        extra = "allow"
     )
     
     def __init__(self, **kwargs):

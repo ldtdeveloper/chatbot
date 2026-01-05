@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.user import User
-from app.models.agent import Agent, NoiseReductionMode
+from app.models.agent import Agent, NoiseReductionMode, AgentType
 from app.schemas import (
     AgentCreate, AgentResponse, AgentUpdate
 )
+
 from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
@@ -24,11 +25,12 @@ async def create_agent(
 ):
     """Create a new agent configuration (stored locally)"""
     # Validate API key
-    from app.models.openai_key import OpenAIKey
-    api_key = db.query(OpenAIKey).filter(
-        OpenAIKey.id == agent_data.openai_key_id,
-        OpenAIKey.user_id == current_user.id,
-        OpenAIKey.is_active == True
+    # from app.models.openai_key import OpenAIKey
+    from app.models.service_account_key import ServiceAccountKey
+    api_key = db.query(ServiceAccountKey).filter(
+        ServiceAccountKey.id == agent_data.openai_key_id,
+        ServiceAccountKey.user_id == current_user.id,
+        ServiceAccountKey.is_active == True
     ).first()
     if not api_key:
         raise HTTPException(
@@ -51,6 +53,7 @@ async def create_agent(
     db_agent = Agent(
         user_id=current_user.id,
         openai_key_id=agent_data.openai_key_id,
+        agent_type=AgentType.WEB,  # Default to WEB for website-based agents
         name=agent_data.name,
         domain=agent_data.domain,
         instructions=agent_data.instructions,

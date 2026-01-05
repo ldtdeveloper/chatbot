@@ -11,19 +11,22 @@
 
    </div> 
    <!-- Voice Assistant Widget: WNS -->
+<!-- Voice Assistant Widget: demo -->
+<!-- Voice Assistant Widget: f -->
+<!-- Voice Assistant Widget: sandbox -->
 <script>
 (function() {
     // API base URL for widget backend connection
     let apiBaseUrl = 'http://localhost:8081';
     
-    // Create and load widget script
+    // Create and load widget script-
     const script = document.createElement('script');
-    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widgetNew.js';
-    script.setAttribute('data-agent-id', '10');
+    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
+    script.setAttribute('data-agent-id', '15');
     script.setAttribute('data-api-url', apiBaseUrl);
-    script.setAttribute('data-agent-name', 'WNS');
-     script.setAttribute('data-target-id', 'chatbot');
+    script.setAttribute('data-agent-name', 'sandbox');
     script.async = true;
+    
     document.head.appendChild(script);
 })();
 </script>

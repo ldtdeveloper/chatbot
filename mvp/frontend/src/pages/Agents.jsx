@@ -69,7 +69,7 @@ function Agents() {
           setShowMcpServerCard(selectedAgent.enable_mcp_server || false)
         }
       }, [selectedAgent]);
-
+      
   const handleChange = async (e) => {
     // Stop event propagation to prevent card from closing
     if (e && e.stopPropagation) {
@@ -699,6 +699,13 @@ ${"hello"}
 
   // Close selected phone card on outside click
   useEffect(() => {
+  if (activeApiKeys.length > 0) {
+    setSelectedApiKeyId(activeApiKeys[0].id);
+    setFetchApiKeyId(activeApiKeys[0].id); // for fetch dropdown
+  }
+}, [activeApiKeys]);
+
+  useEffect(() => {
     function handleOutsideClickPhone(e) {
       if (!selectedPhoneAgentId) return
 
@@ -785,7 +792,7 @@ ${"hello"}
           <div className="page-header">
             <h2>Phone Agents</h2>
             <div className="header-actions">
-              <select
+              {/* <select
                 value={phoneApiKeyId}
                 onChange={(e) => setPhoneApiKeyId(e.target.value)}
                 className="api-key-selector"
@@ -797,7 +804,7 @@ ${"hello"}
                     {key.key_name}
                   </option>
                 ))}
-              </select>
+              </select> */}
               <button
                 onClick={() => setShowPhoneAddForm((prev) => !prev)}
               >
@@ -810,7 +817,14 @@ ${"hello"}
               <div className="form-info">
                 <p><strong>Note:</strong> Configure your phone agent with SIP settings. Only <strong>Phone Number</strong> and <strong>SIP Server</strong> are required. Username, Password, and Domain are optional and only needed if your SIP server requires authentication.</p>
               </div>
-              <select
+              {console.log(activeApiKeys[0])}
+                  <input
+  type="text"
+  value={activeApiKeys.length > 0 ? activeApiKeys[0].key_name : ''}
+  readOnly     
+  autoComplete="off"
+/>
+              {/* <select
                 value={phoneApiKeyId}
                 onChange={(e) => {
                   setPhoneApiKeyId(e.target.value)
@@ -826,7 +840,7 @@ ${"hello"}
                     {key.key_name}
                   </option>
                 ))}
-              </select>
+              </select> */}
               <input
                 type="text"
                 placeholder="Agent Name"
@@ -1051,6 +1065,7 @@ ${"hello"}
           <div className="page-header">
             <h2>Web Agents</h2>
             <div className="header-actions">
+              {/*  */}
               <select
                 value={fetchApiKeyId}
                 onChange={(e) => {
@@ -1068,6 +1083,7 @@ ${"hello"}
                   </option>
                 ))}
               </select>
+              {/*  */}
               <button onClick={() => {
                 if (showAddForm) {
                   handleCancelEdit()
@@ -1086,7 +1102,22 @@ ${"hello"}
           <div className="form-info">
             <p><strong>Note:</strong> Agent configurations are stored locally and will be used when making WebRTC calls to OpenAI Realtime API.</p>
           </div>
-          <select
+         <input
+  type="text"
+  value={activeApiKeys.length > 0 ? activeApiKeys[0].key_name : ''}
+  readOnly     
+  autoComplete="off"
+/>
+
+  {/* {activeApiKeys.length > 0 && (
+    <option value={activeApiKeys[0].id}>
+      {activeApiKeys[0].key_name}
+    </option>
+  )}
+</select> */}
+
+         
+          {/*<select
             value={selectedApiKeyId}
             onChange={(e) => setSelectedApiKeyId(e.target.value)}
             autoComplete="off"
@@ -1098,7 +1129,7 @@ ${"hello"}
                 {key.key_name}
               </option>
             ))}
-          </select>
+          </select>  */}
           <input
             type="text"
             placeholder="Agent Name"

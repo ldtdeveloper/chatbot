@@ -27,7 +27,9 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    openai_keys = relationship("OpenAIKey", back_populates="user", cascade="all, delete-orphan")
+    # openai_keys = relationship("OpenAIKey", back_populates="user", cascade="all, delete-orphan")
+    openai_keys = relationship("OpenAIKey", back_populates="user", cascade="all, delete-orphan",uselist=False,lazy="selectin")
+    service_account = relationship("ServiceAccountKey", back_populates="user", uselist=False)
     agents = relationship("Agent", back_populates="user", cascade="all, delete-orphan")
     assistant_configs = relationship("AssistantConfig", back_populates="user", cascade="all, delete-orphan")
     integration_config = relationship("IntegrationConfig", back_populates="user", cascade="all, delete-orphan")
