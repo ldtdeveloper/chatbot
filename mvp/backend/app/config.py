@@ -83,8 +83,8 @@ class Settings(BaseSettings):
     from_name: str = "Voice Assistant Platform"
     
     # Razorpay Settings
-    razorpay_key_id: str = ""
-    razorpay_key_secret: str = ""
+    razorpay_key_id: str = os.getenv("RAZORPAY_KEY_ID","")
+    razorpay_key_secret: str = os.getenv("RAZORPAY_KEY_SECRET","")
     
     # HubSpot OAuth Configuration
     hubspot_oauth_redirect_uri: str = "http://localhost:8081/api/integration-config/hubspot/oauth/callback"  # Can be overridden via HUBSPOT_OAUTH_REDIRECT_URI

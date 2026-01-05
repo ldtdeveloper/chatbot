@@ -1,7 +1,7 @@
 """
 Pydantic schemas for API requests and responses
 """
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.models.assistant_config import NoiseReductionMode
@@ -229,3 +229,24 @@ class IntegrationConfigMasked(BaseModel):
 class SetupPasswordRequest(BaseModel):
     token: str  # Payment token
     password: str
+
+class ResetPasswordRequest(BaseModel):
+    old_password : str
+    new_password : str
+    confirm_password : str
+
+    @field_validator("confirm_password")
+    @classmethod
+    def passwords_match(cls, confirm_password, info):
+        password = info.data.get("password")
+        if password and confirm_password != password:
+            raise ValueError("Passwords do not match")
+        return confirm_password
+    
+class ForgetPasswordRequest(BaseModel):
+    email : str
+
+#Prefetch details of user 
+class PreFetchDetails(BaseModel):
+    email : str
+    plan : Optional [str] = None
