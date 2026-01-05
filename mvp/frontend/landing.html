@@ -1330,6 +1330,32 @@
                     localStorage.setItem('subscription_active', 'true');
                     localStorage.setItem('subscription_plan', selectedPlan);
                     loadingOverlay.querySelector('p').textContent = 'Payment successful! Redirecting to dashboard...';
+                    const setupResponse = await fetch(`${API_BASE}/openai-keys`, {
+
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    razorpay_payment_id: verifyData.razorpay_payment_id
+                })
+            });
+
+
+            const setupData = await setupResponse.json();
+
+
+            if (setupData.success) {
+                localStorage.setItem('subscription_active', 'true');
+                loadingOverlay.querySelector('p').textContent = 'Account setup complete! Redirecting...';
+
+                setTimeout(() => {
+                    window.location.href = window.location.origin + '/dashboard';
+                }, 1500);
+            } else {
+                throw new Error(setupData.message || 'Account setup failed');
+            }
                     setTimeout(() => {
                         // Redirect to React app dashboard (root of the app)
                         // The React app should handle routing to dashboard if user is logged in
@@ -1492,7 +1518,7 @@
                         }).showToast();
                     }
                     else if(data.subscription.exist && data.next_action == 'SET_PASSWORD'){
-                        //TO DO SETUP PASSWORD 
+                        //TO DO SETUP PASSWORD
                     }
                     else {
                         Toastify({

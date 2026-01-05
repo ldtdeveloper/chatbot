@@ -9,6 +9,7 @@ from typing import Optional, List
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.openai_key import OpenAIKey
+from app.models.service_account_key import ServiceAccountKey
 from app.models.agent import Agent
 from app.models.interaction import Interaction
 from app.schemas import DashboardStats
@@ -112,7 +113,7 @@ async def get_dashboard_stats(
             )
         
         # Get API keys for target users
-        all_keys = db.query(OpenAIKey).filter(OpenAIKey.user_id.in_(target_user_ids)).all()
+        all_keys = db.query(ServiceAccountKey).filter(ServiceAccountKey.user_id.in_(target_user_ids)).all()
         
         # Filter keys if specific key_id provided
         if key_id:

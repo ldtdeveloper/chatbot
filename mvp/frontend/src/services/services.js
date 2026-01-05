@@ -214,3 +214,37 @@ export const integrationConfigService = {
     return response.data
   },
 }
+// export const serviceAccount={
+//  createServiceAccount : async (id)=>{
+//   const response = await api.post('/api/serviceAccount/create-service-account')
+//   return response.data
+//  }
+
+// }
+
+export const serviceAccountService  = {
+  list: async () => {
+    const response = await api.get('/api/openai-keys')
+    return response.data
+  },
+
+  create: async (data) => {
+    const response = await api.post('/api/openai-keys', data)
+    return response.data
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/api/openai-keys/${id}`)
+    return response.data
+  },
+
+  toggle: async (id) => {
+    const response = await api.patch(`/api/openai-keys/${id}/toggle`)
+    return response.data
+  },
+
+  getMasked: async (id) => {
+    const response = await api.get(`/api/openai-keys/${id}/masked`)
+    return response.data
+  },
+}
