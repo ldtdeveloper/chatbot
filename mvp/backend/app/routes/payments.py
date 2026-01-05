@@ -3,6 +3,7 @@ Payment routes for Razorpay integration
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from fastapi import BackgroundTasks
 from app.database import get_db
 from app.models.user import User
 from app.models.subscription import Subscription, PlanType, PaymentStatus
@@ -11,6 +12,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 from app.config import settings
+from app.routes.service_test import create_service_account
 import hmac
 import hashlib
 
@@ -19,8 +21,10 @@ try:
     import razorpay
     RAZORPAY_AVAILABLE = True
 except ImportError:
+    print("razorpay not avilable")
     RAZORPAY_AVAILABLE = False
     razorpay = None
+print(f"razor pay {RAZORPAY_AVAILABLE}")
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
@@ -98,9 +102,10 @@ async def create_order_from_token(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Invalid or expired payment token"
         )
-    
+    expires_at = db_token.expires_at.replace(tzinfo=timezone.utc)
+
     # Check expiration
-    if datetime.now(timezone.utc) > db_token.expires_at:
+    if datetime.now(timezone.utc) >expires_at:
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="Payment token has expired"
@@ -297,8 +302,6 @@ async def create_order(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create payment order: {str(e)}"
         )
-
-
 @router.post("/verify-from-token", response_model=PaymentVerifyResponse)
 async def verify_payment_from_token(
     payment_data: dict,
@@ -314,38 +317,31 @@ async def verify_payment_from_token(
     order_id = payment_data.get("order_id")
     
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment token is required"
-        )
+        raise HTTPException(status_code=400, detail="Payment token is required")
     
-    # Get payment token
     db_token = db.query(PaymentToken).filter(
         PaymentToken.token == token,
         PaymentToken.is_used == False
     ).first()
     
     if not db_token:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid or expired payment token"
-        )
+        raise HTTPException(status_code=404, detail="Invalid or expired payment token")
     
-    # Get subscription
     subscription = db.query(Subscription).filter(
         Subscription.id == order_id,
         Subscription.user_id == db_token.user_id
     ).first()
     
     if not subscription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Subscription not found"
-        )
+        raise HTTPException(status_code=404, detail="Subscription not found")
     
-    # Check if in test mode
+    # Get user for service account creation
+    user = db.query(User).filter(User.id == db_token.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Test mode handling
     if TEST_MODE and not razorpay_client:
-        # Mock payment verification for testing
         subscription.razorpay_payment_id = razorpay_payment_id or f"pay_test_{order_id}"
         subscription.razorpay_signature = razorpay_signature or "test_signature"
         subscription.payment_status = PaymentStatus.SUCCESS
@@ -353,50 +349,50 @@ async def verify_payment_from_token(
         subscription.start_date = datetime.now(timezone.utc)
         subscription.end_date = datetime.now(timezone.utc) + timedelta(days=30)
         db.commit()
+    else:
+        if not razorpay_client:
+            raise HTTPException(status_code=503, detail="Razorpay not configured...")
         
-        return {
-            "success": True,
-            "message": "Payment verified successfully (TEST MODE)",
-            "subscription_id": subscription.id
-        }
-    
-    if not razorpay_client:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Razorpay payment gateway is not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to your .env file. See QUICK_RAZORPAY_SETUP.md for details."
-        )
-    
-    # Verify signature
-    message = f"{razorpay_order_id}|{razorpay_payment_id}"
-    generated_signature = hmac.new(
-        settings.razorpay_key_secret.encode(),
-        message.encode(),
-        hashlib.sha256
-    ).hexdigest()
-    
-    if generated_signature != razorpay_signature:
-        subscription.payment_status = PaymentStatus.FAILED
+        message = f"{razorpay_order_id}|{razorpay_payment_id}"
+        generated_signature = hmac.new(
+            settings.razorpay_key_secret.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if generated_signature != razorpay_signature:
+            subscription.payment_status = PaymentStatus.FAILED
+            db.commit()
+            return {"success": False, "message": "Invalid signature"}
+        
+        subscription.razorpay_payment_id = razorpay_payment_id
+        subscription.razorpay_signature = razorpay_signature
+        subscription.payment_status = PaymentStatus.SUCCESS
+        subscription.is_active = True
+        subscription.start_date = datetime.now(timezone.utc)
+        subscription.end_date = datetime.now(timezone.utc) + timedelta(days=30)
         db.commit()
-        return {
-            "success": False,
-            "message": "Payment signature verification failed"
-        }
     
-    # Update subscription
-    subscription.razorpay_payment_id = razorpay_payment_id
-    subscription.razorpay_signature = razorpay_signature
-    subscription.payment_status = PaymentStatus.SUCCESS
-    subscription.is_active = True
-    subscription.start_date = datetime.now(timezone.utc)
-    subscription.end_date = datetime.now(timezone.utc) + timedelta(days=30)
-    db.commit()
+    # === CALL OpenAI SERVICE ACCOUNT CREATION ===
+    print(f"===== Starting OpenAI service account creation for user {user.id} ({user.email}) =====")
+    
+    try:
+        current_user: User = Depends(get_current_user),
+        result = create_service_account(name_prefix=f"voiceai-{user.id}",user=user,db=db)
+        print("===== OpenAI SERVICE ACCOUNT CREATED SUCCESSFULLY =====")
+        print("Result:", result)
+        # TODO: Save result to DB as discussed earlier
+    except Exception as e:
+        print("===== OpenAI ACCOUNT CREATION FAILED =====")
+        print("Error details:", str(e))
+    
+    print("===== DEBUG: Payment flow completed =====")
     
     return {
         "success": True,
         "message": "Payment verified successfully",
         "subscription_id": subscription.id
     }
-
 
 @router.post("/verify", response_model=PaymentVerifyResponse)
 async def verify_payment(
@@ -405,21 +401,23 @@ async def verify_payment(
     db: Session = Depends(get_db)
 ):
     """Verify Razorpay payment signature and update subscription"""
-    # Check if in test mode
+    
+    print(f"===== DEBUG: /verify called for user {current_user.id} =====")
+    
+    subscription = None
+    
+    # Test mode handling (mock payment)
     if TEST_MODE and not razorpay_client:
-        # Mock payment verification for testing
+        print("===== DEBUG: Running in TEST MODE =====")
+        
         subscription = db.query(Subscription).filter(
             Subscription.id == payment_data.order_id,
             Subscription.user_id == current_user.id
         ).first()
         
         if not subscription:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Subscription not found"
-            )
+            raise HTTPException(status_code=404, detail="Subscription not found")
         
-        # In test mode, accept any payment (for development)
         subscription.razorpay_payment_id = payment_data.razorpay_payment_id or f"pay_test_{payment_data.order_id}"
         subscription.razorpay_signature = payment_data.razorpay_signature or "test_signature"
         subscription.payment_status = PaymentStatus.SUCCESS
@@ -428,58 +426,64 @@ async def verify_payment(
         subscription.end_date = datetime.utcnow() + timedelta(days=30)
         db.commit()
         
-        return {
-            "success": True,
-            "message": "Payment verified successfully (TEST MODE)",
-            "subscription_id": subscription.id
-        }
-    
-    if not razorpay_client:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Razorpay payment gateway is not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to your .env file. See QUICK_RAZORPAY_SETUP.md for details."
-        )
-    
-    # Get subscription
-    subscription = db.query(Subscription).filter(
-        Subscription.id == payment_data.order_id,
-        Subscription.user_id == current_user.id
-    ).first()
-    
-    if not subscription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Subscription not found"
-        )
-    
-    # Verify signature
-    message = f"{payment_data.razorpay_order_id}|{payment_data.razorpay_payment_id}"
-    generated_signature = hmac.new(
-        settings.razorpay_key_secret.encode(),
-        message.encode(),
-        hashlib.sha256
-    ).hexdigest()
-    
-    if generated_signature != payment_data.razorpay_signature:
-        subscription.payment_status = PaymentStatus.FAILED
+        print("===== DEBUG: TEST MODE - Subscription updated =====")
+        
+    else:
+        # Real Razorpay mode
+        print("===== DEBUG: Running in REAL payment mode =====")
+        
+        if not razorpay_client:
+            raise HTTPException(503, "Razorpay not configured...")
+        
+        subscription = db.query(Subscription).filter(
+            Subscription.id == payment_data.order_id,
+            Subscription.user_id == current_user.id
+        ).first()
+        
+        if not subscription:
+            raise HTTPException(404, "Subscription not found")
+        
+        message = f"{payment_data.razorpay_order_id}|{payment_data.razorpay_payment_id}"
+        generated_signature = hmac.new(
+            settings.razorpay_key_secret.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if generated_signature != payment_data.razorpay_signature:
+            subscription.payment_status = PaymentStatus.FAILED
+            db.commit()
+            return {"success": False, "message": "Invalid signature"}
+        
+        subscription.razorpay_payment_id = payment_data.razorpay_payment_id
+        subscription.razorpay_signature = payment_data.razorpay_signature
+        subscription.payment_status = PaymentStatus.SUCCESS
+        subscription.is_active = True
+        subscription.start_date = datetime.utcnow()
+        subscription.end_date = datetime.utcnow() + timedelta(days=30)
         db.commit()
-        return {
-            "success": False,
-            "message": "Payment signature verification failed"
-        }
+        
+        print("===== DEBUG: REAL payment - Subscription updated =====")
     
-    # Update subscription
-    subscription.razorpay_payment_id = payment_data.razorpay_payment_id
-    subscription.razorpay_signature = payment_data.razorpay_signature
-    subscription.payment_status = PaymentStatus.SUCCESS
-    subscription.is_active = True
-    subscription.start_date = datetime.utcnow()
-    subscription.end_date = datetime.utcnow() + timedelta(days=30)  # 1 month subscription
-    db.commit()
+    # === NOW CALL OpenAI IN BOTH MODES ===
+    print(f"===== Starting OpenAI service account creation for user {current_user.id} =====")
+    
+    try:
+        
+        user = db.query(User).filter(User.id == db_token.user_id).first()
+        result = create_service_account(user=user,db=db)
+        print("===== OpenAI SERVICE ACCOUNT CREATED SUCCESSFULLY =====")
+        print("Result:", result)
+        # TODO: Save result['user_api_key'] encrypted in DB
+    except Exception as e:
+        print("===== OpenAI ACCOUNT CREATION FAILED =====")
+        print("Error details:", str(e))
+        # Payment is already done - don't crash
+    
+    print("===== DEBUG: Payment flow completed =====")
     
     return {
         "success": True,
-        "message": "Payment verified successfully",
+        "message": "Payment verified successfully" + (" (TEST MODE)" if TEST_MODE else ""),
         "subscription_id": subscription.id
     }
-

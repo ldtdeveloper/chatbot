@@ -11,6 +11,7 @@ from app.models.payment_token import PaymentToken
 from app.models.user import User
 from app.models.subscription import Subscription, PlanType, PaymentStatus
 from app.routes.payments import TEST_MODE, razorpay_client
+from app.routes.create_service_account import create_service_account
 from app.config import settings
 from pydantic import BaseModel
 from typing import Optional
@@ -36,8 +37,10 @@ async def payment_page(token: str, request: Request, db: Session = Depends(get_d
         PaymentToken.token == token,
         PaymentToken.is_used == False
     ).first()
-    
+
+    print("this is db token",db_token)
     if not db_token:
+      
         return HTMLResponse(content="""
         <!DOCTYPE html>
         <html>
@@ -57,7 +60,9 @@ async def payment_page(token: str, request: Request, db: Session = Depends(get_d
         """, status_code=404)
     
     # Check if token expired
-    if datetime.now(timezone.utc) > db_token.expires_at:
+    
+    expires_at = db_token.expires_at.replace(tzinfo=timezone.utc)  
+    if datetime.now(timezone.utc) > expires_at:
         return HTMLResponse(content="""
         <!DOCTYPE html>
         <html>
@@ -77,6 +82,7 @@ async def payment_page(token: str, request: Request, db: Session = Depends(get_d
     
     # Get user
     user = db.query(User).filter(User.id == db_token.user_id).first()
+    print(user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -417,7 +423,9 @@ async def payment_page(token: str, request: Request, db: Session = Depends(get_d
                     }}
                     
                     if (verifyData.success) {{
+                    
                         // Payment successful - redirect to password setup
+                        
                         loading.textContent = '✅ Payment successful! Redirecting to password setup...';
                         loading.style.color = '#10b981';
                         

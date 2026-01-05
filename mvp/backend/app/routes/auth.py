@@ -13,6 +13,9 @@ from app.dependencies import get_current_user
 from datetime import timedelta, datetime, timezone
 from app.config import settings
 from app.services.email_service import EmailService
+from zoneinfo import ZoneInfo
+from datetime import datetime, timezone
+from datetime import datetime
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -21,7 +24,6 @@ PLAN_PRICES = {
     "pro": 29.0,
     "enterprise": 0.0  # Custom pricing
 }
-
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
@@ -56,6 +58,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 @router.post("/register-with-plan")
 async def register_with_plan(register_data: UserRegisterRequest, db: Session = Depends(get_db)):
     """Register a new user with email and username only, send payment link via email"""
+    print("yes entered in register with plan")
     # Check if user already exists
     db_user = db.query(User).filter(
         (User.email == register_data.email) | (User.username == register_data.username)
@@ -74,6 +77,7 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
         )
     
     plan = register_data.plan.lower()
+    print(plan)
     amount = PLAN_PRICES[plan]
     
     # Create new user without password (inactive)
@@ -314,7 +318,16 @@ async def setup_password_endpoint(
         )
     
     # Check if token expired
-    if datetime.now(timezone.utc) > db_token.expires_at:
+    now = datetime.now(ZoneInfo("UTC"))
+
+    now_india = datetime.now(ZoneInfo("Asia/Kolkata"))
+    
+    expires_at = db_token.expires_at.replace(tzinfo=timezone.utc)
+    # print("Current time (UTC):", current_time)
+    print("Token expires at:  ", expires_at)
+    print(datetime.now(timezone.utc) )
+    print(db_token.expires_at)
+    if expires_at < now:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Payment token has expired"

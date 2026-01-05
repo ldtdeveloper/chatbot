@@ -11,6 +11,7 @@ from app.models.agent import Agent, NoiseReductionMode
 from app.schemas import (
     AgentCreate, AgentResponse, AgentUpdate
 )
+
 from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
@@ -24,11 +25,12 @@ async def create_agent(
 ):
     """Create a new agent configuration (stored locally)"""
     # Validate API key
-    from app.models.openai_key import OpenAIKey
-    api_key = db.query(OpenAIKey).filter(
-        OpenAIKey.id == agent_data.openai_key_id,
-        OpenAIKey.user_id == current_user.id,
-        OpenAIKey.is_active == True
+    # from app.models.openai_key import OpenAIKey
+    from app.models.service_account_key import ServiceAccountKey
+    api_key = db.query(ServiceAccountKey).filter(
+        ServiceAccountKey.id == agent_data.openai_key_id,
+        ServiceAccountKey.user_id == current_user.id,
+        ServiceAccountKey.is_active == True
     ).first()
     if not api_key:
         raise HTTPException(

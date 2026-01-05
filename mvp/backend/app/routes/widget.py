@@ -8,6 +8,7 @@ from app.database import get_db, SessionLocal
 from app.models.user import User
 from app.models.assistant_config import AssistantConfig
 from app.models.openai_key import OpenAIKey
+from app.models.service_account_key import ServiceAccountKey
 from app.models.agent import Agent
 from app.models.interaction import Interaction
 from app.schemas import WidgetCodeResponse
@@ -178,9 +179,9 @@ async def generate_agent_widget_code(
         pass
     
     # Get the OpenAI key for this agent
-    api_key = db.query(OpenAIKey).filter(
-        OpenAIKey.id == agent.openai_key_id,
-        OpenAIKey.is_active == True
+    api_key = db.query(ServiceAccountKey).filter(
+        ServiceAccountKey.id == agent.openai_key_id,
+        ServiceAccountKey.is_active == True
     ).first()
     
     if not api_key:
@@ -254,9 +255,9 @@ async def generate_agent_widget_code(
         pass
     
     # Get the OpenAI key for this agent
-    api_key = db.query(OpenAIKey).filter(
-        OpenAIKey.id == agent.openai_key_id,
-        OpenAIKey.is_active == True
+    api_key = db.query(ServiceAccountKey).filter(
+        ServiceAccountKey.id == agent.openai_key_id,
+        ServiceAccountKey.is_active == True
     ).first()
     
     if not api_key:
@@ -319,9 +320,9 @@ async def generate_widget_code(
         )
     
     # Get active OpenAI key
-    active_key = db.query(OpenAIKey).filter(
-        OpenAIKey.user_id == current_user.id,
-        OpenAIKey.is_active == True
+    active_key = db.query(ServiceAccountKey).filter(
+        ServiceAccountKey.user_id == current_user.id,
+        ServiceAccountKey.is_active == True
     ).first()
     
     if not active_key:
@@ -458,8 +459,8 @@ async def widget_websocket(
         
         # Get OpenAI API key
         api_key_record = db.query(OpenAIKey).filter(
-            OpenAIKey.id == agent.openai_key_id,
-            OpenAIKey.is_active == True
+            ServiceAccountKey.id == agent.openai_key_id,
+            ServiceAccountKey.is_active == True
         ).first()
         
         if not api_key_record:

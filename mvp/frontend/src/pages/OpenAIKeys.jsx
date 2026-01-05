@@ -1,60 +1,225 @@
+// import React, { useState } from 'react'
+// import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+// import { openAIKeyService } from '../services/services'
+// import '../assets/OpenAIKeys.css'
+
+// function OpenAIKeys() {
+//   const queryClient = useQueryClient()
+//   const [showAddForm, setShowAddForm] = useState(false)
+//   const [formData, setFormData] = useState({ key_name: '', api_key: '' })
+//   const [visibleKeys, setVisibleKeys] = useState({}) // Track which keys are visible
+//   const [maskedKeys, setMaskedKeys] = useState({}) // Cache masked keys
+//   const [errorMessage, setErrorMessage] = useState(null) // Error message state
+
+//   const { data: keys, isLoading } = useQuery({
+//     queryKey: ['openai-keys'],
+//     queryFn: openAIKeyService.list,
+//   })
+//   const createMutation = useMutation({
+//     mutationFn: openAIKeyService.create,
+//     onSuccess: () => {
+//       queryClient.invalidateQueries(['openai-keys'])
+//       setShowAddForm(false)
+//       setFormData({ key_name: '', api_key: '' })
+//       setErrorMessage(null)
+//     },
+//     onError: (error) => {
+//       setErrorMessage(error.response?.data?.detail || 'Failed to create key')
+//     },
+//   })
+
+//   const deleteMutation = useMutation({
+//     mutationFn: openAIKeyService.delete,
+//     onSuccess: () => {
+//       queryClient.invalidateQueries(['openai-keys'])
+//       setErrorMessage(null)
+//     },
+//     onError: (error) => {
+//       const detail = error.response?.data?.detail
+//       if (typeof detail === 'object' && detail.message) {
+//         // Handle structured error with agents list
+//         const agentList = detail.agents?.join(', ') || ''
+//         setErrorMessage(`${detail.message} Agents: ${agentList}. ${detail.hint || ''}`)
+//       } else {
+//         setErrorMessage(detail || 'Failed to delete key')
+//       }
+//     },
+//   })
+
+//   const toggleMutation = useMutation({
+//     mutationFn: openAIKeyService.toggle,
+//     onSuccess: () => {
+//       queryClient.invalidateQueries(['openai-keys'])
+//       setErrorMessage(null)
+//     },
+//     onError: (error) => {
+//       setErrorMessage(error.response?.data?.detail || 'Failed to toggle key status')
+//     },
+//   })
+
+//   const handleSubmit = (e) => {
+//     e.preventDefault()
+//     createMutation.mutate(formData)
+//   }
+
+//   const toggleKeyVisibility = async (keyId) => {
+//     if (visibleKeys[keyId]) {
+//       // Hide the key
+//       setVisibleKeys(prev => ({ ...prev, [keyId]: false }))
+//     } else {
+//       // Show the key - fetch masked version if not cached
+//       if (!maskedKeys[keyId]) {
+//         try {
+//           const data = await openAIKeyService.getMasked(keyId)
+//           setMaskedKeys(prev => ({ ...prev, [keyId]: data.masked_key }))
+//         } catch (error) {
+//           console.error('Error fetching masked key:', error)
+//           return
+//         }
+//       }
+//       setVisibleKeys(prev => ({ ...prev, [keyId]: true }))
+//     }
+//   }
+
+//   if (isLoading) return <div>Loading...</div>
+
+//   return (
+//     <div className="openai-keys">
+//       {/* <div className="page-header">
+//         <h1>OpenAI API Keys</h1>
+//         <button onClick={() => setShowAddForm(!showAddForm)}>
+//           {showAddForm ? 'Cancel' : '+ Add Key'}
+//         </button>
+//       </div> */}
+
+//       {errorMessage && (
+//         <div className="error-banner">
+//           <span>{errorMessage}</span>
+//           <button onClick={() => setErrorMessage(null)} className="close-btn">×</button>
+//         </div>
+//       )}
+
+//       {/* {showAddForm && (
+//         <form onSubmit={handleSubmit} className="add-key-form">
+//           <input
+//             type="text"
+//             onChange={(e) => setFormData({ ...formData, key_name: e.target.value })}
+//             autocomplete="off"
+//             required
+//             placeholder='Key Name'
+//           />
+//           <input
+//             type="password"
+//             onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
+//             autocomplete="off"
+//             required
+//             placeholder='API Key'
+//           />
+//           <button type="submit">Add Key</button>
+//         </form>
+//       )} */}
+
+//       <div className="keys-list">
+//         {console.log(keys)}
+//         {keys?.map((key) => (
+//           <div key={key.id} className="key-card">
+//             <div className="key-info">
+//               <h3>{key.key_name}</h3>
+//               <span className={`status ${key.is_active ? 'active' : 'inactive'}`}>
+//                 {key.is_active ? 'Active' : 'Inactive'}
+//               </span>
+//               {visibleKeys[key.id] && (
+//                 <div className="masked-key">
+//                   <code>{maskedKeys[key.id] || 'Loading...'}</code>
+//                 </div>
+//               )}
+//             </div>
+//             <div className="key-actions">
+//               <button
+//                 onClick={() => toggleKeyVisibility(key.id)}
+//                 className="view-key-btn"
+//               >
+//                 {visibleKeys[key.id] ? 'Hide Key' : 'View Key'}
+//               </button>
+//               <button onClick={() => toggleMutation.mutate(key.id)}>
+//                 {key.is_active ? 'Deactivate' : 'Activate'}
+//               </button>
+//               <button
+//                 onClick={() => deleteMutation.mutate(key.id)}
+//                 className="delete-btn"
+//               >
+//                 Delete
+//               </button>
+//             </div>
+//           </div>
+//         ))}
+//         {keys?.length === 0 && <p>No API keys added yet.</p>}
+//       </div>
+//     </div>
+//   )
+// }
+
+// export default OpenAIKeys
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { openAIKeyService } from '../services/services'
+import { serviceAccountService } from '../services/services' 
 import '../assets/OpenAIKeys.css'
 
 function OpenAIKeys() {
   const queryClient = useQueryClient()
   const [showAddForm, setShowAddForm] = useState(false)
-  const [formData, setFormData] = useState({ key_name: '', api_key: '' })
-  const [visibleKeys, setVisibleKeys] = useState({}) // Track which keys are visible
-  const [maskedKeys, setMaskedKeys] = useState({}) // Cache masked keys
-  const [errorMessage, setErrorMessage] = useState(null) // Error message state
+  const [formData, setFormData] = useState({ key_name: '' }) // No api_key input - generated by backend
+  const [visibleKeys, setVisibleKeys] = useState({})
+  const [maskedKeys, setMaskedKeys] = useState({})
+  const [errorMessage, setErrorMessage] = useState(null)
 
+  // Fetch list of service accounts
   const { data: keys, isLoading } = useQuery({
-    queryKey: ['openai-keys'],
-    queryFn: openAIKeyService.list,
+    queryKey: ['service-accounts'],
+    queryFn: serviceAccountService.list, // Update service
   })
 
+  // Create mutation (backend generates key)
   const createMutation = useMutation({
-    mutationFn: openAIKeyService.create,
+    mutationFn: serviceAccountService.create,
     onSuccess: () => {
-      queryClient.invalidateQueries(['openai-keys'])
+      queryClient.invalidateQueries(['service-accounts'])
       setShowAddForm(false)
-      setFormData({ key_name: '', api_key: '' })
+      setFormData({ key_name: '' })
       setErrorMessage(null)
     },
     onError: (error) => {
-      setErrorMessage(error.response?.data?.detail || 'Failed to create key')
+      setErrorMessage(error.response?.data?.detail || 'Failed to create service account')
     },
   })
 
+  // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: openAIKeyService.delete,
+    mutationFn: serviceAccountService.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries(['openai-keys'])
+      queryClient.invalidateQueries(['service-accounts'])
       setErrorMessage(null)
     },
     onError: (error) => {
       const detail = error.response?.data?.detail
       if (typeof detail === 'object' && detail.message) {
-        // Handle structured error with agents list
         const agentList = detail.agents?.join(', ') || ''
         setErrorMessage(`${detail.message} Agents: ${agentList}. ${detail.hint || ''}`)
       } else {
-        setErrorMessage(detail || 'Failed to delete key')
+        setErrorMessage(detail || 'Failed to delete service account')
       }
     },
   })
 
+  // Toggle active status
   const toggleMutation = useMutation({
-    mutationFn: openAIKeyService.toggle,
+    mutationFn: serviceAccountService.toggle,
     onSuccess: () => {
-      queryClient.invalidateQueries(['openai-keys'])
+      queryClient.invalidateQueries(['service-accounts'])
       setErrorMessage(null)
     },
     onError: (error) => {
-      setErrorMessage(error.response?.data?.detail || 'Failed to toggle key status')
+      setErrorMessage(error.response?.data?.detail || 'Failed to toggle status')
     },
   })
 
@@ -65,13 +230,11 @@ function OpenAIKeys() {
 
   const toggleKeyVisibility = async (keyId) => {
     if (visibleKeys[keyId]) {
-      // Hide the key
       setVisibleKeys(prev => ({ ...prev, [keyId]: false }))
     } else {
-      // Show the key - fetch masked version if not cached
       if (!maskedKeys[keyId]) {
         try {
-          const data = await openAIKeyService.getMasked(keyId)
+          const data = await serviceAccountService.getMasked(keyId)
           setMaskedKeys(prev => ({ ...prev, [keyId]: data.masked_key }))
         } catch (error) {
           console.error('Error fetching masked key:', error)
@@ -82,14 +245,14 @@ function OpenAIKeys() {
     }
   }
 
-  if (isLoading) return <div>Loading...</div>
+  if (isLoading) return <div>Loading service accounts...</div>
 
   return (
-    <div className="openai-keys">
+    <div className="service-accounts">
       <div className="page-header">
-        <h1>OpenAI API Keys</h1>
+        <h1>OpenAI Service Accounts</h1>
         <button onClick={() => setShowAddForm(!showAddForm)}>
-          {showAddForm ? 'Cancel' : '+ Add Key'}
+          {showAddForm ? 'Cancel' : '+ Generate New Key'}
         </button>
       </div>
 
@@ -104,27 +267,22 @@ function OpenAIKeys() {
         <form onSubmit={handleSubmit} className="add-key-form">
           <input
             type="text"
+            value={formData.key_name}
             onChange={(e) => setFormData({ ...formData, key_name: e.target.value })}
-            autocomplete="off"
             required
-            placeholder='Key Name'
+            placeholder="Key Name (e.g. Main Account)"
           />
-          <input
-            type="password"
-            onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-            autocomplete="off"
-            required
-            placeholder='API Key'
-          />
-          <button type="submit">Add Key</button>
+          <button type="submit">Generate Key</button>
         </form>
       )}
 
       <div className="keys-list">
+        {console.log(keys)}
         {keys?.map((key) => (
           <div key={key.id} className="key-card">
             <div className="key-info">
               <h3>{key.key_name}</h3>
+              {console.log("this is the key"+key.is_active)}
               <span className={`status ${key.is_active ? 'active' : 'inactive'}`}>
                 {key.is_active ? 'Active' : 'Inactive'}
               </span>
@@ -133,6 +291,9 @@ function OpenAIKeys() {
                   <code>{maskedKeys[key.id] || 'Loading...'}</code>
                 </div>
               )}
+              <div className="service-id">
+                <small>OpenAI ID: {key.openai_service_account_id}</small>
+              </div>
             </div>
             <div className="key-actions">
               <button
@@ -153,7 +314,7 @@ function OpenAIKeys() {
             </div>
           </div>
         ))}
-        {keys?.length === 0 && <p>No API keys added yet.</p>}
+        {keys?.length === 0 && <p>No service accounts generated yet.</p>}
       </div>
     </div>
   )

@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     # Environment
     app_env: str = os.getenv("APP_ENV", "LOCAL").upper()
     
+    
     # Database
     database_url: str = "sqlite:///./chatbot.db"  # Can be overridden by DATABASE_URL env var
     
@@ -85,10 +86,14 @@ class Settings(BaseSettings):
     # Razorpay Settings
     razorpay_key_id: str = os.getenv("RAZORPAY_KEY_ID","")
     razorpay_key_secret: str = os.getenv("RAZORPAY_KEY_SECRET","")
+    ADMIN_KEY:str = os.getenv("ADMIN_KEY","")
+    PROJECT_ID:str = os.getenv("PROJECT_ID","")
     
     model_config = SettingsConfigDict(
+        # env_file=get_env_file(),
         env_file=get_env_file(),
-        case_sensitive=False
+        case_sensitive=False,
+        extra = "allow" 
     )
     
     def __init__(self, **kwargs):
