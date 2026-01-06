@@ -1004,7 +1004,7 @@
                                 class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
                             <span class="text-sm text-gray-600">Remember me</span>
                         </label>
-                        <a href="#" class="text-sm text-purple-600 hover:text-purple-700 font-medium">Forgot
+                        <a href="#" onclick="handleForgotPassword(event)" class="text-sm text-purple-600 hover:text-purple-700 font-medium">Forgot
                             password?</a>
                     </div>
 
@@ -1023,7 +1023,8 @@
                                 d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                         </svg>
                     </button>
-                    <div class="mt-6 text-center">
+                    
+                    <div class="hidden mt-6 text-center" id= "signupcontainer">
                         <p class="text-sm text-gray-600">
                             Don't have an account?
                             <button type="button" onclick="switchToRegister()"
@@ -1380,8 +1381,12 @@
 
         // Modal functions
         function openLoginModal() {
+            resetLoginState();
             document.getElementById('loginModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+            if(selectedPlan){
+                document.getElementById('signupcontainer').classList.remove('hidden');
+            }
         }
 
         function closeLoginModal() {
@@ -1408,6 +1413,54 @@
                 `;
             }
         }
+        
+        // Handle Forget Password
+        async function handleForgotPassword(e){
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            if(!email){
+                Toastify({
+                    text: `Please enter your email first`,
+                    duration: 2000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#dc2626",
+                    style: {
+                        borderRadius: "15px"
+                    }
+                }).showToast();
+                return 
+            }
+            Toastify({
+                    text: `If the email exists, a reset link has been sent ! Check your registered email for the link.`,
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#16a34a",
+                    style: {
+                        borderRadius: "15px"
+                    }
+                }).showToast();
+            try{
+                const forgetPasswordResponse = await fetch(`${API_BASE}/api/auth/forget-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email
+                    })
+                });
+                if(!forgetPasswordResponse.ok){
+                    const error = await forgetPasswordResponse.json();
+                    throw new Error(error.detail || 'User not found');
+                }  
+
+            }
+            catch (error){
+                console.log(error)
+            }
+        }
 
         // Quick login
         function quickLogin(username, password) {
@@ -1415,6 +1468,23 @@
             document.getElementById('loginPassword').value = password;
             handleLogin(new Event('submit'));
         }
+
+        // Reset Login State 
+        function resetLoginState() {
+            // Inputs
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+
+            // UI state
+            document.getElementById('passwordContainer').classList.add('hidden');
+            document.getElementById('forgotPasswordContainer').classList.add('hidden');
+
+            // Errors & loaders
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('loginBtn').disabled = false;
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
 
         // Handle login
         async function handleLogin(e) {
