@@ -13,6 +13,7 @@ import WidgetGenerator from './pages/WidgetGenerator'
 import { useAuthStore } from './context/authStore'
 import Layout from './components/Layout'
 import { Toaster } from "sonner";
+import ResetPassword from './pages/ResetPassword'
 
 const queryClient = new QueryClient()
 
@@ -52,6 +53,7 @@ function App() {
             <Route path="assistants" element={<Assistants />} />
             <Route path="widget-generator" element={<WidgetGenerator />} />
           </Route>
+          <Route path ="reset-password" element={<ResetPassword />} />
         </Routes>
         <Toaster position="top-center" richColors />
       </Router>

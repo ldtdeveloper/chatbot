@@ -248,3 +248,13 @@ export const serviceAccountService  = {
     return response.data
   },
 }
+
+export const resetPasswordService = {
+    resetPassword: async (token,password) => {
+    const response = await api.post('/api/auth/reset-password',{ new_password: password},{headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }})
+    return response.data
+  }
+}
