@@ -1066,7 +1066,7 @@ ${"hello"}
             <h2>Web Agents</h2>
             <div className="header-actions">
               {/*  */}
-              <select
+              {/* <select
                 value={fetchApiKeyId}
                 onChange={(e) => {
                   setFetchApiKeyId(e.target.value)
@@ -1082,7 +1082,7 @@ ${"hello"}
                     {key.key_name}
                   </option>
                 ))}
-              </select>
+              </select> */}
               {/*  */}
               <button onClick={() => {
                 if (showAddForm) {

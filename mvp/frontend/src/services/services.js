@@ -53,6 +53,12 @@ export const userService = {
     return response.data
   },
 }
+export const forgotPassword={
+forgotPassword:async(data)=>{
+  const response= await api.post(`/api/auth/forget-password`,data)
+  return response.data
+}
+}
 
 export const openAIKeyService = {
   list: async () => {
@@ -160,6 +166,7 @@ export const dashboardService = {
       params.key_id = keyId
     }
     const response = await api.get('/api/dashboard/stats', { params })
+    console.log(response.data)
     return response.data
   },
 }

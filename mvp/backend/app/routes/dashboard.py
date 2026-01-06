@@ -89,9 +89,11 @@ async def get_dashboard_stats(
             # Superadmin can see all users or filter by specific user
             if user_id:
                 target_user_ids = [user_id]
+                print(f"this is target user id {target_user_ids}")
             else:
                 # Get all user IDs - handle empty result
                 all_users = db.query(User).all()
+                print(all_users)
                 target_user_ids = [u.id for u in all_users] if all_users else []
         else:
             # Regular users can only see their own data

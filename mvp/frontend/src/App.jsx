@@ -36,6 +36,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+        
           <Route
             path="/"
             element={
@@ -52,6 +53,7 @@ function App() {
             <Route path="agents" element={<Agents />} />
             <Route path="assistants" element={<Assistants />} />
             <Route path="widget-generator" element={<WidgetGenerator />} />
+
           </Route>
           <Route path ="reset-password" element={<ResetPassword />} />
         </Routes>
