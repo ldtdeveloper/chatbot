@@ -55,7 +55,7 @@ function App() {
           </Route>
           <Route path ="reset-password" element={<ResetPassword />} />
         </Routes>
-        <Toaster position="top-center" richColors />
+        <Toaster position="top-right" richColors duration={5000} />
       </Router>
     </QueryClientProvider>
   )
