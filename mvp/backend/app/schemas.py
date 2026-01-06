@@ -1,18 +1,49 @@
 """
 Pydantic schemas for API requests and responses
 """
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.models.assistant_config import NoiseReductionMode
 
+class ServiceAccountKeyCreate(BaseModel):
+    key_name: str  # User-friendly name
 
+class ServiceAccountKeyResponse(BaseModel):
+    id: int
+    user_id: int
+    email: str
+    key_name: str
+    # Do NOT expose the plain key!
+    openai_service_account_id: str  # Real OpenAI ID
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True  # Allows from SQLAlchemy model
+
+class ServiceAccountKeyMaskedResponse(BaseModel):
+    id: int
+    key_name: str
+    masked_key: str
+    openai_service_account_id: str
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 # User schemas
 class UserCreate(BaseModel):
     email: EmailStr
     username: str
-    password: str
+    password: Optional[str] = None  # Optional - not required for initial registration
     role: Optional[str] = "default"  # Only superadmin can set role
+
+class UserRegisterRequest(BaseModel):
+    email: EmailStr
+    username: str
+    plan: str  # starter, pro, enterprise
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     username: Optional[str] = None
@@ -214,9 +245,40 @@ class IntegrationConfigResponse(BaseModel):
     oauth_connected: Optional[bool] = False  # Whether OAuth is connected
     oauth_expires_at: Optional[datetime] = None  # OAuth token expiration
     oauth_client_id: Optional[str] = None  # HubSpot app Client ID (for display)
-    
+
     class Config:
         from_attributes = True
 
 class IntegrationConfigMasked(BaseModel):
     masked_key: str
+
+class SetupPasswordRequest(BaseModel):
+    token: str  # Payment token
+    password: str
+
+class ChangePassword(BaseModel):
+    old_password : str
+    new_password : str
+    confirm_password : str
+
+    @field_validator("confirm_password")
+    @classmethod
+    def passwords_match(cls, confirm_password, info):
+        password = info.data.get("password")
+        if password and confirm_password != password:
+            raise ValueError("Passwords do not match")
+        return confirm_password
+    
+class ResetPassword(BaseModel):
+    new_password : str
+    
+class ForgetPasswordRequest(BaseModel):
+    email : str
+
+#Prefetch details of user
+class PreFetchDetails(BaseModel):
+    email : str
+    plan : Optional [str] = None
+
+class ChangeEmail(BaseModel):
+    email : str

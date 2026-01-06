@@ -4,8 +4,11 @@ Dependencies for authentication and authorization
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
+from datetime import datetime, timezone
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
+from app.models.subscription import Subscription, PaymentStatus
 from app.utils.auth import decode_access_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
@@ -47,4 +50,42 @@ async def get_current_user(
         )
     
     return user
+
+
+async def require_active_subscription(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> User:
+    """
+    Dependency that requires user to have an active paid subscription.
+    Superadmins are exempt from this requirement.
+    """
+    # Check if user is superadmin - exempt from subscription requirement
+    is_superadmin = False
+    if hasattr(current_user.role, 'value'):
+        is_superadmin = current_user.role.value == UserRole.SUPERADMIN.value
+    else:
+        is_superadmin = str(current_user.role) == str(UserRole.SUPERADMIN.value) or current_user.role == UserRole.SUPERADMIN
+    
+    if is_superadmin:
+        return current_user
+    
+    # Check for active subscription
+    now = datetime.now(timezone.utc)
+    active_subscription = db.query(Subscription).filter(
+        and_(
+            Subscription.user_id == current_user.id,
+            Subscription.payment_status == PaymentStatus.SUCCESS,
+            Subscription.is_active == True,
+            Subscription.end_date >= now
+        )
+    ).first()
+    
+    if not active_subscription:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Active subscription required. Please complete payment to access the platform."
+        )
+    
+    return current_user
 

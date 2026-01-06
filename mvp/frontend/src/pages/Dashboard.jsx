@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuthStore } from '../context/authStore'
 import { useQuery } from '@tanstack/react-query'
 import {
   LineChart,
@@ -24,6 +25,7 @@ import '../assets/Dashboard.css'
 function Dashboard() {
   const [dateRange, setDateRange] = useState('30d')
   const [selectedKey, setSelectedKey] = useState('all')
+  const { user, logout } = useAuthStore()
 
   // Fetch dashboard stats from API
   const { data: stats, isLoading, error, refetch } = useQuery({
@@ -97,6 +99,43 @@ function Dashboard() {
 
   // Error state
   if (error) {
+    // Check if it's a payment required error (402)
+    const isPaymentRequired = error?.response?.status === 402 || error?.message?.includes('subscription') || error?.message?.includes('payment')
+    
+    if (isPaymentRequired) {
+      return (
+        <div className="dashboard">
+          <div className="dashboard-header">
+            <h1>Dashboard</h1>
+          </div>
+          <div className="error-state" style={{ textAlign: 'center', padding: '40px' }}>
+            <h2 style={{ color: '#667eea', marginBottom: '20px' }}>Payment Required</h2>
+            <p style={{ marginBottom: '20px', fontSize: '16px' }}>
+              {error?.response?.data?.detail || 'Active subscription required to access the dashboard.'}
+            </p>
+            <p style={{ marginBottom: '30px', color: '#666' }}>
+              Please complete your payment to continue using the platform.
+            </p>
+            <button 
+              onClick={() => window.location.href = '/landing.html'}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '600'
+              }}
+            >
+              Go to Payment
+            </button>
+          </div>
+        </div>
+      )
+    }
+    
     return (
       <div className="dashboard">
         <div className="dashboard-header">
@@ -127,7 +166,7 @@ function Dashboard() {
             <option value="30d">Last 30 days</option>
             <option value="90d">Last 90 days</option>
           </select>
-          <select
+          {user?.role==="superadmin"&& <select
             className="key-selector"
             value={selectedKey}
             onChange={(e) => setSelectedKey(e.target.value)}
@@ -136,7 +175,8 @@ function Dashboard() {
             {stats?.available_keys?.map(key => (
               <option key={key.id} value={key.id}>{key.name}</option>
             ))}
-          </select>
+          </select>}
+         
         </div>
       </div>
 
@@ -321,10 +361,11 @@ function Dashboard() {
       <div className="quick-actions-section">
         <h2 className="quick-actions-title">Quick Actions</h2>
         <div className="dashboard-grid">
-          <Link to="/openai-keys" className="dashboard-card">
+          {user?.role==="superadmin"&&<Link to="/openai-keys" className="dashboard-card">
             <h2>🔑 OpenAI Keys</h2>
             <p>Manage your OpenAI API keys</p>
-          </Link>
+          </Link>}
+          
           <Link to="/agents" className="dashboard-card">
             <h2>🤖 Agents</h2>
             <p>Create and manage agent configurations</p>

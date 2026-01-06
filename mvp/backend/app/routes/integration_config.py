@@ -39,6 +39,13 @@ async def create_integration_config(
     # Handle encrypted_key if provided (legacy)
     if config_data.encrypted_key:
         config.encrypted_key = encrypt_api_key(config_data.encrypted_key)
+    elif config_data.oauth_client_id:
+        # For OAuth-based integrations (like HubSpot), encrypted_key is not needed
+        # But database requires NOT NULL, so set to empty string
+        config.encrypted_key = ""
+    else:
+        # If neither encrypted_key nor OAuth credentials provided, set empty string
+        config.encrypted_key = ""
     
     # Handle OAuth client credentials
     if config_data.oauth_client_id:
@@ -96,8 +103,13 @@ async def get_integration_config(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Integration Config not found"
         )
-    decrypted_key = decrypt_api_key(config.encrypted_key)
-    config.masked_key = decrypted_key[:6]+ "x"* (len(decrypted_key)-9)+decrypted_key[-3:]
+    
+    # Handle legacy encrypted_key (may be empty for OAuth-based integrations)
+    if config.encrypted_key:
+        decrypted_key = decrypt_api_key(config.encrypted_key)
+        config.masked_key = decrypted_key[:6]+ "x"* (len(decrypted_key)-9)+decrypted_key[-3:]
+    else:
+        config.masked_key = None
 
     return config
 
@@ -179,6 +191,13 @@ async def get_decrypted_integration_key(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Integration Config not found"
+        )
+    
+    # Check if encrypted_key exists (may be empty for OAuth-based integrations)
+    if not config.encrypted_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No API key configured for this integration. This integration uses OAuth authentication."
         )
     
     decrypted_key = decrypt_api_key(config.encrypted_key)

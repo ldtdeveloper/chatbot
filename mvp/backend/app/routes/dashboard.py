@@ -9,10 +9,11 @@ from typing import Optional, List
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.openai_key import OpenAIKey
+from app.models.service_account_key import ServiceAccountKey
 from app.models.agent import Agent
 from app.models.interaction import Interaction
 from app.schemas import DashboardStats
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_active_subscription
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -62,7 +63,7 @@ async def get_dashboard_stats(
     days: str = Query(default="30d", regex="^(7d|30d|90d)$"),
     key_id: Optional[int] = Query(default=None, description="Filter by specific API key ID"),
     user_id: Optional[int] = Query(default=None, description="Filter by user ID (superadmin only)"),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_subscription),
     db: Session = Depends(get_db)
 ):
     """
@@ -88,9 +89,11 @@ async def get_dashboard_stats(
             # Superadmin can see all users or filter by specific user
             if user_id:
                 target_user_ids = [user_id]
+                print(f"this is target user id {target_user_ids}")
             else:
                 # Get all user IDs - handle empty result
                 all_users = db.query(User).all()
+                print(all_users)
                 target_user_ids = [u.id for u in all_users] if all_users else []
         else:
             # Regular users can only see their own data
@@ -112,7 +115,7 @@ async def get_dashboard_stats(
             )
         
         # Get API keys for target users
-        all_keys = db.query(OpenAIKey).filter(OpenAIKey.user_id.in_(target_user_ids)).all()
+        all_keys = db.query(ServiceAccountKey).filter(ServiceAccountKey.user_id.in_(target_user_ids)).all()
         
         # Filter keys if specific key_id provided
         if key_id:

@@ -9,7 +9,8 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.config import settings
 from app.database import engine, Base
-from app.routes import auth, openai_keys, agents, assistant_config, widget, users, dashboard, reports, integration_config
+from app.routes import auth, openai_keys, agents, assistant_config, widget, users, dashboard, reports, integration_config, payments
+from app.routes import payment_link
 
 # Configure logging for OpenAI requests logger
 logging.basicConfig(
@@ -46,11 +47,32 @@ app = FastAPI(
 )
 
 
+# More permissive CORS for development
+# In production, use specific origins
+cors_origins = settings.cors_origins.copy() if settings.cors_origins else []
+if settings.is_local or settings.is_dev:
+    # For development, allow common local origins
+    additional_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://localhost:5500",  # Live Server
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:5500",
+        "http://localhost",
+        "http://127.0.0.1",
+        "null",  # file:// protocol
+    ]
+    cors_origins = list(set(cors_origins + additional_origins))  # Remove duplicates
+    print(f"[CORS] Allowed origins: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
@@ -89,6 +111,8 @@ app.include_router(widget.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
 app.include_router(integration_config.router)
+app.include_router(payments.router)
+app.include_router(payment_link.router)
 
 
 @app.get("/")

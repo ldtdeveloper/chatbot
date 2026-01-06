@@ -3,6 +3,7 @@ Agent model for managing Realtime Agent configurations
 Based on OpenAI RealtimeAgent: https://openai.github.io/openai-agents-js/openai/agents-realtime/classes/realtimeagent/
 """
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, Boolean, Enum
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
@@ -14,12 +15,18 @@ class NoiseReductionMode(str, enum.Enum):
     FAR_FIELD = "far_field"
 
 
+class AgentType(str, enum.Enum):
+    WEB = "WEB"
+    PHONE = "PHONE"
+
+
 class Agent(Base):
     __tablename__ = "agents"
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     openai_key_id = Column(Integer, ForeignKey("openai_keys.id"), nullable=False)  # Required API key
+    agent_type = Column(ENUM(AgentType, name='agenttype', create_type=False), nullable=False, default=AgentType.WEB)  # Agent type: WEB or PHONE
     name = Column(String, nullable=False)
     domain = Column(String, nullable=False)  # TLD domain where widget will be displayed (e.g., example.com)
     

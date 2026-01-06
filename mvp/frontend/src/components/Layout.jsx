@@ -37,8 +37,10 @@ function Layout() {
         <div className="navbar-menu">
           <Link to="/">Dashboard</Link>
           {/* {user?.role === 'default' && <Link to="/assistants">Assistants</Link>} */}
-          <Link to="/openai-keys">API Keys</Link>
-          <Link to="/agents">Agents</Link>
+          {user?.role==="superadmin"&&<Link to="/openai-keys">API Keys</Link>}
+          {/* <Link to="/openai-keys">API Keys</Link> */}
+          {user?.role === 'default' && <Link to="/agents">Agents</Link>}
+          {/* <Link to="/agents">Agents</Link> */}
           {/* {user?.role === 'default' && <Link to="/widget-generator">Widget</Link>} */}
 
           <div className="navbar-user" ref={dropdownRef}>

@@ -53,6 +53,12 @@ export const userService = {
     return response.data
   },
 }
+export const forgotPassword={
+forgotPassword:async(data)=>{
+  const response= await api.post(`/api/auth/forget-password`,data)
+  return response.data
+}
+}
 
 export const openAIKeyService = {
   list: async () => {
@@ -160,6 +166,7 @@ export const dashboardService = {
       params.key_id = keyId
     }
     const response = await api.get('/api/dashboard/stats', { params })
+    console.log(response.data)
     return response.data
   },
 }
@@ -213,4 +220,48 @@ export const integrationConfigService = {
     })
     return response.data
   },
+}
+// export const serviceAccount={
+//  createServiceAccount : async (id)=>{
+//   const response = await api.post('/api/serviceAccount/create-service-account')
+//   return response.data
+//  }
+
+// }
+
+export const serviceAccountService  = {
+  list: async () => {
+    const response = await api.get('/api/openai-keys')
+    return response.data
+  },
+
+  create: async (data) => {
+    const response = await api.post('/api/openai-keys', data)
+    return response.data
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/api/openai-keys/${id}`)
+    return response.data
+  },
+
+  toggle: async (id) => {
+    const response = await api.patch(`/api/openai-keys/${id}/toggle`)
+    return response.data
+  },
+
+  getMasked: async (id) => {
+    const response = await api.get(`/api/openai-keys/${id}/masked`)
+    return response.data
+  },
+}
+
+export const resetPasswordService = {
+    resetPassword: async (token,password) => {
+    const response = await api.post('/api/auth/reset-password',{ new_password: password},{headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }})
+    return response.data
+  }
 }
