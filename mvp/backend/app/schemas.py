@@ -106,6 +106,7 @@ class AgentCreate(BaseModel):
     noise_reduction_silence_duration_ms: Optional[int] = 500
     agent_config: Optional[dict] = {}  # Additional RealtimeAgent configuration (tools, handoffs, etc.)
     enable_mcp_server: Optional[bool] = False  # Whether to enable MCP server for this agent
+    agent_type: Optional[str] = "WEB"  # Agent type: WEB or PHONE
 
 
 class AgentUpdate(BaseModel):
