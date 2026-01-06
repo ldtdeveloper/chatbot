@@ -153,7 +153,9 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
         if not payment_details:
             raise HTTPException(status_code = 402, detail = "subscriptions required")
         
-        if payment_details.end_date < datetime.now():
+        # Compare with timezone-aware datetime
+        now = datetime.now(timezone.utc)
+        if payment_details.end_date < now:
             raise HTTPException(status_code = status.HTTP_403_FORBIDDEN, detail = "Subscription Expired")
     
     if not user.password_set :        
