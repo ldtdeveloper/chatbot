@@ -136,6 +136,7 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
 async def login(user_data: UserLogin, db: Session = Depends(get_db)):
     """Login and get access token"""
     user = db.query(User).filter(User.email == user_data.email).first()
+    print(user)
     if not user:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,

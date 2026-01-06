@@ -89,4 +89,35 @@ button:disabled {
 .auth-link a:hover {
   text-decoration: underline;
 }
+.forgot-password {
+  margin-top: 12px;
+  text-align: right;
+}
+
+.forgot-password a {
+  font-size: 14px;
+  color: #4f46e5;
+  text-decoration: none;
+}
+
+.forgot-password a:hover {
+  text-decoration: underline;
+}
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+ color: #4f46e5;
+  cursor: pointer;
+  font-size: 14px;
+  float: right;
+  text-decoration: underline;
+}
+
+.link-button:disabled {
+  color: gray;
+  cursor: not-allowed;
+}
+
+
 
