@@ -53,7 +53,7 @@ function App() {
             <Route path="widget-generator" element={<WidgetGenerator />} />
           </Route>
         </Routes>
-        <Toaster position="top-center" richColors />
+        <Toaster position="top-right" richColors duration={5000} />
       </Router>
     </QueryClientProvider>
   )

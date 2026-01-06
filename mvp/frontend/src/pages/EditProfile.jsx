@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { userService } from "../services/services";
 import { useAuthStore } from "../context/authStore";
 import '../assets/UsersUpdate.css';
@@ -48,12 +49,12 @@ export default function EditProfile() {
     onSuccess: () => {
       queryClient.invalidateQueries(["users"]);
       queryClient.invalidateQueries(["user", userId]);
-      alert("User updated successfully!");
+      toast.success("User updated successfully!", { duration: 5000 });
       if (currentUser.role === 'superadmin') navigate("/users");
     },
     onError: (err) => {
       const errorMessage = err.response?.data?.detail || "Update failed!";
-      alert(errorMessage);
+      toast.error(errorMessage, { duration: 5000 });
     }
   });
 
@@ -68,7 +69,7 @@ export default function EditProfile() {
     if (formData.password) updateData.password = formData.password;
 
     if (Object.keys(updateData).length === 0) {
-      alert("No changes detected");
+      toast.info("No changes detected", { duration: 5000 });
       return;
     }
 
