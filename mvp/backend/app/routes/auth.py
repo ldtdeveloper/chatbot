@@ -299,10 +299,9 @@ async def change_password(password_data: ChangePassword,db: Session = Depends(ge
     }
 
 @router.post("/reset-password")
-def reset_password(request: ResetPassword,db: Session= Depends(get_db),authorization: str = Header(None) ):
+async def reset_password(request: ResetPassword,db: Session= Depends(get_db),authorization: str = Header(None) ):
     '''Reset password '''
     try:
-        print("Reset password api called ..............")
         if not authorization:
             raise HTTPException(status_code=401, detail="Authorization header missing")
 
@@ -312,9 +311,6 @@ def reset_password(request: ResetPassword,db: Session= Depends(get_db),authoriza
             raise HTTPException(status_code=401, detail="Invalid Authorization header")
 
         payload = decode_access_token(token)
-        if payload.get("purpose") != "reset_password":
-            raise HTTPException(status_code=401, detail="Invalid token")
-
         user_id = int(payload["sub"])
         user = db.query(User).get(user_id)
 
@@ -322,7 +318,6 @@ def reset_password(request: ResetPassword,db: Session= Depends(get_db),authoriza
             raise HTTPException(status_code=404, detail="User not found")
 
         user.hashed_password = get_password_hash(request.new_password)
-        user.password_set = True
         db.commit()
 
         return {"message": "Password reset successful"}
@@ -330,7 +325,7 @@ def reset_password(request: ResetPassword,db: Session= Depends(get_db),authoriza
         return {"status": 500, "message": str(e)}
 
 @router.post("/forget-password")
-def forget_password(request: ForgetPasswordRequest,db: Session = Depends(get_db)):
+async def forget_password(request: ForgetPasswordRequest,db: Session = Depends(get_db)):
     '''send reset password link to email '''
     db_user = db.query(User).filter(
         (User.email == request.email)).first()
@@ -341,8 +336,7 @@ def forget_password(request: ForgetPasswordRequest,db: Session = Depends(get_db)
     # Generate reset token that expires in 15min
     reset_token = create_access_token(
         data={
-            "sub": str(db_user.id),
-            "purpose": "reset_password"
+            "sub": str(db_user.id)
         },
         expires_delta=timedelta(minutes=15)
     )
@@ -455,7 +449,7 @@ def forget_password(request: ForgetPasswordRequest,db: Session = Depends(get_db)
     }
 
 @router.post("/change-email")
-def change_email(request: ChangeEmail,current_user: User = Depends(get_current_user),db: Session = Depends(get_db)):
+async def change_email(request: ChangeEmail,current_user: User = Depends(get_current_user),db: Session = Depends(get_db)):
     # To do
     try:
         db_user = db.query(User).filter(User.id==current_user.id).first()
@@ -470,7 +464,7 @@ def change_email(request: ChangeEmail,current_user: User = Depends(get_current_u
         return {"status":"500","message": f"{str(e)}"}
 
 @router.post("/prefetch")
-def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_db)):
+async def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_db)):
     '''Prefetch details of User in order to sent next action
     complete setup with subscription and payment/login/setup password'''
 
