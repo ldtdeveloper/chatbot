@@ -143,13 +143,18 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
             detail = "User not found"
         )
     
-    payment_details = db.query(Subscription).filter(Subscription.user_id == user.id, Subscription.payment_status== PaymentStatus.SUCCESS).order_by(Subscription.created_at.desc()).first()
-
-    if not payment_details:
-        raise HTTPException(status_code = 402, detail = "subscriptions required")
+    # Check if user is superadmin - exempt from subscription requirement
+    is_superadmin = user.role == UserRole.SUPERADMIN
     
-    if payment_details.end_date < datetime.now():
-        raise HTTPException(status_code = status.HTTP_403_FORBIDDEN, detail = "Subscription Expired")
+    # Only check subscription for non-superadmin users
+    if not is_superadmin:
+        payment_details = db.query(Subscription).filter(Subscription.user_id == user.id, Subscription.payment_status== PaymentStatus.SUCCESS).order_by(Subscription.created_at.desc()).first()
+
+        if not payment_details:
+            raise HTTPException(status_code = 402, detail = "subscriptions required")
+        
+        if payment_details.end_date < datetime.now():
+            raise HTTPException(status_code = status.HTTP_403_FORBIDDEN, detail = "Subscription Expired")
     
     if not user.password_set :        
         raise HTTPException(status_code = 409, detail = "PASSWORD_NOT_SET")
