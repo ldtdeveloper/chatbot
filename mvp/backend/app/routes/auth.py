@@ -1,7 +1,7 @@
 """
 Authentication routes
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import case
 from app.database import get_db
@@ -290,12 +290,20 @@ async def change_password(password_data: ChangePassword,db: Session = Depends(ge
         "message": "Reset Password successfully"
     }
 
-@router.post("/reset-password/{token}")
-def reset_password(request: ResetPassword,db: Session= Depends(get_db)):
+@router.post("/reset-password")
+def reset_password(request: ResetPassword,db: Session= Depends(get_db),authorization: str = Header(None) ):
     '''Reset password '''
     try:
-        payload = decode_access_token(request.token)
+        print("Reset password api called ..............")
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Authorization header missing")
 
+        try:
+            token = authorization.split(" ")[1]
+        except IndexError:
+            raise HTTPException(status_code=401, detail="Invalid Authorization header")
+
+        payload = decode_access_token(token)
         if payload.get("purpose") != "reset_password":
             raise HTTPException(status_code=401, detail="Invalid token")
 

@@ -270,7 +270,6 @@ class ChangePassword(BaseModel):
         return confirm_password
     
 class ResetPassword(BaseModel):
-    token: str
     new_password : str
     
 class ForgetPasswordRequest(BaseModel):
