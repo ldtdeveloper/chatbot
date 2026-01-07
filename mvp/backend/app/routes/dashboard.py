@@ -347,3 +347,212 @@ async def get_expenses_per_user(
         logging.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error fetching expenses per user: {str(e)}")
 
+
+@router.post("/expenses-per-user/send-email")
+async def send_expenses_report_email(
+    days: str = Query(default="30d", regex="^(7d|30d|90d|today|this_week|this_month|this_year|till_now|all)$"),
+    current_user: User = Depends(require_active_subscription),
+    db: Session = Depends(get_db)
+):
+    """
+    Send expenses per user report via email to superadmin (Superadmin only)
+    """
+    # Check if user is superadmin
+    is_superadmin = False
+    if hasattr(current_user.role, 'value'):
+        is_superadmin = current_user.role.value == UserRole.SUPERADMIN.value
+    else:
+        is_superadmin = str(current_user.role) == str(UserRole.SUPERADMIN.value) or current_user.role == UserRole.SUPERADMIN
+    
+    if not is_superadmin:
+        raise HTTPException(
+            status_code=403,
+            detail="Only superadmin can send expenses report"
+        )
+    
+    try:
+        start_date, end_date = get_date_range(days)
+        
+        # Get all users
+        all_users = db.query(User).all()
+        
+        # Get all interactions in the date range
+        interactions = db.query(Interaction).filter(
+            Interaction.started_at.isnot(None),
+            Interaction.started_at >= start_date,
+            Interaction.started_at <= end_date
+        ).all()
+        
+        # Calculate expenses per user
+        user_expenses = {}
+        for user in all_users:
+            user_interactions = [i for i in interactions if i.user_id == user.id]
+            total_expenses = sum((i.estimated_cost or 0) for i in user_interactions)
+            total_interactions = len(user_interactions)
+            
+            if total_expenses > 0 or total_interactions > 0:
+                user_expenses[user.id] = {
+                    'user_id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'total_expenses': round(total_expenses, 2),
+                    'total_interactions': total_interactions
+                }
+        
+        # Convert to list and sort by expenses (descending)
+        expenses_list = list(user_expenses.values())
+        expenses_list.sort(key=lambda x: x['total_expenses'], reverse=True)
+        
+        # Get period label
+        period_labels = {
+            'today': 'Today',
+            'this_week': 'This Week',
+            'this_month': 'This Month',
+            'this_year': 'This Year',
+            'till_now': 'Till Now',
+            'all': 'Till Now',
+            '7d': 'Last 7 days',
+            '30d': 'Last 30 days',
+            '90d': 'Last 90 days'
+        }
+        period_label = period_labels.get(days, 'Last 30 days')
+        
+        # Generate HTML email
+        from app.services.email_service import EmailService
+        email_service = EmailService()
+        
+        # Build HTML table
+        table_rows = ""
+        for idx, user_expense in enumerate(expenses_list, 1):
+            # Alternate row colors for better readability
+            row_bg = "#ffffff" if idx % 2 == 0 else "#fafbfc"
+            table_rows += f"""
+            <tr style="background:{row_bg};transition:background 0.2s;">
+                <td style="padding:14px 16px;text-align:center;font-weight:700;color:#667eea;font-size:13px;border-bottom:1px solid #f1f5f9;">#{idx}</td>
+                <td style="padding:14px 16px;font-weight:600;color:#333;font-size:14px;border-bottom:1px solid #f1f5f9;">{user_expense['username']}</td>
+                <td style="padding:14px 16px;color:#6b7280;font-size:13px;border-bottom:1px solid #f1f5f9;">{user_expense['email']}</td>
+                <td style="padding:14px 16px;text-align:center;color:#333;font-size:14px;font-weight:500;border-bottom:1px solid #f1f5f9;">{user_expense['total_interactions']}</td>
+                <td style="padding:14px 16px;text-align:right;font-weight:700;color:#667eea;font-size:14px;border-bottom:1px solid #f1f5f9;">${user_expense['total_expenses']:.2f}</td>
+            </tr>
+            """
+        
+        grand_total = sum(u['total_expenses'] for u in expenses_list)
+        
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @media only screen and (max-width: 600px) {{
+            .email-container {{
+                padding: 10px !important;
+            }}
+            .summary-cards {{
+                flex-direction: column !important;
+            }}
+            .summary-card {{
+                min-width: 100% !important;
+            }}
+            table {{
+                font-size: 12px !important;
+            }}
+            th, td {{
+                padding: 8px 6px !important;
+            }}
+        }}
+    </style>
+</head>
+<body style="margin:0;padding:0;background:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+    <div style="max-width:800px;margin:0 auto;padding:20px;" class="email-container">
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:16px 16px 0 0;padding:30px 25px;text-align:center;box-shadow:0 4px 12px rgba(102,126,234,0.2);">
+            <h1 style="margin:0 0 8px 0;color:white;font-size:24px;font-weight:600;letter-spacing:-0.5px;">📊 Per User Expenses Report</h1>
+            <p style="margin:0;color:rgba(255,255,255,0.95);font-size:14px;font-weight:400;">Detailed breakdown of expenses by user</p>
+            <div style="margin-top:12px;padding:8px 16px;background:rgba(255,255,255,0.15);border-radius:8px;display:inline-block;">
+                <span style="color:white;font-size:13px;font-weight:500;">Period: {period_label}</span>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div style="background:white;padding:30px 25px;border-radius:0 0 16px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <!-- Summary Cards -->
+            <div style="display:flex;gap:15px;margin-bottom:30px;flex-wrap:wrap;" class="summary-cards">
+                <div style="flex:1;min-width:180px;background:#f9fafb;padding:20px;border-radius:12px;border-left:4px solid #667eea;box-shadow:0 2px 6px rgba(0,0,0,0.06);" class="summary-card">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+                        <div style="width:40px;height:40px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">👥</div>
+                        <div>
+                            <p style="margin:0;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;">Total Users</p>
+                            <p style="margin:4px 0 0 0;font-size:28px;font-weight:700;color:#333;line-height:1;">{len(expenses_list)}</p>
+                        </div>
+                    </div>
+                </div>
+                <div style="flex:1;min-width:180px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(102,126,234,0.3);color:white;" class="summary-card">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+                        <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">💰</div>
+                        <div>
+                            <p style="margin:0;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;opacity:0.95;">Grand Total</p>
+                            <p style="margin:4px 0 0 0;font-size:28px;font-weight:700;line-height:1;">${grand_total:.2f}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User Breakdown Section -->
+            <div style="margin-top:25px;">
+                <h3 style="color:#333;font-size:18px;font-weight:600;margin:0 0 20px 0;padding-bottom:12px;border-bottom:2px solid #e5e7eb;">User Breakdown</h3>
+                <div style="background:#f9fafb;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+                    <table style="width:100%;border-collapse:collapse;background:white;">
+                        <thead>
+                            <tr style="background:linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);">
+                                <th style="padding:14px 16px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:2px solid #e5e7eb;">Rank</th>
+                                <th style="padding:14px 16px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:2px solid #e5e7eb;">Username</th>
+                                <th style="padding:14px 16px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:2px solid #e5e7eb;">Email</th>
+                                <th style="padding:14px 16px;text-align:center;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:2px solid #e5e7eb;">Interactions</th>
+                                <th style="padding:14px 16px;text-align:right;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:2px solid #e5e7eb;">Expenses</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {table_rows if table_rows else '<tr><td colspan="5" style="padding:40px 20px;text-align:center;color:#6b7280;font-size:14px;">No expenses data available for this period</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="border-top:1px solid #e5e7eb;padding-top:20px;margin-top:30px;text-align:center;">
+                <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.6;">
+                    Generated on <strong>{datetime.now(timezone.utc).strftime('%B %d, %Y at %H:%M:%S UTC')}</strong>
+                </p>
+                <p style="margin:8px 0 0 0;color:#cbd5e1;font-size:11px;">
+                    Voice Assistant Platform - Expenses Report
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+        """
+        
+        # Send email
+        subject = f"Per User Expenses Report - {period_label}"
+        email_service.send_email(
+            to_email=current_user.email,
+            subject=subject,
+            html_content=html_content
+        )
+        
+        return {
+            "message": f"Expenses report sent to {current_user.email}",
+            "period": period_label,
+            "total_users": len(expenses_list),
+            "grand_total": round(grand_total, 2)
+        }
+    except Exception as e:
+        import traceback
+        import logging
+        logging.error(f"Error sending expenses report: {e}")
+        logging.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error sending expenses report: {str(e)}")
+

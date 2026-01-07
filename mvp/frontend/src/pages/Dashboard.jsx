@@ -20,7 +20,8 @@ import {
   ResponsiveContainer
 } from 'recharts'
 import { dashboardService } from '../services/services'
-import { FaEye, FaTimes, FaList, FaTh } from 'react-icons/fa'
+import { toast } from 'sonner'
+import { FaEye, FaTimes, FaList, FaTh, FaDownload, FaPaperPlane } from 'react-icons/fa'
 import '../assets/Dashboard.css'
 
 function Dashboard() {
@@ -30,7 +31,90 @@ function Dashboard() {
   const [expensesPeriod, setExpensesPeriod] = useState('30d')
   const [sortBy, setSortBy] = useState('expenses') // 'expenses' or 'interactions'
   const [viewMode, setViewMode] = useState('cards') // 'cards' or 'list'
+  const [isExporting, setIsExporting] = useState(false)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
   const { user, logout } = useAuthStore()
+
+  // Export to CSV
+  const handleExportCSV = () => {
+    if (!expensesPerUser?.users?.length) {
+      toast.error('No data to export')
+      return
+    }
+
+    setIsExporting(true)
+    try {
+      const sortedUsers = [...expensesPerUser.users].sort((a, b) => {
+        if (sortBy === 'expenses') {
+          return b.total_expenses - a.total_expenses
+        } else {
+          return b.total_interactions - a.total_interactions
+        }
+      })
+
+      // Create CSV content
+      const headers = ['Rank', 'Username', 'Email', 'Interactions', 'Expenses']
+      const rows = sortedUsers.map((userExpense, index) => [
+        index + 1,
+        userExpense.username,
+        userExpense.email,
+        userExpense.total_interactions,
+        userExpense.total_expenses.toFixed(2)
+      ])
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n')
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      
+      const periodLabels = {
+        'today': 'Today',
+        'this_week': 'This Week',
+        'this_month': 'This Month',
+        'this_year': 'This Year',
+        'till_now': 'Till Now',
+        'all': 'Till Now',
+        '7d': 'Last 7 days',
+        '30d': 'Last 30 days',
+        '90d': 'Last 90 days'
+      }
+      const periodLabel = periodLabels[expensesPeriod] || 'Last 30 days'
+      const filename = `expenses-report-${periodLabel.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`
+      
+      link.setAttribute('download', filename)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast.success('Report exported successfully')
+    } catch (error) {
+      toast.error('Failed to export report')
+      console.error('Export error:', error)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // Send report via email
+  const handleSendEmail = async () => {
+    setIsSendingEmail(true)
+    try {
+      const response = await dashboardService.sendExpensesReportEmail(expensesPeriod)
+      toast.success(`Report sent to ${user?.email}`)
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || 'Failed to send report')
+      console.error('Send email error:', error)
+    } finally {
+      setIsSendingEmail(false)
+    }
+  }
 
   // Fetch dashboard stats from API
   const { data: stats, isLoading, error, refetch } = useQuery({
@@ -418,12 +502,30 @@ function Dashboard() {
                 <h2>📊 Per User Expenses Report</h2>
                 <p className="expenses-modal-subtitle">Detailed breakdown of expenses by user</p>
               </div>
-              <button 
-                className="expenses-modal-close"
-                onClick={() => setShowExpensesModal(false)}
-              >
-                <FaTimes />
-              </button>
+              <div className="expenses-modal-header-actions">
+                <button
+                  className="expenses-action-btn"
+                  onClick={handleExportCSV}
+                  disabled={isExporting || !expensesPerUser?.users?.length}
+                  title="Export to CSV"
+                >
+                  <FaDownload /> {isExporting ? 'Exporting...' : 'Export'}
+                </button>
+                <button
+                  className="expenses-action-btn"
+                  onClick={handleSendEmail}
+                  disabled={isSendingEmail || !expensesPerUser?.users?.length}
+                  title="Send report via email"
+                >
+                  <FaPaperPlane /> {isSendingEmail ? 'Sending...' : 'Send Report'}
+                </button>
+                <button 
+                  className="expenses-modal-close"
+                  onClick={() => setShowExpensesModal(false)}
+                >
+                  <FaTimes />
+                </button>
+              </div>
             </div>
             <div className="expenses-modal-content">
               {/* Summary Cards - Always Visible */}

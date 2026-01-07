@@ -173,6 +173,10 @@ export const dashboardService = {
     const response = await api.get('/api/dashboard/expenses-per-user', { params: { days } })
     return response.data
   },
+  sendExpensesReportEmail: async (days = '30d') => {
+    const response = await api.post('/api/dashboard/expenses-per-user/send-email', null, { params: { days } })
+    return response.data
+  },
 }
 
 export const integrationConfigService = {
