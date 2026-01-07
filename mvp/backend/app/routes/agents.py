@@ -23,30 +23,59 @@ async def create_agent(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    print(agent_data)
     """Create a new agent configuration (stored locally)"""
-    # Validate API key
-    # from app.models.openai_key import OpenAIKey
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Creating agent for user {current_user.id} with data: {agent_data}")
+    
+    # Validate API key - System uses ServiceAccountKey (not OpenAIKey)
+    # Note: Agent model has FK to openai_keys, but we're using ServiceAccountKey IDs
     from app.models.service_account_key import ServiceAccountKey
-    print(ServiceAccountKey.id)
-    print(agent_data.openai_key_id)
-    print(current_user.id)
     api_key = db.query(ServiceAccountKey).filter(
         ServiceAccountKey.id == agent_data.openai_key_id,
         ServiceAccountKey.user_id == current_user.id,
         ServiceAccountKey.is_active == True
     ).first()
-    print(f"agent key {api_key}")
+    
+    logger.info(f"API key lookup: openai_key_id={agent_data.openai_key_id}, user_id={current_user.id}, found={api_key is not None}")
+    
     if not api_key:
+        # Check if key exists but belongs to different user or is inactive
+        key_exists = db.query(ServiceAccountKey).filter(ServiceAccountKey.id == agent_data.openai_key_id).first()
+        if key_exists:
+            if key_exists.user_id != current_user.id:
+                error_msg = f"API key {agent_data.openai_key_id} belongs to a different user"
+            elif not key_exists.is_active:
+                error_msg = f"API key {agent_data.openai_key_id} is inactive"
+            else:
+                error_msg = f"API key {agent_data.openai_key_id} is not accessible"
+        else:
+            error_msg = f"API key {agent_data.openai_key_id} does not exist"
+        
+        # Get available keys for better error message
+        available_keys = db.query(ServiceAccountKey).filter(
+            ServiceAccountKey.user_id == current_user.id,
+            ServiceAccountKey.is_active == True
+        ).all()
+        
+        available_key_ids = [str(k.id) for k in available_keys]
+        if available_key_ids:
+            error_msg += f". Available API keys for this user: {', '.join(available_key_ids)}"
+        else:
+            error_msg += ". Please create an OpenAI API key first."
+        
+        logger.warning(f"Invalid API key: {error_msg}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or inactive API key"
+            detail=error_msg
         )
     
     # Validate noise reduction mode
     noise_reduction = NoiseReductionMode.NEAR_FIELD
     if agent_data.noise_reduction_mode:
         try:
+            # Convert string to enum, ensuring we use the value
             noise_reduction = NoiseReductionMode(agent_data.noise_reduction_mode)
         except ValueError:
             raise HTTPException(
@@ -63,7 +92,7 @@ async def create_agent(
         domain=agent_data.domain,
         instructions=agent_data.instructions,
         voice=agent_data.voice or "alloy",
-        noise_reduction_mode=noise_reduction,
+        noise_reduction_mode=noise_reduction.value,  # Use enum value explicitly
         noise_reduction_threshold=agent_data.noise_reduction_threshold or "0.5",
         noise_reduction_prefix_padding_ms=agent_data.noise_reduction_prefix_padding_ms or 300,
         noise_reduction_silence_duration_ms=agent_data.noise_reduction_silence_duration_ms or 500,
@@ -142,7 +171,8 @@ async def update_agent(
         agent.voice = agent_data.voice
     if agent_data.noise_reduction_mode is not None:
         try:
-            agent.noise_reduction_mode = NoiseReductionMode(agent_data.noise_reduction_mode)
+            noise_reduction_enum = NoiseReductionMode(agent_data.noise_reduction_mode)
+            agent.noise_reduction_mode = noise_reduction_enum.value  # Use enum value explicitly
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

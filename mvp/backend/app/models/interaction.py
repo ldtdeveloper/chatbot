@@ -52,7 +52,7 @@ class Interaction(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    openai_key_id = Column(Integer, ForeignKey("openai_keys.id"), nullable=False)
+    openai_key_id = Column(Integer, ForeignKey("service_account_key.id"), nullable=False)  # References ServiceAccountKey
     agent_id = Column(Integer, ForeignKey("agents.id"), nullable=True)
     
     # Session info
@@ -99,7 +99,7 @@ class Interaction(Base):
     
     # Relationships
     user = relationship("User", backref="interactions")
-    openai_key = relationship("OpenAIKey", backref="interactions")
+    openai_key = relationship("ServiceAccountKey", backref="interactions")  # References ServiceAccountKey
     agent = relationship("Agent", backref="interactions")
     
     def update_tokens(
