@@ -1,7 +1,7 @@
 """
 Dashboard routes - statistics and analytics endpoints
 """
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, cast, Date
 from datetime import datetime, timedelta, timezone
@@ -31,6 +31,22 @@ def get_date_range(days: str) -> tuple:
         start_date = now - timedelta(days=30)
     elif days == '90d':
         start_date = now - timedelta(days=90)
+    elif days == 'today':
+        # Start of today
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif days == 'this_week':
+        # Start of this week (Monday)
+        days_since_monday = now.weekday()
+        start_date = (now - timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
+    elif days == 'this_month':
+        # Start of this month
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif days == 'this_year':
+        # Start of this year
+        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif days == 'till_now' or days == 'all':
+        # All time - use a very old date
+        start_date = datetime(2020, 1, 1, tzinfo=timezone.utc)
     else:
         # Default to 30 days
         start_date = now - timedelta(days=30)
@@ -255,4 +271,79 @@ async def get_dashboard_stats(
             agents_per_key=[],
             available_keys=[]
         )
+
+
+@router.get("/expenses-per-user")
+async def get_expenses_per_user(
+    days: str = Query(default="30d", regex="^(7d|30d|90d|today|this_week|this_month|this_year|till_now|all)$"),
+    current_user: User = Depends(require_active_subscription),
+    db: Session = Depends(get_db)
+):
+    """
+    Get expenses breakdown per user (Superadmin only)
+    
+    Returns a list of users with their total expenses and interaction counts
+    """
+    # Check if user is superadmin
+    is_superadmin = False
+    if hasattr(current_user.role, 'value'):
+        is_superadmin = current_user.role.value == UserRole.SUPERADMIN.value
+    else:
+        is_superadmin = str(current_user.role) == str(UserRole.SUPERADMIN.value) or current_user.role == UserRole.SUPERADMIN
+    
+    if not is_superadmin:
+        raise HTTPException(
+            status_code=403,
+            detail="Only superadmin can access expenses per user"
+        )
+    
+    try:
+        start_date, end_date = get_date_range(days)
+        
+        # Get all users
+        all_users = db.query(User).all()
+        
+        # Get all interactions in the date range
+        interactions = db.query(Interaction).filter(
+            Interaction.started_at.isnot(None),
+            Interaction.started_at >= start_date,
+            Interaction.started_at <= end_date
+        ).all()
+        
+        # Calculate expenses per user
+        user_expenses = {}
+        for user in all_users:
+            user_interactions = [i for i in interactions if i.user_id == user.id]
+            total_expenses = sum((i.estimated_cost or 0) for i in user_interactions)
+            total_interactions = len(user_interactions)
+            
+            if total_expenses > 0 or total_interactions > 0:  # Only include users with activity
+                user_expenses[user.id] = {
+                    'user_id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'total_expenses': round(total_expenses, 2),
+                    'total_interactions': total_interactions
+                }
+        
+        # Convert to list and sort by expenses (descending)
+        expenses_list = list(user_expenses.values())
+        expenses_list.sort(key=lambda x: x['total_expenses'], reverse=True)
+        
+        return {
+            'period': {
+                'start': start_date.isoformat(),
+                'end': end_date.isoformat(),
+                'days': days
+            },
+            'users': expenses_list,
+            'total_users': len(expenses_list),
+            'grand_total_expenses': round(sum(u['total_expenses'] for u in expenses_list), 2)
+        }
+    except Exception as e:
+        import traceback
+        import logging
+        logging.error(f"Expenses per user error: {e}")
+        logging.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error fetching expenses per user: {str(e)}")
 

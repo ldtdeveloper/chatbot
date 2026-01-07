@@ -20,11 +20,16 @@ import {
   ResponsiveContainer
 } from 'recharts'
 import { dashboardService } from '../services/services'
+import { FaEye, FaTimes, FaList, FaTh } from 'react-icons/fa'
 import '../assets/Dashboard.css'
 
 function Dashboard() {
   const [dateRange, setDateRange] = useState('30d')
   const [selectedKey, setSelectedKey] = useState('all')
+  const [showExpensesModal, setShowExpensesModal] = useState(false)
+  const [expensesPeriod, setExpensesPeriod] = useState('30d')
+  const [sortBy, setSortBy] = useState('expenses') // 'expenses' or 'interactions'
+  const [viewMode, setViewMode] = useState('cards') // 'cards' or 'list'
   const { user, logout } = useAuthStore()
 
   // Fetch dashboard stats from API
@@ -33,6 +38,29 @@ function Dashboard() {
     queryFn: () => dashboardService.getStats(dateRange, selectedKey),
     refetchInterval: 30000, // Refresh every 30 seconds
   })
+
+  // Fetch expenses per user (only for superadmin)
+  const { data: expensesPerUser, isLoading: expensesLoading } = useQuery({
+    queryKey: ['expensesPerUser', expensesPeriod],
+    queryFn: () => dashboardService.getExpensesPerUser(expensesPeriod),
+    enabled: showExpensesModal && user?.role === 'superadmin',
+  })
+
+  // Get period display label
+  const getPeriodLabel = (period) => {
+    const labels = {
+      'today': 'Today',
+      'this_week': 'This Week',
+      'this_month': 'This Month',
+      'this_year': 'This Year',
+      'till_now': 'Till Now',
+      'all': 'Till Now',
+      '7d': 'Last 7 days',
+      '30d': 'Last 30 days',
+      '90d': 'Last 90 days'
+    }
+    return labels[period] || 'Last 30 days'
+  }
 
   // Colors for charts
   const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe']
@@ -176,7 +204,15 @@ function Dashboard() {
               <option key={key.id} value={key.id}>{key.name}</option>
             ))}
           </select>}
-         
+          {user?.role === 'superadmin' && (
+            <button
+              className="expenses-report-button"
+              onClick={() => setShowExpensesModal(true)}
+              title="View complete expenses report"
+            >
+              <FaEye /> Complete Report
+            </button>
+          )}
         </div>
       </div>
 
@@ -372,6 +408,230 @@ function Dashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Per User Expenses Report Modal */}
+      {showExpensesModal && user?.role === 'superadmin' && (
+        <div className="expenses-modal-overlay" onClick={() => setShowExpensesModal(false)}>
+          <div className="expenses-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="expenses-modal-header">
+              <div className="expenses-modal-header-content">
+                <h2>📊 Per User Expenses Report</h2>
+                <p className="expenses-modal-subtitle">Detailed breakdown of expenses by user</p>
+              </div>
+              <button 
+                className="expenses-modal-close"
+                onClick={() => setShowExpensesModal(false)}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="expenses-modal-content">
+              {/* Summary Cards - Always Visible */}
+              <div className="expenses-summary-cards">
+                {expensesLoading ? (
+                  <>
+                    <div className="expenses-summary-card skeleton">
+                      <div className="skeleton-icon"></div>
+                      <div className="expenses-summary-card-content">
+                        <div className="skeleton-text skeleton-label"></div>
+                        <div className="skeleton-text skeleton-value"></div>
+                      </div>
+                    </div>
+                    <div className="expenses-summary-card highlight skeleton">
+                      <div className="skeleton-icon"></div>
+                      <div className="expenses-summary-card-content">
+                        <div className="skeleton-text skeleton-label"></div>
+                        <div className="skeleton-text skeleton-value"></div>
+                      </div>
+                    </div>
+                    <div className="expenses-summary-card skeleton">
+                      <div className="skeleton-icon"></div>
+                      <div className="expenses-summary-card-content">
+                        <div className="skeleton-text skeleton-label"></div>
+                        <div className="skeleton-select"></div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="expenses-summary-card">
+                      <div className="expenses-summary-card-icon">👥</div>
+                      <div className="expenses-summary-card-content">
+                        <span className="expenses-summary-card-label">Total Users</span>
+                        <span className="expenses-summary-card-value">
+                          {expensesPerUser?.total_users || 0}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="expenses-summary-card highlight">
+                      <div className="expenses-summary-card-icon">💰</div>
+                      <div className="expenses-summary-card-content">
+                        <span className="expenses-summary-card-label">Grand Total</span>
+                        <span className="expenses-summary-card-value">
+                          ${(expensesPerUser?.grand_total_expenses || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="expenses-summary-card">
+                      <div className="expenses-summary-card-icon">📅</div>
+                      <div className="expenses-summary-card-content">
+                        <span className="expenses-summary-card-label">Period</span>
+                        <select
+                          className="expenses-period-selector"
+                          value={expensesPeriod}
+                          onChange={(e) => setExpensesPeriod(e.target.value)}
+                        >
+                          <option value="today">Today</option>
+                          <option value="this_week">This Week</option>
+                          <option value="this_month">This Month</option>
+                          <option value="this_year">This Year</option>
+                          <option value="till_now">Till Now</option>
+                          <option value="7d">Last 7 days</option>
+                          <option value="30d">Last 30 days</option>
+                          <option value="90d">Last 90 days</option>
+                        </select>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* User Breakdown Section */}
+              {expensesLoading ? (
+                <div className="expenses-users-section">
+                  <div className="skeleton-text skeleton-title"></div>
+                  <div className="expenses-users-grid">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="expenses-user-card skeleton">
+                        <div className="expenses-user-card-header">
+                          <div className="skeleton-rank"></div>
+                          <div className="expenses-user-info">
+                            <div className="skeleton-text skeleton-name"></div>
+                            <div className="skeleton-text skeleton-email"></div>
+                          </div>
+                        </div>
+                        <div className="expenses-user-stats">
+                          <div className="expenses-user-stat">
+                            <div className="skeleton-text skeleton-stat-label"></div>
+                            <div className="skeleton-text skeleton-stat-value"></div>
+                          </div>
+                          <div className="expenses-user-stat">
+                            <div className="skeleton-text skeleton-stat-label"></div>
+                            <div className="skeleton-text skeleton-stat-value"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : expensesPerUser?.users?.length > 0 ? (
+                <div className="expenses-users-section">
+                  <div className="expenses-users-header">
+                    <h3 className="expenses-users-title">User Breakdown</h3>
+                    <div className="expenses-view-controls">
+                      <select
+                        className="expenses-sort-selector"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                      >
+                        <option value="expenses">Sort by Expenses</option>
+                        <option value="interactions">Sort by Interactions</option>
+                      </select>
+                      <div className="expenses-view-toggle">
+                        <button
+                          className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+                          onClick={() => setViewMode('cards')}
+                          title="Card View"
+                        >
+                          <FaTh />
+                        </button>
+                        <button
+                          className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                          onClick={() => setViewMode('list')}
+                          title="List View"
+                        >
+                          <FaList />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {viewMode === 'cards' ? (
+                    <div className="expenses-users-grid">
+                      {[...expensesPerUser.users]
+                        .sort((a, b) => {
+                          if (sortBy === 'expenses') {
+                            return b.total_expenses - a.total_expenses
+                          } else {
+                            return b.total_interactions - a.total_interactions
+                          }
+                        })
+                        .map((userExpense, index) => (
+                          <div key={userExpense.user_id} className="expenses-user-card">
+                            <div className="expenses-user-card-header">
+                              <div className="expenses-user-rank">#{index + 1}</div>
+                              <div className="expenses-user-info">
+                                <div className="expenses-user-name">{userExpense.username}</div>
+                                <div className="expenses-user-email">{userExpense.email}</div>
+                              </div>
+                            </div>
+                            <div className="expenses-user-stats">
+                              <div className="expenses-user-stat">
+                                <span className="expenses-user-stat-label">Interactions</span>
+                                <span className="expenses-user-stat-value">{userExpense.total_interactions}</span>
+                              </div>
+                              <div className="expenses-user-stat highlight">
+                                <span className="expenses-user-stat-label">Expenses</span>
+                                <span className="expenses-user-stat-value expense">${userExpense.total_expenses.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="expenses-users-list">
+                      <table className="expenses-list-table">
+                        <thead>
+                          <tr>
+                            <th>Rank</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Interactions</th>
+                            <th>Expenses</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...expensesPerUser.users]
+                            .sort((a, b) => {
+                              if (sortBy === 'expenses') {
+                                return b.total_expenses - a.total_expenses
+                              } else {
+                                return b.total_interactions - a.total_interactions
+                              }
+                            })
+                            .map((userExpense, index) => (
+                              <tr key={userExpense.user_id} className="expenses-list-row">
+                                <td className="expenses-list-rank">#{index + 1}</td>
+                                <td className="expenses-list-username">{userExpense.username}</td>
+                                <td className="expenses-list-email">{userExpense.email}</td>
+                                <td className="expenses-list-interactions">{userExpense.total_interactions}</td>
+                                <td className="expenses-list-expense">${userExpense.total_expenses.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="expenses-empty">
+                  <div className="expenses-empty-icon">📭</div>
+                  <p>No expenses data available for this period</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

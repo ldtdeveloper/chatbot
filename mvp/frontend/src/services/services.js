@@ -169,6 +169,10 @@ export const dashboardService = {
     console.log(response.data)
     return response.data
   },
+  getExpensesPerUser: async (days = '30d') => {
+    const response = await api.get('/api/dashboard/expenses-per-user', { params: { days } })
+    return response.data
+  },
 }
 
 export const integrationConfigService = {
