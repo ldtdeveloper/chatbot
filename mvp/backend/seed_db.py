@@ -171,7 +171,8 @@ def seed_database():
                 username="superadmin",
                 hashed_password=get_password_hash("123456"),
                 role=UserRole.SUPERADMIN,
-                is_active=True
+                is_active=True,
+                password_set = True
             )
             db.add(superadmin)
             db.commit()
