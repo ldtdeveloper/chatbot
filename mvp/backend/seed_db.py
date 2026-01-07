@@ -6,11 +6,92 @@ Run this script manually after project setup:
     python3 seed_db.py
 """
 import sys
-from sqlalchemy import text
+from sqlalchemy import text, create_engine
+from urllib.parse import urlparse
 from app.database import SessionLocal, engine, Base
 from app.models.user import User, UserRole
 from app.models.agent import AgentType, NoiseReductionMode
 from app.utils.auth import get_password_hash
+
+def create_database_if_not_exists():
+    """Create the database if it doesn't exist. Returns True if database exists or was created, False otherwise."""
+    from app.config import settings
+    
+    db_url = settings.database_url
+    is_postgres = ('postgresql' in db_url or 'postgres' in db_url) and not db_url.startswith('sqlite://')
+    
+    if not is_postgres:
+        # SQLite doesn't need database creation
+        return True
+    
+    # Parse the database URL to extract components
+    # Handle both postgresql:// and postgresql+psycopg2:// formats
+    clean_url = db_url.replace('postgresql+psycopg2://', 'postgresql://')
+    parsed = urlparse(clean_url)
+    db_name = parsed.path.lstrip('/')
+    db_user = parsed.username
+    db_password = parsed.password
+    db_host = parsed.hostname or 'localhost'
+    db_port = parsed.port or 5432
+    
+    if not db_name:
+        print("⚠️ No database name found in DATABASE_URL")
+        return False
+    
+    # Connect to default postgres database to create the target database
+    default_db_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/postgres"
+    
+    print(f"\n🔍 Checking if database '{db_name}' exists...")
+    default_engine = create_engine(default_db_url, isolation_level="AUTOCOMMIT")
+    
+    try:
+        with default_engine.connect() as conn:
+            # Check if database exists (using parameterized query for safety)
+            check_db = text("SELECT 1 FROM pg_database WHERE datname = :db_name")
+            result = conn.execute(check_db, {"db_name": db_name})
+            db_exists = result.fetchone() is not None
+            
+            if not db_exists:
+                print(f"   Database '{db_name}' does not exist. Creating...")
+                try:
+                    # Escape database name properly for PostgreSQL
+                    # PostgreSQL identifiers need to be quoted if they contain special characters
+                    escaped_db_name = db_name.replace('"', '""')  # Escape double quotes
+                    create_db = text(f'CREATE DATABASE "{escaped_db_name}"')
+                    conn.execute(create_db)
+                    print(f"✅ Database '{db_name}' created successfully!")
+                    return True
+                except Exception as create_error:
+                    error_str = str(create_error)
+                    if "permission denied" in error_str.lower() or "insufficientprivilege" in error_str.lower():
+                        print(f"\n❌ Permission denied: User '{db_user}' does not have permission to create databases.")
+                        print(f"\n📋 Please create the database manually as a PostgreSQL superuser:")
+                        print(f"   Option 1: Create the database directly")
+                        print(f"   sudo -u postgres psql -c \"CREATE DATABASE {db_name};\"")
+                        print(f"\n   Option 2: Grant CREATEDB privilege to the user")
+                        print(f"   sudo -u postgres psql -c \"ALTER USER {db_user} CREATEDB;\"")
+                        print(f"\n   Option 3: Connect as postgres user and create:")
+                        print(f"   psql -U postgres -c \"CREATE DATABASE {db_name};\"")
+                        print(f"\n❌ Cannot continue without the database. Exiting...")
+                        return False
+                    else:
+                        # Re-raise other errors
+                        raise
+            else:
+                print(f"✅ Database '{db_name}' already exists")
+                return True
+    except Exception as e:
+        error_str = str(e)
+        if "permission denied" in error_str.lower() or "insufficientprivilege" in error_str.lower():
+            print(f"\n❌ Permission denied: User '{db_user}' does not have permission to check databases.")
+            print(f"❌ Please ensure the database '{db_name}' exists before running this script.")
+            print(f"❌ Cannot continue without database access. Exiting...")
+            return False
+        else:
+            print(f"❌ Error checking/creating database: {e}")
+            raise
+    finally:
+        default_engine.dispose()
 
 def create_enum_types():
     """Create PostgreSQL enum types if they don't exist"""
@@ -131,7 +212,13 @@ def seed_database():
     """Create database tables and seed initial data"""
     print("🌱 Starting database seeding...")
     
-    # Step 0: Create enum types for PostgreSQL
+    # Step 0: Create database if it doesn't exist
+    db_ready = create_database_if_not_exists()
+    if not db_ready:
+        print("\n❌ Database setup failed. Please create the database manually and try again.")
+        sys.exit(1)
+    
+    # Step 0.5: Create enum types for PostgreSQL
     create_enum_types()
     
     # Step 1: Create all database tables
