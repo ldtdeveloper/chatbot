@@ -288,3 +288,59 @@ sudo journalctl -u voice-assistant-backend.service -n 50
 - Verify `base` in vite.config.js matches Nginx location path
 - Rebuild frontend after changing base path
 - Check Nginx alias path points to correct dist directory
+
+**PostgreSQL Peer Authentication Error:**
+If you see `FATAL: Peer authentication failed for user "postgres"`, use one of these solutions:
+
+**Solution 1: Use sudo to connect as postgres user**
+```bash
+# For direct psql commands
+sudo -u postgres psql
+
+# For seed_db.py, ensure DATABASE_URL uses password authentication
+# In your .env file, use:
+DATABASE_URL=postgresql+psycopg2://chatbotuser:password@localhost:5432/chatbot
+```
+
+**Solution 2: Configure PostgreSQL for password authentication**
+```bash
+# Edit PostgreSQL configuration
+sudo nano /etc/postgresql/*/main/pg_hba.conf
+
+# Find the line:
+# local   all             postgres                                peer
+
+# Change it to:
+local   all             postgres                                md5
+
+# Or for all local connections:
+local   all             all                                     md5
+
+# Restart PostgreSQL
+sudo systemctl restart postgresql
+```
+
+**Solution 3: Create a database user matching your system user**
+```bash
+# Connect as postgres user
+sudo -u postgres psql
+
+# Create a new user (replace 'your_username' with your actual system username)
+CREATE USER your_username WITH PASSWORD 'your_password';
+ALTER USER your_username CREATEDB;
+\q
+
+# Then use this user in DATABASE_URL
+DATABASE_URL=postgresql+psycopg2://your_username:your_password@localhost:5432/chatbot
+```
+
+**Solution 4: Use connection string with password (Recommended for production)**
+```bash
+# In your .env file, use a connection string with user and password:
+DATABASE_URL=postgresql+psycopg2://chatbotuser:Adgjmptw123@localhost:5432/chatbot
+
+# Make sure the user exists and has permissions:
+sudo -u postgres psql -c "CREATE USER chatbotuser WITH PASSWORD 'Adgjmptw123';"
+sudo -u postgres psql -c "ALTER USER chatbotuser CREATEDB;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE chatbot TO chatbotuser;"
+```
