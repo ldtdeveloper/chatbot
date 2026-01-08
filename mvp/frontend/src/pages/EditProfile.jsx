@@ -4,8 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userService, authService } from "../services/services";
 import { useAuthStore } from "../context/authStore";
 import '../assets/UsersUpdate.css';
-import Toastify from "toastify-js";
-import "toastify-js/src/toastify.css";
+import { showError, showSuccess } from "../utils/toast";
 
 export default function EditProfile() {
   const { userId } = useParams();
@@ -61,34 +60,12 @@ export default function EditProfile() {
           console.error("Failed to refresh user data:", error);
         }
       }
-      Toastify({
-          text: `User updated successfully`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showSuccess(`User updated successfully`)
       if (currentUser.role === 'superadmin') navigate("/users");
     },
     onError: (err) => {
       const errorMessage = err.response?.data?.detail || "Update failed!";
-      Toastify({
-          text: errorMessage,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(errorMessage)
     }
   });
 
@@ -103,18 +80,7 @@ export default function EditProfile() {
     if (formData.password) updateData.password = formData.password;
 
     if (Object.keys(updateData).length === 0) {
-        Toastify({
-          text: `No changes detected`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showSuccess(`No changes detected`)
       return;
     }
 

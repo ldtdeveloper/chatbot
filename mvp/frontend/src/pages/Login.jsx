@@ -2,9 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../context/authStore'
 import { authService, forgotPassword } from '../services/services'
-import Toastify from "toastify-js";
-import "toastify-js/src/toastify.css";
 import '../assets/Login.css'
+import { showError,showSuccess } from '../utils/toast'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -26,33 +25,10 @@ function Login() {
 
       const userInfo = await authService.getMe()
       setAuth(response.access_token, userInfo)
-      Toastify({
-          text: `Login successful`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          },
-      }).showToast();
+      showSuccess(`Login successfully`);
       navigate('/')
     } catch (err) {
-      Toastify({
-          text: `Login failed`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
-      // toast.error(err.response?.data?.detail || 'Login failed')
+      showError(`Login failed`)
     } finally {
       setLoading(false)
     }
@@ -61,18 +37,7 @@ function Login() {
 
  const handleForgotPassword = async () => {
   if (!email) {
-    Toastify({
-          text: `Please enter your email first`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`Please enter your email first`)
     return
   }
 
@@ -81,36 +46,11 @@ function Login() {
 
   try {
     await forgotPassword.forgotPassword({ email })
-
-  
-    // toast.dismiss(toastId)
-    Toastify({
-          text: `Reset Link has been sent to your registered email`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+    showSuccess(`Reset link has been sent to your registered email`)
 
     setTimeout(() => setCooldown(false), 60000)
   } catch (err) {
-    Toastify({
-          text: `Failed to send reset email`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width: "200",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`Failed to send reset email`)
     setCooldown(false)
   } finally {
     setLoading(false)

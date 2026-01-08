@@ -22,8 +22,7 @@ import {
 import { dashboardService } from '../services/services'
 import { FaEye, FaTimes, FaList, FaTh, FaDownload, FaPaperPlane } from 'react-icons/fa'
 import '../assets/Dashboard.css'
-import Toastify from "toastify-js";
-import "toastify-js/src/toastify.css";
+import { showError, showSuccess } from '../utils/toast'
 
 function Dashboard() {
   const [dateRange, setDateRange] = useState('30d')
@@ -39,18 +38,7 @@ function Dashboard() {
   // Export to CSV
   const handleExportCSV = () => {
     if (!expensesPerUser?.users?.length) {
-      Toastify({
-          text: `No data to export`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`No data to export`)
       return
     }
 
@@ -104,31 +92,9 @@ function Dashboard() {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      Toastify({
-          text: `Report exported successfully`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showSuccess(`Report exported successfully`)
     } catch (error) {
-      Toastify({
-          text: `Failed to export report`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`Failed to export report`)
       console.error('Export error:', error)
     } finally {
       setIsExporting(false)
@@ -140,31 +106,9 @@ function Dashboard() {
     setIsSendingEmail(true)
     try {
       const response = await dashboardService.sendExpensesReportEmail(expensesPeriod)
-      Toastify({
-          text: `Report sent to ${user?.email}      `,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width: "250px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showSuccess(`Report sent to ${user?.email}`)
     } catch (error) {
-      Toastify({
-          text: error?.response?.data?.detail || 'Failed to send report',
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width : "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(error?.response?.data?.detail || 'Failed to send report')
       console.error('Send email error:', error)
     } finally {
       setIsSendingEmail(false)

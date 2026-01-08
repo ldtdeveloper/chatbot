@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import { resetPasswordService } from '../services/services'
 import { useSearchParams } from 'react-router-dom';
-import Toastify from "toastify-js";
-import "toastify-js/src/toastify.css";
+import { showError, showSuccess } from '../utils/toast';
 
 function ResetPassword(){
     const [password, setPassword] = useState('')
@@ -14,53 +13,20 @@ function ResetPassword(){
         e.preventDefault()
         setError('')
         if (password !== confirmPassword) {
-            Toastify({
-                text: `Password do not match`,
-                duration: 2000,
-                gravity: "top",
-                position: "center",
-                backgroundColor: "#dc2626",
-                style: {
-                    borderRadius: "10px",
-                    width : "350px",       // set your desired width
-                    textAlign: "left"   // optional, centers the text
-                }
-      }).showToast();
+            showError(`Password do not match`)
             return;
         }
         try {
           const response = await resetPasswordService.resetPassword(token,password)
           console.log(`API called ${response}`)
           if(response?.message == "Password reset successful"){
-                Toastify({
-                    text: `Reset password successfully`,
-                    duration: 2000,
-                    gravity: "top",
-                    position: "center",
-                    backgroundColor: "#16a34a",
-                    style: {
-                        borderRadius: "10px",
-                        width : "350px",       // set your desired width
-                        textAlign: "left"   // optional, centers the text
-                    }
-                }).showToast();
+            showSuccess(`Reset password successfully`)
             setTimeout(() => {
                 window.location.href = '/login';
             }, 1500);
           }
         } catch (err) {
-            Toastify({
-                text: `Failed to reset password`,
-                duration: 2000,
-                gravity: "top",
-                position: "center",
-                backgroundColor: "#dc2626",
-                style: {
-                    borderRadius: "10px",
-                    width : "350px",       // set your desired width
-                    textAlign: "left"   // optional, centers the text
-                }
-            }).showToast();
+          showError(`Failed to reset password`)
           setError(err.response?.data?.detail || 'Failed to reset password')}
       }
 

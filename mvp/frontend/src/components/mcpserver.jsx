@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import '../assets/mcpserver.css';
 import {integrationConfigService} from '../services/services'
 import { IoCloseOutline } from "react-icons/io5";
-import Toastify from "toastify-js";
-import "toastify-js/src/toastify.css";
+import { showSuccess,showError } from '../utils/toast';
 
 
 export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selectedAgent,hubspotformdata,onSuccess }) {
@@ -74,18 +73,7 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
     const agentId = urlParams.get('agent_id');
     
     if (oauthSuccess === 'true' && agentId) {
-      Toastify({
-          text: `HubSpot OAuth connection successful!`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showSuccess("HubSpot OAuth connection successful!");
       // Refresh data to show updated status
       if (onSuccess) {
         onSuccess();
@@ -97,18 +85,7 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (oauthError) {
-      Toastify({
-          text: `Oauth error : ${oauthError}`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`Oauth error : ${oauthError}`);
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -132,35 +109,13 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
   // Handle HubSpot OAuth connection
   const handleConnectHubSpot = async () => {
     if (!selectedAgent?.id) {
-      Toastify({
-          text: `No agent selected`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`No agent selected`)
       return;
     }
 
     // Validate that client_id and client_secret are provided
     if (!formData.client_id || !formData.client_secret) {
-      Toastify({
-          text: `Please provide HubSpot Client ID and Client Secret before connecting`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`Please provide HubSpot Client ID and Client Secret before connecting`)
       return;
     }
 
@@ -179,31 +134,9 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
         payload.provider = "hubspot";
         await integrationConfigService.create(payload);
       }
-      Toastify({
-          text: `HubSpot credentials saved`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showSuccess(`Hubspot credentials saved`)
     } catch (error) {
-      Toastify({
-          text: `Failed to save credentials: ${error.message || error})`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`Failed to save credentials: ${error.message || error})`)
       return;
     }
 
@@ -218,49 +151,16 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
       
       // Note: After OAuth callback, user will be redirected back
       // The callback endpoint will save the token automatically
-      Toastify({
-          text: `Redirecting to hubspot for authorization`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showSuccess(`Redirecting to hubspot for authorization`)
     } catch (error) {
       setIsConnecting(false);
-      Toastify({
-          text: `Failed to get OAuth URL: ${error.message || error})`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`Failed to get OAuth URL: ${error.message || error})`);
     }
   };
 
   const handleDisconnectHubSpot = async () => {
     if (!selectedAgent?.id) {
-      Toastify({
-          text: `"No agent selected"`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`No agent selected`);
       return;
     }
 
@@ -271,18 +171,7 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
     setIsConnecting(true);
     try {
       await integrationConfigService.disconnectHubSpotOAuth(selectedAgent.id);
-      Toastify({
-          text: `HubSpot OAuth disconnected successfully`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showSuccess(`Hubspot OAuth disconnected successfully`)
       setOauthStatus('not_connected');
       
       // Refresh data to show updated status
@@ -296,18 +185,7 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
       }, 500);
     } catch (error) {
       setIsConnecting(false);
-      Toastify({
-          text: `Failed to disconnect OAuth : ${error.message || error}`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`Failed to disconnect OAuth ${error.message || error}`);
     } finally {
       setIsConnecting(false);
     }
@@ -317,18 +195,7 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
     e.preventDefault();
     try{
       if (!selectedAgent || !selectedAgent.id) {
-        Toastify({
-          text: `No agent selected`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showError(`No agent selected`);
         return;
       }
       
@@ -351,18 +218,7 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
       }
       
       console.log(response.success)
-      Toastify({
-          text: `Configuration saved successfully.`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#16a34a",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();
+      showSuccess(`Configuration saved successfully`)
       setShowHubSpotForm(false);
       setCheckedLocal(true);
       // Refetch data to get updated configId and data
@@ -372,18 +228,8 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
     } catch (error) {
         setShowHubSpotForm(false);
         setCheckedLocal(false);
-        Toastify({
-          text: `Something went wrong ${error.message || error}`,
-          duration: 2000,
-          gravity: "top",
-          position: "center",
-          backgroundColor: "#dc2626",
-          style: {
-              borderRadius: "10px",
-              width: "350px",       // set your desired width
-              textAlign: "left"   // optional, centers the text
-          }
-      }).showToast();    }
+        showError(`Something went wrong ${error.message || error}`);
+       }
   };
 
   const handleCancel = () => {
