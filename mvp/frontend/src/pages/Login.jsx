@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../context/authStore'
 import { authService, forgotPassword } from '../services/services'
-import { toast } from 'sonner'
+import Toastify from "toastify-js";
+import "toastify-js/src/toastify.css";
 import '../assets/Login.css'
 
 function Login() {
@@ -25,11 +26,33 @@ function Login() {
 
       const userInfo = await authService.getMe()
       setAuth(response.access_token, userInfo)
-
-      toast.success('Login successful')
+      Toastify({
+          text: `Login successful`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#16a34a",
+          style: {
+              borderRadius: "10px",
+              width : "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          },
+      }).showToast();
       navigate('/')
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Login failed')
+      Toastify({
+          text: `Login failed`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width : "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
+      // toast.error(err.response?.data?.detail || 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -38,31 +61,56 @@ function Login() {
 
  const handleForgotPassword = async () => {
   if (!email) {
-    toast.error('Please enter your email first')
+    Toastify({
+          text: `Please enter your email first`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width : "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
     return
   }
 
   setLoading(true)
   setCooldown(true)
 
- 
-  const toastId = toast.loading('Sending reset email...')
-
   try {
     await forgotPassword.forgotPassword({ email })
 
   
-    toast.dismiss(toastId)
-
-    toast.success(
-      'Reset link has been sent. Please wait 1–2 minutes.'
-    )
+    // toast.dismiss(toastId)
+    Toastify({
+          text: `Reset Link has been sent to your registered email`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#16a34a",
+          style: {
+              borderRadius: "10px",
+              width : "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
 
     setTimeout(() => setCooldown(false), 60000)
   } catch (err) {
-    toast.dismiss(toastId)
-
-    toast.error(err.response?.data?.detail || 'Failed to send reset email')
+    Toastify({
+          text: `Failed to send reset email`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width: "200",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
     setCooldown(false)
   } finally {
     setLoading(false)

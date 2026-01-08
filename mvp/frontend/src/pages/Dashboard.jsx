@@ -20,9 +20,10 @@ import {
   ResponsiveContainer
 } from 'recharts'
 import { dashboardService } from '../services/services'
-import { toast } from 'sonner'
 import { FaEye, FaTimes, FaList, FaTh, FaDownload, FaPaperPlane } from 'react-icons/fa'
 import '../assets/Dashboard.css'
+import Toastify from "toastify-js";
+import "toastify-js/src/toastify.css";
 
 function Dashboard() {
   const [dateRange, setDateRange] = useState('30d')
@@ -38,7 +39,18 @@ function Dashboard() {
   // Export to CSV
   const handleExportCSV = () => {
     if (!expensesPerUser?.users?.length) {
-      toast.error('No data to export')
+      Toastify({
+          text: `No data to export`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width : "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
       return
     }
 
@@ -92,10 +104,31 @@ function Dashboard() {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-
-      toast.success('Report exported successfully')
+      Toastify({
+          text: `Report exported successfully`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#16a34a",
+          style: {
+              borderRadius: "10px",
+              width : "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
     } catch (error) {
-      toast.error('Failed to export report')
+      Toastify({
+          text: `Failed to export report`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width : "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
       console.error('Export error:', error)
     } finally {
       setIsExporting(false)
@@ -107,9 +140,31 @@ function Dashboard() {
     setIsSendingEmail(true)
     try {
       const response = await dashboardService.sendExpensesReportEmail(expensesPeriod)
-      toast.success(`Report sent to ${user?.email}`)
+      Toastify({
+          text: `Report sent to ${user?.email}      `,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#16a34a",
+          style: {
+              borderRadius: "10px",
+              width: "250px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
     } catch (error) {
-      toast.error(error?.response?.data?.detail || 'Failed to send report')
+      Toastify({
+          text: error?.response?.data?.detail || 'Failed to send report',
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width : "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
       console.error('Send email error:', error)
     } finally {
       setIsSendingEmail(false)

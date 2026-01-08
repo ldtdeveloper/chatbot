@@ -6,7 +6,8 @@ import Tooltip from "@mui/material/Tooltip";
 import { useState,useEffect,useRef } from 'react'
 import HubSpotForm from '../components/mcpserver'
 import {integrationConfigService} from '../services/services'
-import { toast } from "sonner";
+import Toastify from "toastify-js";
+import "toastify-js/src/toastify.css";
 
 export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAgent}) {
     const [checked, setCheckedLocal] = useState(false);
@@ -113,7 +114,18 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
       }
       catch(error){
         console.error("Error opening HubSpot form:", error);
-        toast.error("Failed to load configuration data");
+        Toastify({
+          text: `Failed to load configuration data`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
         // Still open form even if fetch fails, but with existing data if available
         setShowHubSpotForm(true);
       }
@@ -135,7 +147,18 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
     
     try{
       if (!selectedAgent || !selectedAgent.id) {
-        toast.error("No agent selected");
+        Toastify({
+          text: `No agent selected`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
         return;
       }
       
@@ -154,7 +177,18 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
           const isActive = response?.is_active ?? response?.data?.is_active ?? newCheckedState;
           setCheckedLocal(Boolean(isActive));
           // Don't open/close form, just update toggle state
-          toast.success(newCheckedState ? "Integration activated" : "Integration deactivated");
+          Toastify({
+          text: newCheckedState ? "Integration activated" : "Integration deactivated",
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#16a34a",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
       }
       else{
         // No data exists: Open form to create new configuration
@@ -164,7 +198,18 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
     catch(error){
         // Revert the optimistic update on error
         setCheckedLocal(previousCheckedState);
-        toast.error("Something went wrong while updating the integration: " + (error.message || error));
+        Toastify({
+          text: `Something went wrong while updating the integration: ${error.message || error}`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
       }
     }
 

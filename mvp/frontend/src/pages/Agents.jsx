@@ -6,7 +6,8 @@ import Switch from '@mui/material/Switch';
 import { MdOutlineInfo } from "react-icons/md";
 import Tooltip from "@mui/material/Tooltip";
 import AppIconsCard from '../components/mcpservercard.jsx';
-import { toast } from "sonner";
+import Toastify from "toastify-js";
+import "toastify-js/src/toastify.css";
 
 function Agents() {
   console.log("compnoent re renderd ----------------")
@@ -104,10 +105,32 @@ function Agents() {
         behavior: "smooth",
       });
         }, 200);
-        toast.success("MCP server enabled")
+        Toastify({
+          text: `MCP server enabled`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#16a34a",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
       }
       catch(error){
-        toast.error("Something went wrong while enabling the MCP server.");
+        Toastify({
+          text: `Something went wrong while enabling the MCP server`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
       }
     }
     else{
@@ -134,9 +157,31 @@ function Agents() {
         setSelectedAgent(null);
         setSelectedAgentForWidget(null);
         setShowWidgetModal(false);
-        toast.success("MCP server disabled")
+        Toastify({
+          text: "MCP server disabled",
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#16a34a",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
         } catch(error){
-          toast.error("Something went wrong while disabling the MCP server.");
+          Toastify({
+          text: `Something went wrong while disabling the MCP server`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
         }
       }
   }
@@ -238,6 +283,18 @@ function Agents() {
       queryClient.invalidateQueries(['agents'])
       setShowAddForm(false)
       handleCancelEdit()
+      Toastify({
+          text: `Agent created successfully`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#16a34a",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
     },
   })
 
@@ -258,7 +315,33 @@ function Agents() {
       setShowEditModal(false)
       setSelectedAgent(null)
       handleCancelEdit()
+      Toastify({
+          text: `Agent updated successfully`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#16a34a",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
     },
+    onError: (error) =>{
+        Toastify({
+          text: error,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#dc2626",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
+    }
   })
 
   ///creating InstructionArray
@@ -272,6 +355,18 @@ function Agents() {
     onSuccess: () => {
       queryClient.invalidateQueries(['agents'])
       setSelectedAgent(null)
+      Toastify({
+          text: `Agent deleted successfully`,
+          duration: 2000,
+          gravity: "top",
+          position: "center",
+          backgroundColor: "#16a34a",
+          style: {
+              borderRadius: "10px",
+              width: "350px",       // set your desired width
+              textAlign: "left"   // optional, centers the text
+          }
+      }).showToast();
     },
   })
   function convertJsonPrompt(data) {
