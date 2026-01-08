@@ -6,7 +6,6 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
-
 from app.models.user import User
 from app.models.openai_key import OpenAIKey
 from app.models.agent import Agent
@@ -398,6 +397,4 @@ class ReportService:
                 ReportJob.status == status
             ).count()
             stats[status.value] = count
-        
         return stats
-

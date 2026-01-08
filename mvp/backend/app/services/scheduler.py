@@ -11,7 +11,9 @@ OPTIMIZED FOR 100K+ USERS:
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
+from app.models.report import ReportJob
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 
@@ -19,6 +21,7 @@ from app.database import SessionLocal
 from app.services.report_service import ReportService
 from app.services.email_service import EmailService
 from app.models.report import ReportFrequency, JobStatus
+from app.models.user import User  
 
 
 # ==================== SCALABILITY CONFIG ====================
@@ -70,6 +73,15 @@ class ReportScheduler:
             replace_existing=True
         )
         
+        # NEW DEMO JOB: Every Monday at 9:00 AM UTC - create jobs for ALL users (no preference check)
+        self.scheduler.add_job(
+            func=self.create_monday_reports_for_all,
+            trigger=CronTrigger(day_of_week='mon', hour=9, minute=0),
+            id='monday_all_users_demo',
+            name='Demo: Monday reports for ALL users',
+            replace_existing=True
+        )
+        
         # Process pending jobs - Every 1 minute (optimized)
         self.scheduler.add_job(
             func=self.process_pending_jobs,
@@ -90,7 +102,7 @@ class ReportScheduler:
         
         self.scheduler.start()
         self.is_running = True
-        print(f"[Scheduler] Started - Optimized for 100k+ users")
+        print(f"[Scheduler] Started - Optimized for 100k+ users + Monday demo for ALL users")
         print(f"[Scheduler] Config: batch={BATCH_SIZE}, interval={PROCESS_INTERVAL}min, workers={MAX_WORKERS}")
     
     def stop(self):
@@ -133,6 +145,39 @@ class ReportScheduler:
         finally:
             db.close()
     
+    def create_monday_reports_for_all(self):
+     """create monday jobs"""
+     print(f"[Monday Demo] Creating reports for all users at {datetime.now(timezone.utc)}")
+     db = SessionLocal()
+     try:
+         from app.models.user import User
+         all_users = db.query(User).all()
+        
+         now = datetime.now(timezone.utc)
+        
+         period_start = now - timedelta(days=now.weekday())  
+         period_end = period_start + timedelta(days=6)       
+        
+         jobs_created = 0
+         for user in all_users:
+            job = ReportJob(
+                user_id=user.id,
+                report_type=ReportFrequency.WEEKLY,
+                status=JobStatus.PENDING,
+                scheduled_at=now,
+                period_start=period_start,
+                period_end=period_end
+            )
+            db.add(job)
+            jobs_created += 1
+        
+         db.commit()
+         print(f"[Monday Demo] Created {jobs_created} report jobs for {len(all_users)} users")
+     except Exception as e:
+         print(f"[Monday Demo] Error: {e}")
+         db.rollback()
+     finally:
+         db.close()
     def _process_single_job(self, job_id: int) -> tuple:
         """Process a single job in a worker thread"""
         db = SessionLocal()

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime, timezone
 import json
-
+from app.services.scheduler import scheduler
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User, UserRole
@@ -368,3 +368,17 @@ async def get_scheduler_info(
         "jobs": scheduler.get_jobs_info()
     }
 
+
+@router.post("/admin/demo-trigger-now")
+
+async def demo_trigger_reports_now(current_user: User = Depends(get_current_user)):
+    """
+    Demo
+    """
+    if current_user.role != UserRole.SUPERADMIN:
+        raise HTTPException(status_code=403)
+    
+    scheduler.create_monday_reports_for_all()
+
+    
+    return {"message": "for users."}

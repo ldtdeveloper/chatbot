@@ -42,6 +42,7 @@ function Layout() {
           {user?.role === 'default' && <Link to="/agents">Agents</Link>}
           {/* <Link to="/agents">Agents</Link> */}
           {/* {user?.role === 'default' && <Link to="/widget-generator">Widget</Link>} */}
+          <Link to="/reports"> Report Settings</Link>
 
           <div className="navbar-user" ref={dropdownRef}>
             <button 

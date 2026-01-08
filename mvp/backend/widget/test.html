@@ -50,6 +50,7 @@
 <!-- Voice Assistant Widget: e -->
 <!-- Voice Assistant Widget: fruit -->
 <!-- Voice Assistant Widget: fruit -->
+<!-- Voice Assistant Widget: mango -->
 <script>
 (function() {
     // API base URL for widget backend connection
@@ -58,9 +59,9 @@
     // Create and load widget script-
     const script = document.createElement('script');
     script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
-    script.setAttribute('data-agent-id', '10');
+    script.setAttribute('data-agent-id', '1');
     script.setAttribute('data-api-url', apiBaseUrl);
-    script.setAttribute('data-agent-name', 'fruit');
+    script.setAttribute('data-agent-name', 'mango');
     script.async = true;
     
     document.head.appendChild(script);

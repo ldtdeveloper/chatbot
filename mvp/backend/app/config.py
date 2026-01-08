@@ -39,9 +39,10 @@ def get_env_file():
 class Settings(BaseSettings):
     # Environment
     app_env: str = os.getenv("APP_ENV", "LOCAL").upper()
+    frontend_url: str = "http://localhost:5173"
     
     # Database
-    database_url: str = "sqlite:///./chatbot.db"  # Can be overridden by DATABASE_URL env var
+    database_url: str = "postgresql+psycopg2://postgres:rachit%402003@localhost:5432/voice_assistant"  # Can be overridden by DATABASE_URL env var
     
     # Security
     secret_key: str = "your-secret-key-change-in-production"

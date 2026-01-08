@@ -20,9 +20,12 @@ class EmailService:
         self.smtp_password = settings.smtp_password
         self.from_email = settings.from_email
         self.from_name = settings.from_name
+        self.frontend_url = settings.frontend_url
     
     def generate_report_html(self, report_data: Dict[str, Any]) -> str:
         """Generate beautiful HTML email from report data"""
+        dashboard_url = f"{self.frontend_url}/dashboard"
+        unsubscribe_url = f"{self.frontend_url}/reports/unsubscribe"
         user = report_data['user']
         summary = report_data['summary']
         period = report_data['report_period']
@@ -105,8 +108,8 @@ class EmailService:
                     </td>
                     <td style="width:10px;"></td>
                     <td style="background:#f8fafc;border-radius:8px;padding:15px;width:50%;border-left:3px solid #ec4899;">
-                        <p style="margin:0;color:#64748b;font-size:11px;">AGENTS / KEYS</p>
-                        <p style="margin:5px 0;font-size:24px;font-weight:bold;color:#1e293b;">{summary['total_agents']} / {summary['active_keys']}</p>
+                        <p style="margin:0;color:#64748b;font-size:11px;">AGENTS</p>
+                        <p style="margin:5px 0;font-size:24px;font-weight:bold;color:#1e293b;">{summary['total_agents']}</p>
                     </td>
                 </tr>
             </table>
@@ -117,31 +120,17 @@ class EmailService:
                 {agents_html if agents_html else "<p style='color:#64748b;'>No activity</p>"}
             </div>
             ''' if top_agents else ''}
-            
-            <h3 style="color:#1e293b;font-size:14px;margin:25px 0 10px;">API Keys</h3>
-            <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;">
-                <thead>
-                    <tr style="background:#f8fafc;">
-                        <th style="padding:10px;text-align:left;font-size:11px;color:#64748b;">Key</th>
-                        <th style="padding:10px;text-align:center;font-size:11px;color:#64748b;">Status</th>
-                        <th style="padding:10px;text-align:center;font-size:11px;color:#64748b;">Calls</th>
-                        <th style="padding:10px;text-align:center;font-size:11px;color:#64748b;">Cost</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {keys_html if keys_html else "<tr><td colspan='4' style='padding:15px;text-align:center;color:#64748b;'>No keys</td></tr>"}
-                </tbody>
-            </table>
-            
+          
             <div style="text-align:center;margin:25px 0 15px;">
-                <a href="#" style="display:inline-block;background:#6366f1;color:white;text-decoration:none;padding:12px 24px;border-radius:6px;font-size:13px;">
+             
+                <a href="{dashboard_url}" style="display:inline-block;background:#6366f1;color:white;text-decoration:none;padding:12px 24px;border-radius:6px;font-size:13px;">
                     View Dashboard
                 </a>
             </div>
             
             <div style="border-top:1px solid #e2e8f0;padding-top:15px;margin-top:15px;">
                 <p style="margin:0;color:#94a3b8;font-size:11px;text-align:center;">
-                    Automated {frequency.lower()} report | <a href="#" style="color:#6366f1;">Unsubscribe</a>
+                    Automated {frequency.lower()} report | <a href="{unsubscribe_url}" style="color:#6366f1;">Unsubscribe</a>
                 </p>
             </div>
         </div>
@@ -190,6 +179,7 @@ class EmailService:
         frequency = report_data['report_period']['frequency'].title()
         
         subject = f"Your {frequency} Voice Assistant Report"
+        print(report_data)
         html_content = self.generate_report_html(report_data)
         
         return self.send_email(to_email=user['email'], subject=subject, html_content=html_content)

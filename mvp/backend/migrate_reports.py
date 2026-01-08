@@ -5,6 +5,8 @@ Run this script to set up UserReportPreference and ReportJob tables
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, DateTime, Text, Enum, ForeignKey
 from sqlalchemy.sql import func
 import enum
+from sqlalchemy import text  # lowercase!
+
 from app.config import settings
 
 # Create engine
@@ -73,7 +75,8 @@ def create_tables():
     
     # Verify
     with engine.connect() as conn:
-        result = conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name IN ('user_report_preferences', 'report_jobs')")
+        result = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_name IN ('user_report_preferences', 'report_jobs')"))
+         
         tables = [row[0] for row in result.fetchall()]
         print(f"Created tables: {tables}")
 

@@ -7,6 +7,7 @@ from sqlalchemy import case
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.payment_token import PaymentToken
+from app.models.report import UserReportPreference,ReportFrequency
 from app.models.subscription import Subscription, PaymentStatus
 from app.schemas import UserCreate, UserLogin, UserResponse, Token, UserRegisterRequest, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail
 from app.utils.auth import verify_password, get_password_hash, create_access_token,decode_access_token

@@ -273,3 +273,34 @@ export const resetPasswordService = {
     return response.data
   }
 }
+export const reportService = {
+  getPreferences: async () => {
+    const response = await api.get('/api/reports/preferences')
+    return response.data
+  },
+  
+  updatePreferences: async (data) => {
+    const response = await api.put('/api/reports/preferences', data)
+    return response.data
+  },
+  
+  unsubscribe: async () => {
+    const response = await api.post('/api/reports/unsubscribe')
+    return response.data
+  },
+  
+  previewReport: async (frequency = 'weekly') => {
+    const response = await api.get(`/api/reports/preview?frequency=${frequency}`)
+    return response.data
+  },
+  
+  sendTestReport: async (frequency = 'weekly') => {
+    const response = await api.post(`/api/reports/send-test?frequency=${frequency}`)
+    return response.data
+  },
+  
+  getHistory: async (limit = 20) => {
+    const response = await api.get(`/api/reports/history?limit=${limit}`)
+    return response.data
+  }
+}
