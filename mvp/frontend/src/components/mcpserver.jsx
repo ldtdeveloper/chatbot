@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import '../assets/mcpserver.css';
+import '../styles/mcpserver.css';
 import {integrationConfigService} from '../services/services'
 import { IoCloseOutline } from "react-icons/io5";
 import { showSuccess,showError } from '../utils/toast';

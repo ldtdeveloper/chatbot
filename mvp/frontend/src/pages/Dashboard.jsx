@@ -21,7 +21,7 @@ import {
 } from 'recharts'
 import { dashboardService } from '../services/services'
 import { FaEye, FaTimes, FaList, FaTh, FaDownload, FaPaperPlane } from 'react-icons/fa'
-import '../assets/Dashboard.css'
+import '../styles/Dashboard.css'
 import { showError, showSuccess } from '../utils/toast'
 
 function Dashboard() {

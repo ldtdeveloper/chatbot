@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { widgetService } from '../services/services'
-import '../assets/WidgetGenerator.css'
+import '../styles/WidgetGenerator.css'
 
 function WidgetGenerator() {
   const [copied, setCopied] = useState(false)

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentService, openAIKeyService } from '../services/services'
-import '../assets/Agents.css'
+import '../styles/Agents.css'
 import Switch from '@mui/material/Switch';
 import { MdOutlineInfo } from "react-icons/md";
 import Tooltip from "@mui/material/Tooltip";
