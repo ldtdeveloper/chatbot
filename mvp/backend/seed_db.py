@@ -196,7 +196,7 @@ def seed_database():
     print("\n🔗 Migrating agents table foreign key constraint...")
     try:
         # Import here to avoid circular dependencies
-        import migrate_agent_foreign_key
+        import chatbot.mvp.backend.app.migrations.migrate_agent_foreign_key as migrate_agent_foreign_key
         migrate_agent_foreign_key.migrate_agent_foreign_key()
     except Exception as e:
         print(f"   ⚠️ Warning: Could not migrate agents foreign key: {e}")

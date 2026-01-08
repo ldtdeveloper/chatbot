@@ -209,16 +209,6 @@ async def setup_password_endpoint(
             detail="Invalid or expired payment token"
         )
     
-    # Check if token expired
-    now = datetime.now(ZoneInfo("UTC"))
-    expires_at = db_token.expires_at.replace(tzinfo=timezone.utc)
-
-    if expires_at < now:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment token has expired"
-        )
-    
     # Get user
     user = db.query(User).filter(User.id == db_token.user_id).first()
     if not user:
