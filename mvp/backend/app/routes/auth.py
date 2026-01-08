@@ -331,7 +331,7 @@ async def forget_password(request: ForgetPasswordRequest,db: Session = Depends(g
         (User.email == request.email)).first()
 
     if not db_user:
-        raise HTTPException(status = status.HTTP_404_NOT_FOUND, detail = "Email not registered")
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail = "Email not registered")
     
     # Generate reset token that expires in 15min
     reset_token = create_access_token(
