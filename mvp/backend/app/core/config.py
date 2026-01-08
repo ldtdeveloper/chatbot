@@ -132,8 +132,11 @@ class Settings(BaseSettings):
             self.host = "127.0.0.1"
             # Override CORS for production subdomains
             self.cors_origins = [
-                "https://chat.ldttechnology.in",
-                "https://chat-api.ldttechnology.in"
+                "https://voicebot-app.ldttechnology.in",
+                "https://voicebot.ldttechnology.in",
+                "https://voicebot-api.ldttechnology.in",
+                "https://ai.ldttechnology.in",
+                "https://vi.ldttechnology.in",
             ]
     
     @property

@@ -2,6 +2,7 @@
 Assistant Configuration model - stores voice, noise reduction, and other settings
 """
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Enum
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
@@ -25,7 +26,8 @@ class AssistantConfig(Base):
     voice = Column(String, default="alloy")  # alloy, echo, fable, onyx, nova, shimmer
     
     # Noise reduction settings
-    noise_reduction_mode = Column(Enum(NoiseReductionMode), default=NoiseReductionMode.NEAR_FIELD)
+    # Use PostgreSQL ENUM type to match the database enum
+    noise_reduction_mode = Column(ENUM(NoiseReductionMode, name='noisereductionmode', create_type=False), default=NoiseReductionMode.NEAR_FIELD)
     noise_reduction_threshold = Column(String, default="0.5")  # VAD threshold
     noise_reduction_prefix_padding_ms = Column(Integer, default=300)
     noise_reduction_silence_duration_ms = Column(Integer, default=500)

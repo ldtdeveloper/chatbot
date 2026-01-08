@@ -26,7 +26,7 @@ const getApiBaseUrl = () => {
     case 'DEV':
       return 'http://localhost:8081' // Should be set in .env file
     case 'PROD':
-      return 'https://chat-api.ldttechnology.in' // Production default
+      return 'https://voicebot-api.ldttechnology.in' // Production default
     default:
       return 'http://localhost:8081'
   }
