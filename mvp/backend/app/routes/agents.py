@@ -47,11 +47,20 @@ async def create_agent(
     noise_reduction = NoiseReductionMode.NEAR_FIELD
     if agent_data.noise_reduction_mode:
         try:
-            noise_reduction = NoiseReductionMode(agent_data.noise_reduction_mode)
-        except ValueError:
+            # Normalize input: handle both enum names (NEAR_FIELD) and values (near_field)
+            mode_input = agent_data.noise_reduction_mode.strip().upper()
+            # Try to find by enum name first (NEAR_FIELD -> near_field)
+            if mode_input == "NEAR_FIELD":
+                noise_reduction = NoiseReductionMode.NEAR_FIELD
+            elif mode_input == "FAR_FIELD":
+                noise_reduction = NoiseReductionMode.FAR_FIELD
+            else:
+                # Try to find by enum value (near_field, far_field)
+                noise_reduction = NoiseReductionMode(agent_data.noise_reduction_mode.lower())
+        except (ValueError, KeyError):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]}"
+                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]} or {[m.name for m in NoiseReductionMode]}"
             )
     
     # Create agent configuration (stored locally only)
@@ -142,11 +151,20 @@ async def update_agent(
         agent.voice = agent_data.voice
     if agent_data.noise_reduction_mode is not None:
         try:
-            agent.noise_reduction_mode = NoiseReductionMode(agent_data.noise_reduction_mode)
-        except ValueError:
+            # Normalize input: handle both enum names (NEAR_FIELD) and values (near_field)
+            mode_input = agent_data.noise_reduction_mode.strip().upper()
+            # Try to find by enum name first (NEAR_FIELD -> near_field)
+            if mode_input == "NEAR_FIELD":
+                agent.noise_reduction_mode = NoiseReductionMode.NEAR_FIELD
+            elif mode_input == "FAR_FIELD":
+                agent.noise_reduction_mode = NoiseReductionMode.FAR_FIELD
+            else:
+                # Try to find by enum value (near_field, far_field)
+                agent.noise_reduction_mode = NoiseReductionMode(agent_data.noise_reduction_mode.lower())
+        except (ValueError, KeyError):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]}"
+                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]} or {[m.name for m in NoiseReductionMode]}"
             )
     if agent_data.noise_reduction_threshold is not None:
         agent.noise_reduction_threshold = agent_data.noise_reduction_threshold

@@ -35,7 +35,8 @@ class Agent(Base):
     voice = Column(String, default="alloy")  # Voice: Alloy, Ash, Ballad, Cedar, Coral, Echo, Marin, Sage, Shimmer, Verse
     
     # Noise reduction settings (for turn_detection in Realtime API)
-    noise_reduction_mode = Column(Enum(NoiseReductionMode), default=NoiseReductionMode.NEAR_FIELD)
+    # Use PostgreSQL ENUM type to match the database enum
+    noise_reduction_mode = Column(ENUM(NoiseReductionMode, name='noisereductionmode', create_type=False), default=NoiseReductionMode.NEAR_FIELD)
     noise_reduction_threshold = Column(String, default="0.5")  # VAD threshold
     noise_reduction_prefix_padding_ms = Column(Integer, default=300)
     noise_reduction_silence_duration_ms = Column(Integer, default=500)
