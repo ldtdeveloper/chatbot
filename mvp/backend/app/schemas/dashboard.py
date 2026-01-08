@@ -1,0 +1,37 @@
+"""
+Pydantic schemas for API requests and responses
+"""
+from pydantic import BaseModel, EmailStr, field_validator
+from typing import Optional, List
+from datetime import datetime
+from app.models.assistant_config import NoiseReductionMode
+
+
+# Dashboard Statistics schemas
+class KeyStatItem(BaseModel):
+    key_id: int
+    key_name: str
+    value: float
+
+class ChartDataPoint(BaseModel):
+    date: str
+    data: dict  # Dynamic keys based on API key names
+
+class DashboardStats(BaseModel):
+    # Summary cards
+    total_interactions: int
+    total_expenses: float
+    total_agents: int
+    active_keys: int
+    
+    # Percentage changes from previous period
+    interactions_change: float
+    expenses_change: float
+    
+    # Chart data
+    interactions_chart: List[dict]  # [{date, key1_count, key2_count, ...}]
+    expenses_chart: List[dict]  # [{date, key1_cost, key2_cost, ...}]
+    agents_per_key: List[dict]  # [{name, value, color}]
+    
+    # Available keys for filter dropdown
+    available_keys: List[dict]  # [{id, name}]

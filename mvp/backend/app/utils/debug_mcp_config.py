@@ -9,7 +9,7 @@ import os
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.database import SessionLocal
+from app.core.database import SessionLocal
 from app.models.agent import Agent
 from app.models.integration_config import IntegrationConfig
 from app.services.integration_config_service import get_integration_config

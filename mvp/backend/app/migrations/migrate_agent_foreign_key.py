@@ -3,8 +3,8 @@ Migration script to update agents table foreign key from openai_keys.id to servi
 """
 import sys
 from sqlalchemy import text
-from app.database import engine
-from app.config import settings
+from app.core.database import engine
+from app.core.config import settings
 
 def migrate_agent_foreign_key():
     """Update agents table foreign key constraint"""

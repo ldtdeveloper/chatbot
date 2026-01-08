@@ -4,7 +4,7 @@ Logs all OpenAI API requests with URL, Headers, and Body
 """
 import json
 import logging
-from app.config import settings
+from app.core.config import settings
 
 # Set up logger
 logger = logging.getLogger("openai_requests")

@@ -5,7 +5,7 @@ Run this script to set up UserReportPreference and ReportJob tables
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, DateTime, Text, Enum, ForeignKey
 from sqlalchemy.sql import func
 import enum
-from app.config import settings
+from app.core.config import settings
 
 # Create engine
 engine = create_engine(settings.database_url)

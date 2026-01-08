@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from datetime import datetime, timezone
-from app.database import get_db
+from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.subscription import Subscription, PaymentStatus
 from app.utils.auth import decode_access_token

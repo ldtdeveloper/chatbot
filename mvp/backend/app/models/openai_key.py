@@ -4,7 +4,7 @@ OpenAI API Key model - stores encrypted API keys per user
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from app.database import Base
+from app.core.database import Base
 
 
 class OpenAIKey(Base):

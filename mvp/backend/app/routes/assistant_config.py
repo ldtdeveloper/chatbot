@@ -4,13 +4,13 @@ Assistant configuration routes (Chatbots)
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from app.database import get_db
+from app.core.database import get_db
 from app.models.user import User
 from app.models.assistant_config import AssistantConfig
-from app.schemas import (
+from app.schemas.assistant_config import (
     AssistantConfigCreate, AssistantConfigUpdate, AssistantConfigResponse
 )
-from app.dependencies import get_current_user
+from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/assistants", tags=["assistants"])
 

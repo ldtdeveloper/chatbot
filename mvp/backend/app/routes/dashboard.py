@@ -3,17 +3,15 @@ Dashboard routes - statistics and analytics endpoints
 """
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, cast, Date
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List
-from app.database import get_db
+from typing import Optional
+from app.core.database import get_db
 from app.models.user import User, UserRole
-from app.models.openai_key import OpenAIKey
 from app.models.service_account_key import ServiceAccountKey
 from app.models.agent import Agent
 from app.models.interaction import Interaction
-from app.schemas import DashboardStats
-from app.dependencies import get_current_user, require_active_subscription
+from app.schemas.dashboard import DashboardStats
+from app.core.dependencies import  require_active_subscription
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 

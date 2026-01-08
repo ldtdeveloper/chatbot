@@ -6,7 +6,7 @@ Adds columns for real OpenAI token-based cost tracking
 Run: python migrate_token_tracking.py
 """
 from sqlalchemy import create_engine, text
-from app.config import settings
+from app.core.config import settings
 
 # Create engine
 engine = create_engine(settings.database_url)

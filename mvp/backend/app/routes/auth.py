@@ -4,21 +4,18 @@ Authentication routes
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import case
-from app.database import get_db
+from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.payment_token import PaymentToken
 from app.models.subscription import Subscription, PaymentStatus
-from app.schemas import UserCreate, UserLogin, UserResponse, Token, UserRegisterRequest, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail
+from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail
+from app.schemas.user import UserCreate,UserRegisterRequest,UserResponse
 from app.utils.auth import verify_password, get_password_hash, create_access_token,decode_access_token
 from app.utils.email_html import generate_email_html
-from app.dependencies import get_current_user
+from app.core.dependencies import get_current_user
 from datetime import timedelta, datetime, timezone
-from app.config import settings
+from app.core.config import settings
 from app.services.email_service import EmailService
-from fastapi.responses import HTMLResponse
-from zoneinfo import ZoneInfo
-from datetime import datetime, timezone
-from datetime import datetime
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 

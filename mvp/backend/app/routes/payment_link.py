@@ -6,13 +6,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
-from app.database import get_db
+from app.core.database import get_db
 from app.models.payment_token import PaymentToken
 from app.models.user import User
 from app.models.subscription import Subscription, PlanType, PaymentStatus
 from app.routes.payments import TEST_MODE, razorpay_client
-from app.routes.create_service_account import create_service_account
-from app.config import settings
+from app.core.config import settings
 from pydantic import BaseModel
 from typing import Optional
 import hmac

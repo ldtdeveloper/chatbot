@@ -10,8 +10,8 @@ Run this script manually after project setup:
 import sys
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
-from app.config import settings
-from app.database import SessionLocal, engine, Base
+from app.core.config import settings
+from app.core.database import SessionLocal, engine, Base
 from app.models.user import User, UserRole
 from app.models.agent import AgentType, NoiseReductionMode
 from app.utils.auth import get_password_hash
@@ -45,7 +45,7 @@ def check_database_connection():
 
 def create_enum_types():
     """Create PostgreSQL enum types if they don't exist"""
-    from app.config import settings
+    from app.core.config import settings
     
     db_url = settings.database_url
     is_postgres = ('postgresql' in db_url or 'postgres' in db_url) and not db_url.startswith('sqlite://')
@@ -83,7 +83,7 @@ def create_enum_types():
 
 def migrate_user_columns():
     """Add missing columns to users table if they don't exist"""
-    from app.config import settings
+    from app.core.config import settings
     
     db_url = settings.database_url
     is_postgres = ('postgresql' in db_url or 'postgres' in db_url) and not db_url.startswith('sqlite://')
@@ -196,7 +196,7 @@ def seed_database():
     print("\n🔗 Migrating agents table foreign key constraint...")
     try:
         # Import here to avoid circular dependencies
-        import chatbot.mvp.backend.app.migrations.migrate_agent_foreign_key as migrate_agent_foreign_key
+        import app.migrations.migrate_agent_foreign_key as migrate_agent_foreign_key
         migrate_agent_foreign_key.migrate_agent_foreign_key()
     except Exception as e:
         print(f"   ⚠️ Warning: Could not migrate agents foreign key: {e}")

@@ -8,8 +8,8 @@ from typing import Optional, List
 from datetime import datetime, timezone
 import json
 
-from app.database import get_db
-from app.dependencies import get_current_user
+from app.core.database import get_db
+from app.core.dependencies import get_current_user
 from app.models.user import User, UserRole
 from app.models.report import (
     UserReportPreference, ReportJob, ReportFrequency, JobStatus
@@ -17,65 +17,10 @@ from app.models.report import (
 from app.services.report_service import ReportService
 from app.services.email_service import EmailService
 from pydantic import BaseModel
+from app.schemas.reports import ReportJobResponse,ReportPreferenceUpdate,ReportPreferenceResponse,ReportPreviewResponse,JobStatsResponse
 
 
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
-
-
-# ==================== Pydantic Schemas ====================
-
-class ReportPreferenceResponse(BaseModel):
-    id: int
-    user_id: int
-    is_subscribed: bool
-    frequency: str
-    report_day: int
-    report_hour: int
-    last_report_sent_at: Optional[str]
-    reports_sent_count: int
-    
-    class Config:
-        from_attributes = True
-
-
-class ReportPreferenceUpdate(BaseModel):
-    is_subscribed: Optional[bool] = None
-    frequency: Optional[str] = None
-    report_day: Optional[int] = None
-    report_hour: Optional[int] = None
-
-
-class ReportJobResponse(BaseModel):
-    id: int
-    user_id: int
-    report_type: str
-    status: str
-    scheduled_at: str
-    completed_at: Optional[str]
-    retry_count: int
-    error_message: Optional[str]
-    
-    class Config:
-        from_attributes = True
-
-
-class ReportPreviewResponse(BaseModel):
-    user: dict
-    report_period: dict
-    summary: dict
-    daily_breakdown: list
-    key_breakdown: list
-    top_agents: list
-    generated_at: str
-
-
-class JobStatsResponse(BaseModel):
-    pending: int
-    processing: int
-    completed: int
-    failed: int
-    cancelled: int
-
 
 # ==================== User Preferences ====================
 

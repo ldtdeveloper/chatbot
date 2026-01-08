@@ -2,7 +2,7 @@
 Migration script to create/recreate the interactions table
 Run this once to set up the interactions table for dashboard analytics
 """
-from app.database import engine, Base
+from app.core.database import engine, Base
 from app.models.interaction import Interaction
 from sqlalchemy import text, inspect
 
