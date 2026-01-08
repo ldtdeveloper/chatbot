@@ -2,7 +2,7 @@
 Agent model for managing Realtime Agent configurations
 Based on OpenAI RealtimeAgent: https://openai.github.io/openai-agents-js/openai/agents-realtime/classes/realtimeagent/
 """
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, Boolean, Enum, TypeDecorator
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -25,7 +25,7 @@ class Agent(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    openai_key_id = Column(Integer, ForeignKey("openai_keys.id"), nullable=False)  # Required API key
+    openai_key_id = Column(Integer, ForeignKey("service_account_key.id"), nullable=False)  # Required API key - references ServiceAccountKey
     agent_type = Column(ENUM(AgentType, name='agenttype', create_type=False), nullable=False, default=AgentType.WEB)  # Agent type: WEB or PHONE
     name = Column(String, nullable=False)
     domain = Column(String, nullable=False)  # TLD domain where widget will be displayed (e.g., example.com)
@@ -35,8 +35,8 @@ class Agent(Base):
     voice = Column(String, default="alloy")  # Voice: Alloy, Ash, Ballad, Cedar, Coral, Echo, Marin, Sage, Shimmer, Verse
     
     # Noise reduction settings (for turn_detection in Realtime API)
-    # Use PostgreSQL ENUM type to match the database enum
-    noise_reduction_mode = Column(ENUM(NoiseReductionMode, name='noisereductionmode', create_type=False), default=NoiseReductionMode.NEAR_FIELD)
+    # Using String type and storing enum values directly to avoid PostgreSQL enum name/value mismatch
+    noise_reduction_mode = Column(String, default=NoiseReductionMode.NEAR_FIELD.value)
     noise_reduction_threshold = Column(String, default="0.5")  # VAD threshold
     noise_reduction_prefix_padding_ms = Column(Integer, default=300)
     noise_reduction_silence_duration_ms = Column(Integer, default=500)

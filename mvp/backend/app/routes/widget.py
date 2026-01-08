@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from app.database import get_db, SessionLocal
 from app.models.user import User
 from app.models.assistant_config import AssistantConfig
-from app.models.openai_key import OpenAIKey
 from app.models.service_account_key import ServiceAccountKey
 from app.models.agent import Agent
 from app.models.interaction import Interaction
@@ -463,8 +462,8 @@ async def widget_websocket(
                 print(f"[Widget WS] Domain validation failed: {request_domain} != {agent.domain}")
                 return
         
-        # Get OpenAI API key
-        api_key_record = db.query(OpenAIKey).filter(
+        # Get OpenAI API key (ServiceAccountKey stores plain text, not encrypted)
+        api_key_record = db.query(ServiceAccountKey).filter(
             ServiceAccountKey.id == agent.openai_key_id,
             ServiceAccountKey.is_active == True
         ).first()
@@ -477,17 +476,8 @@ async def widget_websocket(
             await websocket.close()
             return
         
-        # Decrypt API key
-        try:
-            openai_api_key = decrypt_api_key(api_key_record.encrypted_key)
-        except Exception as e:
-            print(f"[Widget WS] Error decrypting API key: {e}")
-            await websocket.send_json({
-                "type": "error",
-                "error": "Failed to decrypt API key"
-            })
-            await websocket.close()
-            return
+        # ServiceAccountKey stores the key as plain text (not encrypted)
+        openai_api_key = api_key_record.service_account_key
         
         print(f"[Widget WS] Agent '{agent.name}' validated, connecting to OpenAI...")
         
