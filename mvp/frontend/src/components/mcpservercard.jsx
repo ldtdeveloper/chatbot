@@ -7,6 +7,7 @@ import { useState,useEffect,useRef } from 'react'
 import HubSpotForm from '../components/mcpserver'
 import {integrationConfigService} from '../services/services'
 import { showSuccess,showError } from '../utils/toast';
+import hubspotIcon from '../assets/hubspot.svg';
 
 export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAgent}) {
     const [checked, setCheckedLocal] = useState(false);
@@ -182,7 +183,7 @@ export default function AppIconsCard({setShowMcpServerCard,setChecked,selectedAg
         <div className="apps-grid">
           <div className="app-item" onClick={(e) => e.stopPropagation()}>
             <div className="app-icon bg-green" onClick={(e) => e.stopPropagation()}>
-                <img src="/hubspot.svg" alt="icon" style={{ width: "100%", height: "100%", objectFit: "contain", cursor: "pointer" }} onClick={handleClick}/>
+                <img src={hubspotIcon} alt="icon" style={{ width: "100%", height: "100%", objectFit: "contain", cursor: "pointer" }} onClick={handleClick}/>
             </div>
             <Tooltip title="MCP server">
             <Switch

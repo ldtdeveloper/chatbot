@@ -13,6 +13,7 @@ import WidgetGenerator from './pages/WidgetGenerator'
 import { useAuthStore } from './context/authStore'
 import Layout from './components/Layout'
 import ResetPassword from './pages/ResetPassword'
+import { bootstrapAuth } from './auth/bootstrapAuth'
 
 const queryClient = new QueryClient()
 
@@ -25,6 +26,11 @@ function PrivateRoute({ children }) {
       refreshAuth()
     }
   }, [token, refreshAuth])
+    const { setAuth } = useAuthStore()
+
+  useEffect(() => {
+    bootstrapAuth(setAuth)
+  }, [])
   
   return token ? children : <Navigate to="/login" />
 }
