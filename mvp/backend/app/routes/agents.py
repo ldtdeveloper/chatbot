@@ -80,7 +80,7 @@ async def create_agent(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]}"
+                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]} or {[m.name for m in NoiseReductionMode]}"
             )
     
     # Create agent configuration (stored locally only)
@@ -176,7 +176,7 @@ async def update_agent(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]}"
+                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]} or {[m.name for m in NoiseReductionMode]}"
             )
     if agent_data.noise_reduction_threshold is not None:
         agent.noise_reduction_threshold = agent_data.noise_reduction_threshold
