@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
-from app.database import Base
+from app.core.database import Base
 
 
 class NoiseReductionMode(str, enum.Enum):

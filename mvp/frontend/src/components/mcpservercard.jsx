@@ -1,5 +1,5 @@
 import React from 'react';
-import '../assets/mcpservercard.css';
+import '../styles/mcpservercard.css';
 import { IoCloseOutline } from "react-icons/io5";
 import Switch from '@mui/material/Switch';
 import Tooltip from "@mui/material/Tooltip";

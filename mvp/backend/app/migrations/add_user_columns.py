@@ -3,8 +3,8 @@ Migration script to add password_set column and make hashed_password nullable
 """
 import sys
 from sqlalchemy import create_engine, text, inspect
-from app.database import engine, Base
-from app.config import settings
+from app.core.database import engine, Base
+from app.core.config import settings
 
 def add_user_columns():
     """Add password_set column and make hashed_password nullable"""

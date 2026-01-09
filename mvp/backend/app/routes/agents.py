@@ -5,14 +5,14 @@ Based on OpenAI RealtimeAgent: https://openai.github.io/openai-agents-js/openai/
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from app.database import get_db
+from app.core.database import get_db
 from app.models.user import User
 from app.models.agent import Agent, NoiseReductionMode, AgentType
-from app.schemas import (
+from app.schemas.agents import (
     AgentCreate, AgentResponse, AgentUpdate
 )
 
-from app.dependencies import get_current_user
+from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 

@@ -6,7 +6,7 @@ Includes REAL token-based cost tracking from OpenAI API responses
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from app.database import Base
+from app.core.database import Base
 
 
 # OpenAI Realtime API Pricing (gpt-4o-mini-realtime-preview — cheaper tier)

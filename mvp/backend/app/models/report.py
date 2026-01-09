@@ -5,7 +5,7 @@ from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, E
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
-from app.database import Base
+from app.core.database import Base
 
 
 class ReportFrequency(str, enum.Enum):

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../context/authStore'
 import { authService, forgotPassword } from '../services/services'
-import '../assets/Login.css'
+import '../styles/Login.css'
 import { showError,showSuccess } from '../utils/toast'
 
 function Login() {

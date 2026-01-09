@@ -4,17 +4,18 @@ Payment routes for Razorpay integration
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi import BackgroundTasks
-from app.database import get_db
+from app.core.database import get_db
 from app.models.user import User
 from app.models.subscription import Subscription, PlanType, PaymentStatus
-from app.dependencies import get_current_user
+from app.core.dependencies import get_current_user
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timedelta, timezone
-from app.config import settings
-from app.routes.service_test import create_service_account
+from app.core.config import settings
+from app.services.service_account import create_service_account
 import hmac
 import hashlib
+from app.schemas.payment import CreateOrderRequest,PaymentOrderResponse,PaymentVerifyResponse,VerifyPaymentRequest
 
 # Try to import razorpay - make it optional
 try:
@@ -44,33 +45,6 @@ elif settings.is_local or settings.is_dev:
     # Enable test mode in development if Razorpay not configured
     TEST_MODE = True
     print("[Payments] TEST MODE ENABLED - Using mock payment gateway (no real payments)")
-
-
-class CreateOrderRequest(BaseModel):
-    plan: str
-    amount: float  # Amount in USD (e.g., 100 for $100)
-    user_id: int
-
-
-class VerifyPaymentRequest(BaseModel):
-    razorpay_order_id: str
-    razorpay_payment_id: str
-    razorpay_signature: str
-    order_id: int
-
-
-class PaymentOrderResponse(BaseModel):
-    razorpay_key_id: str
-    razorpay_order_id: str
-    amount: float
-    currency: str
-    order_id: int
-
-
-class PaymentVerifyResponse(BaseModel):
-    success: bool
-    message: str
-    subscription_id: Optional[int] = None
 
 
 @router.post("/create-order-from-token", response_model=PaymentOrderResponse)
@@ -470,7 +444,7 @@ async def verify_payment(
     
     try:
         
-        user = db.query(User).filter(User.id == db_token.user_id).first()
+        user = db.query(User).filter(User.id == current_user.id).first()
         result = create_service_account(user=user,db=db)
         print("===== OpenAI SERVICE ACCOUNT CREATED SUCCESSFULLY =====")
         print("Result:", result)

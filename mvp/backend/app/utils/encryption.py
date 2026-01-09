@@ -2,7 +2,7 @@
 Encryption utilities for API keys
 """
 from cryptography.fernet import Fernet
-from app.config import settings
+from app.core.config import settings
 import base64
 import hashlib
 

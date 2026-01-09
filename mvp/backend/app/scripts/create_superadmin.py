@@ -4,7 +4,7 @@ Run this once to initialize the superadmin account
 """
 import sys
 import bcrypt
-from app.database import SessionLocal, engine, Base
+from app.core.database import SessionLocal, engine, Base
 from app.models.user import User, UserRole
 
 # Create tables if they don't exist

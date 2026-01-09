@@ -2,7 +2,7 @@ import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { userService } from '../services/services'
-import '../assets/UserProfile.css'
+import '../styles/UserProfile.css'
 
 function UserProfile() {
   const { userId } = useParams()

@@ -4,7 +4,7 @@ MCP server Configuration model - stores keys and instructions
 from sqlalchemy import Column, Integer, String, DateTime, Text,Boolean,ForeignKey,UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from app.database import Base
+from app.core.database import Base
 
 class IntegrationConfig(Base):
     __tablename__ = "integration_config"

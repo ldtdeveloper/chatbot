@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '../services/services'
-import '../assets/Users.css'
+import '../styles/Users.css'
 
 function Users() {
   const navigate = useNavigate()

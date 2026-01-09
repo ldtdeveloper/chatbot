@@ -1,7 +1,7 @@
 // import React, { useState } from 'react'
 // import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 // import { openAIKeyService } from '../services/services'
-// import '../assets/OpenAIKeys.css'
+// import '../styles/OpenAIKeys.css'
 
 // function OpenAIKeys() {
 //   const queryClient = useQueryClient()
@@ -163,7 +163,7 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { serviceAccountService } from '../services/services' 
-import '../assets/OpenAIKeys.css'
+import '../styles/OpenAIKeys.css'
 
 function OpenAIKeys() {
   const queryClient = useQueryClient()

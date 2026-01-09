@@ -7,8 +7,8 @@ from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from app.config import settings
-from app.database import engine, Base
+from app.core.config import settings
+from app.core.database import engine, Base
 from app.routes import auth, openai_keys, agents, assistant_config, widget, users, dashboard, reports, integration_config, payments
 from app.routes import payment_link
 from sqlalchemy import text

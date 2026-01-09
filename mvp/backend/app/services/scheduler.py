@@ -15,7 +15,7 @@ from typing import Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 
-from app.database import SessionLocal
+from app.core.database import SessionLocal
 from app.services.report_service import ReportService
 from app.services.email_service import EmailService
 from app.models.report import ReportFrequency, JobStatus

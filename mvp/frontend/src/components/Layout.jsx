@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../context/authStore'
-import './Layout.css'
+import '../styles/Layout.css';
 
 function Layout() {
   const { user, logout } = useAuthStore()

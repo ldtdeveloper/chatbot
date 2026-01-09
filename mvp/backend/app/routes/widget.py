@@ -4,17 +4,17 @@ Widget code generation routes and WebSocket handler
 from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, Header
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from app.database import get_db, SessionLocal
+from app.core.database import get_db, SessionLocal
 from app.models.user import User
 from app.models.assistant_config import AssistantConfig
 from app.models.service_account_key import ServiceAccountKey
 from app.models.agent import Agent
 from app.models.interaction import Interaction
-from app.schemas import WidgetCodeResponse
-from app.dependencies import get_current_user
+from app.schemas.widget_code import WidgetCodeResponse
+from app.core.dependencies import get_current_user
 from app.utils.encryption import decrypt_api_key
 from app.utils.openai_logger import log_openai_websocket_connect, log_openai_websocket_message
-from app.config import settings
+from app.core.config import settings
 from pathlib import Path
 import uuid
 import json

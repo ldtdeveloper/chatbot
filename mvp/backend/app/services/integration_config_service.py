@@ -1,4 +1,4 @@
-from app.database import SessionLocal
+from app.core.database import SessionLocal
 from app.models.integration_config import IntegrationConfig
 from app.utils.encryption import decrypt_api_key
 from typing import Optional, Dict

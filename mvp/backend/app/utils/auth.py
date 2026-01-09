@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 import hashlib
-from app.config import settings
+from app.core.config import settings
 
 # Lazy initialization of passlib to avoid startup errors
 _pwd_context = None

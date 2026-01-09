@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { assistantConfigService, agentService, widgetService } from '../services/services'
 import { useAuthStore } from '../context/authStore'
-import '../assets/Assistants.css'
+import '../styles/Assistants.css'
 
 function Assistants() {
   const queryClient = useQueryClient()

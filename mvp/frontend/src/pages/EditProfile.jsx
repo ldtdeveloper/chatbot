@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userService, authService } from "../services/services";
 import { useAuthStore } from "../context/authStore";
-import '../assets/UsersUpdate.css';
+import '../styles/UsersUpdate.css';
 import { showError, showSuccess } from "../utils/toast";
 
 export default function EditProfile() {

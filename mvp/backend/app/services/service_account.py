@@ -5,14 +5,14 @@ Utilities for creating OpenAI service accounts and API keys.
 import httpx
 import time
 import logging
-from app.dependencies import get_current_user
+from app.core.dependencies import get_current_user
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 
 from fastapi import Depends
 from app.models.user import User
 from app.models.service_account_key import ServiceAccountKey
-from app.config import settings
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 

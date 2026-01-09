@@ -5,15 +5,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from app.database import get_db
+from app.core.database import get_db
 from app.models.user import User
 from app.models.integration_config import IntegrationConfig
-from app.schemas import (
+from app.schemas.integration_config import (
     IntegrationConfigCreate, IntegrationConfigResponse, IntegrationConfigUpdate,IntegrationConfigMasked
 )
-from app.dependencies import get_current_user
+from app.core.dependencies import get_current_user
 from app.utils.encryption import encrypt_api_key, decrypt_api_key
-from app.config import settings
+from app.core.config import settings
 from datetime import datetime, timezone, timedelta
 import requests
 import urllib.parse
