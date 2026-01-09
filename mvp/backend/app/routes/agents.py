@@ -35,7 +35,7 @@ async def create_agent(
     api_key = db.query(ServiceAccountKey).filter(
         ServiceAccountKey.id == agent_data.openai_key_id,
         ServiceAccountKey.user_id == current_user.id,
-        ServiceAccountKey.is_active == True
+        ServiceAccountKey.is_active
     ).first()
     
     logger.info(f"API key lookup: openai_key_id={agent_data.openai_key_id}, user_id={current_user.id}, found={api_key is not None}")
@@ -56,7 +56,7 @@ async def create_agent(
         # Get available keys for better error message
         available_keys = db.query(ServiceAccountKey).filter(
             ServiceAccountKey.user_id == current_user.id,
-            ServiceAccountKey.is_active == True
+            ServiceAccountKey.is_active
         ).all()
         
         available_key_ids = [str(k.id) for k in available_keys]

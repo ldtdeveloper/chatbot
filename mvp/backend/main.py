@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routes import auth, openai_keys, agents, assistant_config, widget, users, dashboard, reports, integration_config, payments
+from app.routes import auth, service_account,agents, assistant_config, widget, users, dashboard, reports, integration_config, payments
 from app.routes import payment_link
 from sqlalchemy import text
 
@@ -304,7 +304,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 # Include routers
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(openai_keys.router)
+app.include_router(service_account.router)
 app.include_router(agents.router)
 app.include_router(assistant_config.router)  # Now handles multiple assistants
 app.include_router(widget.router)
