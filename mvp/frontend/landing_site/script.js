@@ -102,6 +102,7 @@ function openRegisterModal() {
 
 // Scroll down for get started
 function scrollDownPlans(duration = 1000) {
+    console.log("Scroll down plans logged.........")
     const target = document.getElementById("pricing");
     if (!target) return;
 
@@ -558,14 +559,12 @@ async function handleLogin(e) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, plan: selectedPlan })
         });
-
         const data = await res.json();
-
+        console.log(`${data} --------------`)
         if (!res.ok) {
             throw new Error(data.detail || 'Prefetch failed');
         }
-
-        if (data.password_set) {
+        if (data.next_action=='LOGIN') {
             passwordContainer.classList.remove('hidden');
             document.getElementById('forgotPasswordContainer').classList.remove('hidden');
             loadingOverlay.classList.add('hidden');
@@ -573,39 +572,38 @@ async function handleLogin(e) {
             passwordInput.focus();
             return;
         }
-
-        if (!data.subscription.exists ||
-            (data.subscription.status === 'PENDING' && !data.subscription.expired)) {
-
+        else if (data.next_action=='COMPLETE_PAYMENT') {
             Toastify({
                 text: 'Payment link sent to your registered email',
                 duration: 2000,
                 gravity: 'top',
                 position: 'right',
-                backgroundColor: '#16a34a',
-                style: { borderRadius: '15px' }
+                style: { borderRadius: '15px',background: '#16a34a' }
             }).showToast();
-
+            loadingOverlay.classList.add('hidden');
+            closeLoginModal();
             return;
         }
-
-        if (data.subscription.exists && data.next_action === 'SET_PASSWORD') {
+        else if(data.next_action=='CHOOSE_PLAN'){
+            loadingOverlay.classList.add('hidden');
+            Toastify({
+                text: 'Choose a plan',
+                duration: 2000,
+                gravity: 'top',
+                position: 'right',
+                style: {borderRadius: '15px',background:' #dc2626' }
+            }).showToast();
+            closeLoginModal();
+            scrollDownPlans();
+        }
+        if (data.next_action === 'SET_PASSWORD') {
             // redirect to setup password
             return;
         }
 
-        Toastify({
-            text: 'Subscription expired',
-            duration: 2000,
-            gravity: 'top',
-            position: 'right',
-            backgroundColor: '#dc2626',
-            style: { borderRadius: '15px' }
-        }).showToast();
-
     } catch (err) {
         console.error(err);
-        showError('Connection error. Please try again.');
+        showError(`${err.message}`);
     }
 }
 
