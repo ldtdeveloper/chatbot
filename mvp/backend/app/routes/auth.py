@@ -9,13 +9,14 @@ from app.models.user import User, UserRole
 from app.models.payment_token import PaymentToken
 from app.models.subscription import Subscription, PaymentStatus
 from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail
-from app.schemas.user import UserCreate,UserRegisterRequest,UserResponse
+from app.schemas.user import UserRegisterRequest,UserResponse
 from app.utils.auth import verify_password, get_password_hash, create_access_token,decode_access_token
 from app.utils.email_html import generate_email_html,generate_email_html_reset_password
 from app.core.dependencies import get_current_user
 from datetime import timedelta, datetime, timezone
 from app.core.config import settings
 from app.services.email_service import EmailService
+from app.tasks.email_task import send_email_task
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -77,17 +78,10 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
     
     # Generate payment link
     payment_link = f"{settings.api_base_url}/payment/{payment_token}"
-    
-    # Send email with payment link
-    email_service = EmailService()
-    email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount)
 
+    email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount)
     try:
-        email_service.send_email(
-            to_email=register_data.email,
-            subject=f"Complete Your VoiceAI Registration - {plan.upper()} Plan",
-            html_content=email_html
-        )
+        send_email_task.delay(register_data.email,f"Complete Your VoiceAI Registration - {plan.upper()} Plan",email_html)
     except Exception as e:
         print(f"[Register] Failed to send email: {e}")
         # Don't fail registration if email fails, but log it
@@ -302,22 +296,11 @@ async def forget_password(request: ForgetPasswordRequest,db: Session = Depends(g
     reset_password_link = f"http://localhost:3000/reset-password?token={reset_token}"
 
     #Send email
-    email_service = EmailService()
     email_html = generate_email_html_reset_password(db_user,reset_password_link)
-    try:
-        email_service.send_email(
-            to_email=request.email,
-            subject="Reset your Voice AI password ",
-            html_content=email_html
-        )
-    except Exception as e:
-        print(f" Failed to send email: {e}")
-        # Don't fail registration if email fails, but log it
-    
+    send_email_task.delay(request.email,"Reset your Voice AI password ",email_html)
     return {
         "message": "Reset password link sent to your registered email.Please check your email for the reset password link.",
         "user_id": db_user.id,
-        "email_sent": True
     }
 
 @router.post("/change-email")
@@ -346,31 +329,12 @@ async def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_d
 
     # Default response
     response = {
-        "user_exists": True,
-        "password_set": db_user.password_set,
-        "subscription": {
-            "exists": False,
-            "status": None,
-            "expired": False
-        },
         "next_action": None,
-        "message": None
-    }
+        }
 
     if db_user.password_set:
         response["next_action"] = "LOGIN"
-        response["message"] = "Proceed to login"
         return response
-
-    subscription = (
-        db.query(Subscription)
-        .filter(Subscription.user_id == db_user.id)
-        .order_by(
-            case((Subscription.payment_status == PaymentStatus.SUCCESS, 0), else_=1),
-            Subscription.created_at.desc()
-        )
-        .first()
-    )
 
     # Validate plan
     if request.plan and request.plan.lower() not in PLAN_PRICES:
@@ -383,54 +347,36 @@ async def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_d
         plan = request.plan.lower()
         amount = PLAN_PRICES[plan]
 
+    subscription = (
+        db.query(Subscription)
+        .filter(Subscription.user_id == db_user.id)
+        .order_by(
+            case((Subscription.payment_status == PaymentStatus.SUCCESS, 0), else_=1),
+            Subscription.created_at.desc()
+        )
+        .first()
+    )
+
     if not subscription or subscription.payment_status == PaymentStatus.PENDING:
+        if not request.plan:
+            response["next_action"]="CHOOSE_PLAN"
+            return response
         payment_token_details = db.query(PaymentToken).filter(PaymentToken.user_id==db_user.id, PaymentToken.plan_type == plan,PaymentToken.is_used.is_(False)).order_by(PaymentToken.created_at.desc()).first()
         if payment_token_details and payment_token_details.expires_at>datetime.now(timezone.utc):
             payment_token = payment_token_details.token
         else:
-            # Generate payment token
-            payment_token = PaymentToken.generate_token()
-            expires_at = datetime.now(timezone.utc) + timedelta(days=7)  # Token valid for 7 days
-
-            db_token = PaymentToken(
-                user_id=db_user.id,
-                token=payment_token,
-                plan_type=plan,
-                amount=amount,
-                expires_at=expires_at
-            )
-            db.add(db_token)
-            db.commit()
-
+            response["next_action"]="CHOOSE_PLAN"
+            return response
+        
         # Generate payment link
         payment_link = f"{settings.api_base_url}/payment/{payment_token}"
 
         # Send email with payment link
-        email_service = EmailService()
         email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount)
-
-        try:
-            email_service.send_email(
-                to_email=request.email,
-                subject=f"Complete Your VoiceAI Registration - {plan.upper()} Plan",
-                html_content=email_html
-            )
-        except Exception as e:
-            print(f"[Register] Failed to send email: {e}")
+        send_email_task.delay(request.email,f"Complete Your VoiceAI Registration - {plan.upper()} Plan",email_html)
         response["next_action"] = "COMPLETE_PAYMENT"
-        response["message"] = "Complete your payment"
-        return response
-
-    response["subscription"]["exists"] = True
-    response["subscription"]["status"] = subscription.payment_status
-
-    if (subscription.payment_status == PaymentStatus.SUCCESS and subscription.end_date and subscription.end_date > datetime.utcnow()):
-        response["subscription"]["expired"] = True
-        response["next_action"] = "COMPLETE_PAYMENT"
-        response["message"] = "Subscription expired"
         return response
 
     # SUCCESS but password not set
     response["next_action"] = "SET_PASSWORD"
-    response["message"] = "Set your password to continue"
     return response

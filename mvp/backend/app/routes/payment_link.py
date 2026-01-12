@@ -30,7 +30,6 @@ async def payment_page(token: str, request: Request, db: Session = Depends(get_d
         PaymentToken.is_used == False
     ).first()
 
-    print("this is db token",db_token)
     if not db_token:
       
         return HTMLResponse(content="""
@@ -74,7 +73,6 @@ async def payment_page(token: str, request: Request, db: Session = Depends(get_d
     
     # Get user
     user = db.query(User).filter(User.id == db_token.user_id).first()
-    print(user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     

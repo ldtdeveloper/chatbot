@@ -14,6 +14,9 @@ from app.schemas.dashboard import DashboardStats
 from app.core.dependencies import  require_active_subscription
 from app.utils.date_range import get_date_range,get_previous_period_range
 from app.utils.email_html import expense_report_html
+from app.tasks.email_task import send_email_task
+from app.core.redis_client import redis_client
+import json
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -36,6 +39,10 @@ async def get_dashboard_stats(
     - **user_id**: Optional user ID filter (superadmin only, null = all users for superadmin)
     """
     try:
+        cached = redis_client.get(f"{current_user.id}_dashboard_stats")
+        if cached:
+            return DashboardStats.parse_raw(cached)  # deserialize JSON back to Pydantic
+        
         start_date, end_date = get_date_range(days)
         prev_start, prev_end = get_previous_period_range(days)
         
@@ -184,7 +191,7 @@ async def get_dashboard_stats(
         # Available keys for dropdown
         available_keys = [{'id': k.id, 'name': (k.key_name or f"Key {k.id}")} for k in all_keys]
         
-        return DashboardStats(
+        response= DashboardStats(
             total_interactions=total_interactions,
             total_expenses=round(total_expenses, 2),
             total_agents=total_agents,
@@ -196,13 +203,15 @@ async def get_dashboard_stats(
             agents_per_key=agents_per_key,
             available_keys=available_keys
         )
+        redis_client.set(f"{current_user.id}_dashboard_stats",response.json(),ex=300)
+        return response
     except Exception as e:
         import traceback
         import logging
         logging.error(f"Dashboard stats error: {e}")
         logging.error(traceback.format_exc())
         # Return empty stats instead of crashing
-        return DashboardStats(
+        response= DashboardStats(
             total_interactions=0,
             total_expenses=0.0,
             total_agents=0,
@@ -214,6 +223,7 @@ async def get_dashboard_stats(
             agents_per_key=[],
             available_keys=[]
         )
+        return response
 
 
 @router.get("/expenses-per-user")
@@ -273,7 +283,7 @@ async def get_expenses_per_user(
         expenses_list = list(user_expenses.values())
         expenses_list.sort(key=lambda x: x['total_expenses'], reverse=True)
         
-        return {
+        response= {
             'period': {
                 'start': start_date.isoformat(),
                 'end': end_date.isoformat(),
@@ -283,6 +293,7 @@ async def get_expenses_per_user(
             'total_users': len(expenses_list),
             'grand_total_expenses': round(sum(u['total_expenses'] for u in expenses_list), 2)
         }
+        return response
     except Exception as e:
         import traceback
         import logging
@@ -358,12 +369,7 @@ async def send_expenses_report_email(
             '30d': 'Last 30 days',
             '90d': 'Last 90 days'
         }
-        period_label = period_labels.get(days, 'Last 30 days')
-        
-        # Generate HTML email
-        from app.services.email_service import EmailService
-        email_service = EmailService()
-        
+        period_label = period_labels.get(days, 'Last 30 days')  
         # Build HTML table
         table_rows = ""
         for idx, user_expense in enumerate(expenses_list, 1):
@@ -385,12 +391,7 @@ async def send_expenses_report_email(
         
         # Send email
         subject = f"Per User Expenses Report - {period_label}"
-        email_service.send_email(
-            to_email=current_user.email,
-            subject=subject,
-            html_content=html_content
-        )
-        
+        send_email_task.delay(current_user.email,subject,html_content) 
         return {
             "message": f"Expenses report sent to {current_user.email}",
             "period": period_label,
