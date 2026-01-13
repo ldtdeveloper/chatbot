@@ -7,7 +7,6 @@ const token = params.get('token');
 
 if (token) {
   localStorage.setItem('token', token);
-
   // clean URL immediately
   params.delete('token');
   const newUrl =

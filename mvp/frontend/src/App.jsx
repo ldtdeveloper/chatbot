@@ -14,7 +14,7 @@ import { useAuthStore } from './context/authStore'
 import Layout from './components/Layout'
 import ResetPassword from './pages/ResetPassword'
 import { bootstrapAuth } from './auth/bootstrapAuth'
-
+import {Toaster} from "sonner";
 const queryClient = new QueryClient()
 
 function PrivateRoute({ children }) {
@@ -31,8 +31,11 @@ function PrivateRoute({ children }) {
   useEffect(() => {
     bootstrapAuth(setAuth)
   }, [])
-  
-  return token ? children : <Navigate to="/login" />
+  // Fallback check — prevents redirect before effects have a chance to run
+  const isAuthenticated = !!token || !!localStorage.getItem('token')
+
+  return isAuthenticated ? children : <Navigate to="/login" replace />
+  // return token ? children : <Navigate to="/login" />
 }
 
 function App() {
@@ -62,6 +65,7 @@ function App() {
           </Route>
           <Route path ="reset-password" element={<ResetPassword />} />
         </Routes>
+        <Toaster richColors position="top-right" />
       </Router>
     </QueryClientProvider>
   )
