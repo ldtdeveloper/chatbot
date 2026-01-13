@@ -36,11 +36,6 @@ function Users() {
     },
   })
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    createMutation.mutate(formData)
-  }
-
   if (isLoading) return <div>Loading...</div>
 
   return (

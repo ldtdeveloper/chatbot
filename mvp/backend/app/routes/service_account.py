@@ -13,7 +13,6 @@ from app.models.user import  UserRole
 from app.schemas.service_account import ServiceAccountKeyCreate,ServiceAccountKeyMaskedResponse,ServiceAccountKeyResponse
 from app.models.service_account_key import ServiceAccountKey
 from app.core.dependencies import get_current_user
-from app.utils.encryption import encrypt_api_key, decrypt_api_key
 
 router = APIRouter(prefix="/api/openai-keys", tags=["openai-keys"])
 

@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../context/authStore'
 import { useQuery } from '@tanstack/react-query'
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
   BarChart,
