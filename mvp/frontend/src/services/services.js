@@ -273,3 +273,25 @@ export const resetPasswordService = {
     return response.data
   }
 }
+
+export const planService = {
+    createPlans: async (data) => {
+      const response = await api.post('/api/plans',data)
+      return response.data
+    },
+
+    updatePlan: async (id, data) => {
+      const response = await api.put(`/api/plans/${id}`,data)
+      return response.data
+    },
+
+    listPlan : async () => {
+      const response = await api.get('/api/plans')
+      return response.data
+    },
+
+    deletePlan: async (id) => {
+      const response = await api.delete(`/api/plans/${id}`)
+      return  response.data
+    }
+}

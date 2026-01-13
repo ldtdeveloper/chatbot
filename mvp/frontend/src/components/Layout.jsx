@@ -74,6 +74,13 @@ function Layout() {
                   </Link>
                 )}
 
+                {/* Manage Plans - only superadmin */}
+                {user?.role === 'superadmin' && (
+                  <Link to="/plans" onClick={()=> setDropdownOpen(false)}>
+                  Manage Plans
+                  </Link>
+                )}
+
                 <button onClick={handleLogout}>Logout</button>
               </div>
             )}
