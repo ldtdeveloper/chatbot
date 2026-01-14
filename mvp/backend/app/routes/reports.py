@@ -2,21 +2,17 @@
 Reports API Routes
 Endpoints for managing user report preferences and triggering reports
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import Optional, List
-from datetime import datetime, timezone
-import json
-
+from typing import  List
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User, UserRole
 from app.models.report import (
-    UserReportPreference, ReportJob, ReportFrequency, JobStatus
+    UserReportPreference, ReportJob, ReportFrequency
 )
 from app.services.report_service import ReportService
 from app.services.email_service import EmailService
-from pydantic import BaseModel
 from app.schemas.reports import ReportJobResponse,ReportPreferenceUpdate,ReportPreferenceResponse,ReportPreviewResponse,JobStatsResponse
 
 

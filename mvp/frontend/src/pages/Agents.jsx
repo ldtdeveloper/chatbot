@@ -2,11 +2,14 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentService, openAIKeyService } from '../services/services'
 import '../styles/Agents.css'
-import Switch from '@mui/material/Switch';
-import { MdOutlineInfo } from "react-icons/md";
-import Tooltip from "@mui/material/Tooltip";
 import AppIconsCard from '../components/mcpservercard.jsx';
 import { showSuccess,showError } from '../utils/toast.js';
+import AgentCategorySelector from '../components/AgentCategorySelector';
+import WebAgentsSection from '../components/WebAgentsSection';
+import PhoneAgentsSection from '../components/PhoneAgentsSection';
+import EditAgentModal from '../components/EditAgentModal';
+import WidgetModal from '../components/WidgetModal';
+import InstructionsModal from '../components/InstructionsModal';
 
 function Agents() {
   console.log("compnoent re renderd ----------------")
@@ -26,28 +29,6 @@ function Agents() {
   const [checked, setChecked] = useState(false);
   const [showMcpServerCard, setShowMcpServerCard] = useState(false);
   const [Instructions, setInstructions] = useState({
-    // company_name: '',
-    // company_website: '',
-    // industries: '',
-    // solutions: '',
-    // contact_info: '',
-    // careers_info: '',
-    // company_domain:'',
-    // company_description:'',
-    // company_tagline:'',
-    // services_page_url:'',
-    // industries_page_url:'',
-    // solutions_page_url:'',
-    // careers_page_url:'',
-    // insights_page_url:'',
-    // contact_page_url:'',
-    // leadership_info:'',
-    // allowed_scope:'',
-    // forbidden_scope:'',
-    // strict_refusal_text:'',
-    // greeting_text:'',
-    // refusal_text:'',
-    // closure_text:'',
     voice_behaviour: "",
     scope: '',
     contact_details: '',
@@ -265,12 +246,6 @@ function Agents() {
       showError(error)
     }
   })
-
-  ///creating InstructionArray
-  // const instructionsArray = Object.entries(Instructions).map(([key,value])=>({
-  //   [key]:value
-  // }))
-  // const finalInstructions = JSON.stringify(instructionsArray)
 
   const deleteMutation = useMutation({
     mutationFn: agentService.delete,
@@ -528,12 +503,6 @@ function Agents() {
       }
     }
   }
-  function convertJsonToPrompt() {
-    return `
-voice&behaviour
-${"hello"}
-`
-  }
 
   const handleCardClick = (agent) => {
     if (selectedAgent?.id === agent.id) {
@@ -668,41 +637,6 @@ ${"hello"}
     }
   }, [activeApiKeys, phoneApiKeyId])
 
-
-  // Close selected card on outside click
-  // useEffect(() => {
-  //   function handleOutsideClick(e) {
-  //     if (!selectedAgent) return
-
-  //     const target = e.target
-
-  //     // Don't close if clicking inside any modal
-  //     const clickedModal = target.closest('.modal-overlay') || target.closest('.modal-content')
-  //     if (clickedModal) {
-  //       return // Don't close when clicking inside modals
-  //     }
-
-  //     // Don't close if clicking on buttons or interactive elements (including Switch)
-  //     if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('textarea') || target.closest('[role="switch"]') || target.closest('.MuiSwitch-root')) {
-  //       return
-  //     }
-
-  //     const container = cardsContainerRef.current
-  //     if (!container) return
-
-  //     const selectedCard = container.querySelector('.agent-card.selected')
-  //     // If click is inside the selected card, do nothing
-  //     if (selectedCard && selectedCard.contains(target)) return
-
-  //     // Close when click is outside the selected card (anywhere else, but not in modals)
-  //     setSelectedAgent(null)
-  //     setSelectedAgentForWidget(null)
-  //     // Don't close widget modal here - let it handle its own closing
-  //   }
-  //   document.addEventListener('mousedown', handleOutsideClick)
-  //   return () => document.removeEventListener('mousedown', handleOutsideClick)
-  // }, [selectedAgent])
-
   // Close selected phone card on outside click
   useEffect(() => {
   if (activeApiKeys.length > 0) {
@@ -763,830 +697,88 @@ ${"hello"}
         <h1>Agents</h1>
       </div>
 
-      {/* Category selector */}
-      <div className="agent-category-grid">
-        <div
-          className={`agent-category-card ${activeCategory === 'web' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveCategory('web')
-            const el = document.getElementById('web-agents-section')
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }}
-        >
-          <div className="agent-category-pill">Web</div>
-          <h3>Web Agents</h3>
-          <p>Embed on sites and apps, manage widgets, and edit instructions.</p>
-          <span className="agent-category-link">Go to web agents →</span>
-        </div>
-        <div
-          className={`agent-category-card ${activeCategory === 'phone' ? 'active' : ''} phone-category-disabled`}
-          style={{ pointerEvents: 'none', cursor: 'not-allowed' }}
-        >
-          <div className="agent-category-pill phone">Phone</div>
-          <div className="coming-soon-badge">Coming Soon</div>
-          <h3>Phone Agents</h3>
-          <p>IVR-style assistants for calls. Configure routing and voice flows.</p>
-          <span className="agent-category-link">Go to phone agents →</span>
-        </div>
-      </div>
+      <AgentCategorySelector 
+        activeCategory={activeCategory}
+        setActiveCategory={setActiveCategory}
+      />
 
       {activeCategory === 'phone' && (
-        <div id="phone-agents-section" className="phone-agents-container">
-          <div className="page-header">
-            <h2>Phone Agents</h2>
-            <div className="header-actions">
-              {/* <select
-                value={phoneApiKeyId}
-                onChange={(e) => setPhoneApiKeyId(e.target.value)}
-                className="api-key-selector"
-                title="Select API Key for phone agents"
-              >
-                <option value="">Select API Key</option>
-                {activeApiKeys.map((key) => (
-                  <option key={key.id} value={key.id}>
-                    {key.key_name}
-                  </option>
-                ))}
-              </select> */}
-              <button
-                onClick={() => setShowPhoneAddForm((prev) => !prev)}
-              >
-                {showPhoneAddForm ? 'Cancel' : '+ Create Phone Agent'}
-              </button>
-            </div>
-          </div>
-          {showPhoneAddForm && (
-            <form onSubmit={handlePhoneSubmit} className="add-agent-form">
-              <div className="form-info">
-                <p><strong>Note:</strong> Configure your phone agent with SIP settings. Only <strong>Phone Number</strong> and <strong>SIP Server</strong> are required. Username, Password, and Domain are optional and only needed if your SIP server requires authentication.</p>
-              </div>
-              {console.log(activeApiKeys[0])}
-                  <input
-  type="text"
-  value={activeApiKeys.length > 0 ? activeApiKeys[0].key_name : ''}
-  readOnly     
-  autoComplete="off"
-/>
-              {/* <select
-                value={phoneApiKeyId}
-                onChange={(e) => {
-                  setPhoneApiKeyId(e.target.value)
-                  queryClient.invalidateQueries(['agents'])
-                }}
-                className="api-key-selector"
-                title="Select API Key for phone agents"
-                required
-              >
-                <option value="">Select API Key</option>
-                {activeApiKeys.map((key) => (
-                  <option key={key.id} value={key.id}>
-                    {key.key_name}
-                  </option>
-                ))}
-              </select> */}
-              <input
-                type="text"
-                placeholder="Agent Name"
-                value={phoneFormData.name}
-                onChange={(e) => setPhoneFormData({ ...phoneFormData, name: e.target.value })}
-                autoComplete="off"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Phone Number (e.g., +1234567890)"
-                value={phoneFormData.phone_number}
-                onChange={(e) => setPhoneFormData({ ...phoneFormData, phone_number: e.target.value })}
-                autoComplete="off"
-                required
-              />
-              <input
-                type="text"
-                placeholder="SIP Server (e.g., sip.example.com)"
-                value={phoneFormData.sip_server}
-                onChange={(e) => setPhoneFormData({ ...phoneFormData, sip_server: e.target.value })}
-                autoComplete="off"
-                required
-              />
-              <input
-                type="text"
-                placeholder="SIP Username (optional - for SIP server authentication)"
-                value={phoneFormData.sip_username}
-                onChange={(e) => setPhoneFormData({ ...phoneFormData, sip_username: e.target.value })}
-                autoComplete="off"
-              />
-              <input
-                type="password"
-                placeholder="SIP Password (optional - for SIP server authentication)"
-                value={phoneFormData.sip_password}
-                onChange={(e) => setPhoneFormData({ ...phoneFormData, sip_password: e.target.value })}
-                autoComplete="off"
-              />
-              <input
-                type="text"
-                placeholder="SIP Domain/Realm (optional - e.g., sip.example.com)"
-                value={phoneFormData.sip_domain}
-                onChange={(e) => setPhoneFormData({ ...phoneFormData, sip_domain: e.target.value })}
-                autoComplete="off"
-              />
-              <div className="form-info" style={{ marginTop: '10px', padding: '10px', background: '#f0f9ff', borderRadius: '6px', fontSize: '14px' }}>
-                <p><strong>💡 SIP Configuration Help:</strong></p>
-                <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
-                  <li><strong>SIP Server:</strong> Required - Your SIP server address (e.g., sip.provider.com or 192.168.1.100)</li>
-                  <li><strong>Username/Password:</strong> Only needed if your SIP server requires authentication</li>
-                  <li><strong>SIP Domain:</strong> Usually optional - Some SIP providers require a realm/domain for authentication</li>
-                </ul>
-              </div>
-              <label>Voice & Behavior</label>
-              <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off' rows={5} placeholder="Voice and Behavior (example: You are Maria, a personal assistant. You are a female. Answer in a soft tone. For any background noise, miswritten or understandable questions, tell the user - I didn't understand that, can you please repeat what you asked?)" onChange={InstructionSet} />
-              <label>Scope/What I Can Talk About</label>
-              <textarea value={Instructions.scope} name="scope" autoComplete='off' rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet} />
-              <label>Allowed Contact Details</label>
-              <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off' rows={5} placeholder="Contact Details (example: Email, sales (phone no), HR)" onChange={InstructionSet} />
-              <label>Privacy Rules</label>
-              <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off' rows={5} placeholder="Privacy Rules (example: Do not share personal information)" onChange={InstructionSet} />
-              <label>Top Features</label>
-              <textarea value={Instructions.top_features} name="top_features" autoComplete='off' rows={5} placeholder="Top Features (example: 1. Web and Mobile Development)" onChange={InstructionSet} />
-              <label>Products</label>
-              <textarea value={Instructions.product} name="product" autoComplete='off' rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet} />
-              <label>Services</label>
-              <textarea value={Instructions.services} name="services" autoComplete='off' rows={5} placeholder="Services (example: Add the services you provide)" onChange={InstructionSet} />
-              <label>Office Locations</label>
-              <textarea value={Instructions.office_locations} name="office_locations" autoComplete='off' rows={5} placeholder="Office Locations (example: USA, India)" onChange={InstructionSet} />
-              <label>Pricing Rules</label>
-              <textarea value={Instructions.pricing_rules} name="pricing_rules" autoComplete="off" rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet} />
-              <label>Restrictions</label>
-              <textarea value={Instructions.restrictions} name="restrictions" autoComplete="off" rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet} />
-              <label>Tone Examples</label>
-              <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off' rows={5} placeholder="Tone Examples (example: 1. Greeting: Enter your type)" onChange={InstructionSet} />
-              <label>Additional Instructions</label>
-              <textarea value={Instructions.additional_instructions} name="additional_instructions" autoComplete="off" rows={5} placeholder="Additional Instructions (example: Add the additional instructions you want to enhance your assistant)" onChange={InstructionSet} />
-              <label>
-                Assistant Voice:
-                <select
-                  value={phoneFormData.voice}
-                  onChange={(e) => setPhoneFormData({ ...phoneFormData, voice: e.target.value })}
-                  autoComplete="off"
-                >
-                  <option value="alloy">Alloy</option>
-                  <option value="ash">Ash</option>
-                  <option value="ballad">Ballad</option>
-                  <option value="cedar">Cedar</option>
-                  <option value="coral">Coral</option>
-                  <option value="echo">Echo</option>
-                  <option value="marin">Marin</option>
-                  <option value="sage">Sage</option>
-                  <option value="shimmer">Shimmer</option>
-                  <option value="verse">Verse</option>
-                </select>
-              </label>
-              <label>
-                Noise Reduction:
-                <select
-                  value={phoneFormData.noise_reduction_mode}
-                  onChange={(e) => setPhoneFormData({ ...phoneFormData, noise_reduction_mode: e.target.value })}
-                  autoComplete="off"
-                >
-                  <option value="near_field">Near Field</option>
-                  <option value="far_field">Far Field</option>
-                </select>
-              </label>
-              <label>
-                VAD Threshold:
-                <input
-                  type="text"
-                  value={phoneFormData.noise_reduction_threshold}
-                  onChange={(e) => setPhoneFormData({ ...phoneFormData, noise_reduction_threshold: e.target.value })}
-                  autoComplete="off"
-                  placeholder="0.65"
-                />
-              </label>
-              <label>
-                Prefix Padding (ms):
-                <input
-                  type="number"
-                  value={phoneFormData.noise_reduction_prefix_padding_ms}
-                  onChange={(e) => setPhoneFormData({ ...phoneFormData, noise_reduction_prefix_padding_ms: parseInt(e.target.value) || 150 })}
-                  autoComplete="off"
-                  min="0"
-                />
-              </label>
-              <label>
-                Silence Duration (ms):
-                <input
-                  type="number"
-                  value={phoneFormData.noise_reduction_silence_duration_ms}
-                  onChange={(e) => setPhoneFormData({ ...phoneFormData, noise_reduction_silence_duration_ms: parseInt(e.target.value) || 600 })}
-                  autoComplete="off"
-                  min="0"
-                />
-              </label>
-              <button type="submit" disabled={createPhoneMutation.isLoading}>
-                {createPhoneMutation.isLoading ? 'Creating...' : 'Create Phone Agent'}
-              </button>
-            </form>
-          )}
-      <div className="agents-list" ref={phoneCardsRef}>
-            {phoneAgentsLoading ? (
-              <div>Loading phone agents...</div>
-            ) : phoneAgents?.length === 0 ? (
-              <p>No phone agents created yet.</p>
-            ) : (
-              phoneAgents?.map((agent) => {
-                const isSelected = selectedPhoneAgentId === agent.id
-                const cardClassName = isSelected ? 'agent-card selected' : 'agent-card'
-                return (
-                  <div
-                    key={`phone-agent-${agent.id}`}
-                    className={cardClassName}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      e.preventDefault()
-                      handlePhoneCardClick(agent, e)
-                    }}
-                  >
-                    <div className="agent-card-header">
-                      <h3>{agent.name}</h3>
-                    </div>
-                    <div className="agent-meta">
-                      <span><strong>Phone:</strong> {agent.phone_number || 'N/A'}</span>
-                      <span>Voice: {agent.voice}</span>
-                      <span>Noise Reduction: {agent.noise_reduction_mode}</span>
-                    </div>
-                    {selectedPhoneAgentId === agent.id && (
-                      <>
-                        <div className="agent-actions">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleEdit(agent)
-                            }}
-                            className="edit-btn"
-                          >
-                            <span className="btn-icon">✏️</span>
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              if (window.confirm('Are you sure you want to delete this phone agent?')) {
-                                deleteMutation.mutate(agent.id)
-                              }
-                            }}
-                            className="delete-btn"
-                          >
-                            <span className="btn-icon">🗑️</span>
-                            <span>Delete</span>
-                          </button>
-                        </div>
-                        <div className="selected-agent-details">
-                          <h4>Configuration</h4>
-                          <div className="settings-grid">
-                            <div><strong>Phone Number:</strong> {agent.phone_number || 'N/A'}</div>
-                            <div><strong>SIP Server:</strong> {agent.sip_server || 'N/A'}</div>
-                            <div><strong>SIP Username:</strong> {agent.sip_username || 'N/A'}</div>
-                            <div><strong>SIP Domain:</strong> {agent.sip_domain || 'N/A'}</div>
-                            <div><strong>Voice:</strong> {agent.voice}</div>
-                            <div><strong>Noise Reduction:</strong> {agent.noise_reduction_mode}</div>
-                            <div><strong>VAD Threshold:</strong> {agent.noise_reduction_threshold}</div>
-                            <div><strong>Prefix Padding:</strong> {agent.noise_reduction_prefix_padding_ms}ms</div>
-                            <div><strong>Silence Duration:</strong> {agent.noise_reduction_silence_duration_ms}ms</div>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </div>
+        <PhoneAgentsSection
+          showPhoneAddForm={showPhoneAddForm}
+          setShowPhoneAddForm={setShowPhoneAddForm}
+          phoneFormData={phoneFormData}
+          setPhoneFormData={setPhoneFormData}
+          Instructions={Instructions}
+          InstructionSet={InstructionSet}
+          activeApiKeys={activeApiKeys}
+          handlePhoneSubmit={handlePhoneSubmit}
+          createPhoneMutation={createPhoneMutation}
+          phoneAgents={phoneAgents}
+          phoneAgentsLoading={phoneAgentsLoading}
+          selectedPhoneAgentId={selectedPhoneAgentId}
+          handlePhoneCardClick={handlePhoneCardClick}
+          handleEdit={handleEdit}
+          deleteMutation={deleteMutation}
+          phoneCardsRef={phoneCardsRef}
+        />
       )}
 
       {activeCategory === 'web' && (
-        <div id="web-agents-section" className="web-agents-container" ref={cardsContainerRef}>
-          <div className="page-header">
-            <h2>Web Agents</h2>
-            <div className="header-actions">
-              {/*  */}
-              {/* <select
-                value={fetchApiKeyId}
-                onChange={(e) => {
-                  setFetchApiKeyId(e.target.value)
-                  queryClient.invalidateQueries(['agents'])
-                }}
-                className="api-key-selector"
-                title="Select API Key to fetch agents"
-                required
-              >
-                <option value="">Select API Key</option>
-                {activeApiKeys.map((key) => (
-                  <option key={key.id} value={key.id}>
-                    {key.key_name}
-                  </option>
-                ))}
-              </select> */}
-              {/*  */}
-              <button onClick={() => {
-                if (showAddForm) {
-                  handleCancelEdit()
-                } else {
-                  setShowAddForm(true)
-                  setShowEditModal(false)
-                }
-              }}>
-                {showAddForm ? 'Cancel' : '+ Create Web Agent'}
-              </button>
-            </div>
-          </div>
-
-      {showAddForm && (
-        <form onSubmit={handleSubmit} className="add-agent-form">
-          <div className="form-info">
-            <p><strong>Note:</strong> Agent configurations are stored locally and will be used when making WebRTC calls to OpenAI Realtime API.</p>
-          </div>
-         <input
-  type="text"
-  value={activeApiKeys.length > 0 ? activeApiKeys[0].key_name : ''}
-  readOnly     
-  autoComplete="off"
-/>
-
-  {/* {activeApiKeys.length > 0 && (
-    <option value={activeApiKeys[0].id}>
-      {activeApiKeys[0].key_name}
-    </option>
-  )}
-</select> */}
-
-         
-          {/*<select
-            value={selectedApiKeyId}
-            onChange={(e) => setSelectedApiKeyId(e.target.value)}
-            autoComplete="off"
-            required
-          >
-            <option value="">Select API Key</option>
-            {activeApiKeys.map((key) => (
-              <option key={key.id} value={key.id}>
-                {key.key_name}
-              </option>
-            ))}
-          </select>  */}
-          <input
-            type="text"
-            placeholder="Agent Name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            autoComplete="off"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Domain (e.g., example.com or localhost)"
-            value={formData.domain}
-            onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-            autoComplete="off"
-            required
-            pattern="^(localhost|127\.0\.0\.1)(:\d+)?$|^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
-            title="Enter a valid domain (e.g., example.com, localhost, or 127.0.0.1)"
-          />
-          <label>Voice & Behavior</label>
-          <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off' rows={5} placeholder="Voice and Behavior (example: You are Maria, a personal assistant. You are a female. Answer in a soft tone. For any background noise, miswritten or understandable questions, tell the user - I didn't understand that, can you please repeat what you asked?)" onChange={InstructionSet} />
-          <label>Scope/What I Can Talk About</label>
-          <textarea value={Instructions.scope} name="scope" autoComplete='off' rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet} />
-          <label>Allowed Contact Details</label>
-          <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off' rows={5} placeholder="Contact Details (example: Email, sales (phone no), HR)" onChange={InstructionSet} />
-          <label>Privacy Rules</label>
-          <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off' rows={5} placeholder="Privacy Rules (example: Do not share personal information)" onChange={InstructionSet} />
-
-          <label>Top Features</label>
-          <textarea value={Instructions.top_features} name="top_features" autoComplete='off' rows={5} placeholder="Top Features (example: 1. Web and Mobile Development)" onChange={InstructionSet} />
-          <label>Products</label>
-          <textarea value={Instructions.product} name="product" autoComplete='off' rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet} />
-          <label>Services</label>
-          <textarea value={Instructions.services} name="services" autoComplete='off' rows={5} placeholder="Services (example: Add the services you provide)" onChange={InstructionSet} />
-          <label>Office Locations</label>
-          <textarea value={Instructions.office_locations} name="office_locations" autoComplete='off' rows={5} placeholder="Office Locations (example: USA, India)" onChange={InstructionSet} />
-          <label>Pricing Rules</label>
-          <textarea value={Instructions.pricing_rules} name="pricing_rules" autoComplete="off" rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet} />
-          <label>Restrictions</label>
-          <textarea value={Instructions.restrictions} name="restrictions" autoComplete="off" rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet} />
-          <label>Tone Examples</label>
-          <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off' rows={5} placeholder="Tone Examples (example: 1. Greeting: Enter your type)" onChange={InstructionSet} />
-          <label>Additional Instructions</label>
-          <textarea value={Instructions.additional_instructions} name="additional_instructions" autoComplete="off" rows={5} placeholder="Additional Instructions (example: Add the additional instructions you want to enhance your assistant)" onChange={InstructionSet} />
-
-
-          <label>
-            Assistant Voice:
-            <select
-              value={formData.voice}
-              onChange={(e) => setFormData({ ...formData, voice: e.target.value })}
-              autoComplete="off"
-            >
-              <option value="alloy">Alloy</option>
-              <option value="ash">Ash</option>
-              <option value="ballad">Ballad</option>
-              <option value="cedar">Cedar</option>
-              <option value="coral">Coral</option>
-              <option value="echo">Echo</option>
-              <option value="marin">Marin</option>
-              <option value="sage">Sage</option>
-              <option value="shimmer">Shimmer</option>
-              <option value="verse">Verse</option>
-            </select>
-          </label>
-          <label>
-            Noise Reduction:
-            <select
-              value={formData.noise_reduction_mode}
-              onChange={(e) => setFormData({ ...formData, noise_reduction_mode: e.target.value })}
-              autoComplete="off"
-            >
-              <option value="near_field">Near Field</option>
-              <option value="far_field">Far Field</option>
-            </select>
-          </label>
-          <label>
-            VAD Threshold:
-            <input
-              type="text"
-              value={formData.noise_reduction_threshold}
-              onChange={(e) => setFormData({ ...formData, noise_reduction_threshold: e.target.value })}
-              autoComplete="off"
-              placeholder="0.5"
-            />
-          </label>
-          <label>
-            Prefix Padding (ms):
-            <input
-              type="number"
-              value={formData.noise_reduction_prefix_padding_ms}
-              onChange={(e) => setFormData({ ...formData, noise_reduction_prefix_padding_ms: parseInt(e.target.value) || 150 })}
-              autoComplete="off"
-              min="0"
-            />
-          </label>
-          <label>
-            Silence Duration (ms):
-            <input
-              type="number"
-              value={formData.noise_reduction_silence_duration_ms}
-              onChange={(e) => setFormData({ ...formData, noise_reduction_silence_duration_ms: parseInt(e.target.value) || 600 })}
-              autoComplete="off"
-              min="0"
-            />
-          </label>
-          <button type="submit" disabled={createMutation.isLoading}>
-            {createMutation.isLoading ? 'Creating...' : 'Create Agent'}
-          </button>
-        </form>
-      )}
-
-      <div className="agents-list" ref={cardsContainerRef}>
-        {isLoading ? (
-          <div>Loading agents...</div>
-        ) : agents?.length === 0 ? (
-          <p>No agents created yet.</p>
-        ) : (
-          agents?.map((agent) => (
-            <div
-              key={agent.id}
-              className={`agent-card ${selectedAgent?.id === agent.id ? 'selected' : ''}`}
-              onClick={() => handleCardClick(agent)}
-            >
-              <div className="agent-card-header">
-                <h3>{agent.name}</h3>
-                <div
-                  className="view-instructions-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedInstructionsAgent(agent)
-                  }}
-                  title="View Instructions"
-                >
-                  <MdOutlineInfo />
-                </div>
-                {selectedAgent &&
-                <div 
-                  style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Tooltip title="MCP Server">
-                  <Switch
-                      size= "small"
-                      checked={checked}
-                      onChange={handleChange}
-                      onClick={(e) => e.stopPropagation()}
-                      slotProps={{ input: { 'aria-label': 'controlled' } }}
-                    />
-                  </Tooltip>
-                </div>
-   }
-              </div>
-              <div className="agent-meta">
-                <span><strong>Domain:</strong> {agent.domain}</span>
-                <span>Voice: {agent.voice}</span>
-                <span>Noise Reduction: {agent.noise_reduction_mode}</span>
-              </div>
-              {selectedAgent?.id === agent.id && (
-                <>
-                  <div className="agent-actions">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleGenerateWidget(agent)
-                      }}
-                      className="widget-btn"
-                    >
-                      <span className="btn-icon">🧩</span>
-                      <span>Widget</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleEdit(agent)
-                      }}
-                      className="edit-btn"
-                    >
-                      <span className="btn-icon">✏️</span>
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (window.confirm('Are you sure you want to delete this agent?')) {
-                          deleteMutation.mutate(agent.id)
-                        }
-                      }}
-                      className="delete-btn"
-                    >
-                      <span className="btn-icon">🗑️</span>
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))
-        )}
-      </div>
-      {selectedAgent && (
-        <div className="selected-agent-details">
-          <h4>Configuration - {selectedAgent.name}</h4>
-          <div className="settings-grid">
-            <div><strong>Domain:</strong> {selectedAgent.domain}</div>
-            <div><strong>Voice:</strong> {selectedAgent.voice}</div>
-            <div><strong>Noise Reduction:</strong> {selectedAgent.noise_reduction_mode}</div>
-            <div><strong>VAD Threshold:</strong> {selectedAgent.noise_reduction_threshold}</div>
-            <div><strong>Prefix Padding:</strong> {selectedAgent.noise_reduction_prefix_padding_ms}ms</div>
-            <div><strong>Silence Duration:</strong> {selectedAgent.noise_reduction_silence_duration_ms}ms</div>
-          </div>
-        </div>
-      )}
-        </div>
+        <WebAgentsSection
+          showAddForm={showAddForm}
+          setShowAddForm={setShowAddForm}
+          handleCancelEdit={handleCancelEdit}
+          formData={formData}
+          setFormData={setFormData}
+          Instructions={Instructions}
+          InstructionSet={InstructionSet}
+          activeApiKeys={activeApiKeys}
+          handleSubmit={handleSubmit}
+          createMutation={createMutation}
+          agents={agents}
+          isLoading={isLoading}
+          selectedAgent={selectedAgent}
+          handleCardClick={handleCardClick}
+          handleEdit={handleEdit}
+          deleteMutation={deleteMutation}
+          handleGenerateWidget={handleGenerateWidget}
+          setSelectedInstructionsAgent={setSelectedInstructionsAgent}
+          checked={checked}
+          handleChange={handleChange}
+        />
       )}
       {showMcpServerCard && <AppIconsCard setShowMcpServerCard={setShowMcpServerCard} setChecked = {setChecked} selectedAgent = {selectedAgent}/>}
-      {showEditModal && editingAgent && (
-        <div className="modal-overlay" onClick={() => handleCancelEdit()}>
-          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Edit Agent: {editingAgent.name}</h3>
-              <button className="modal-close" onClick={() => handleCancelEdit()}>×</button>
-            </div>
-            <div className="modal-body">
-              <form onSubmit={handleSubmit} className="add-agent-form">
-                <input
-                  type="text"
-                  placeholder="Agent Name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  autoComplete="off"
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="Domain (e.g., example.com or localhost)"
-                  value={formData.domain}
-                  onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-                  autoComplete="off"
-                  required
-                  pattern="^(localhost|127\.0\.0\.1)(:\d+)?$|^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
-                  title="Enter a valid domain (e.g., example.com, localhost, or 127.0.0.1)"
-                />
-                <label>Voice & Behavior</label>
-                <textarea value={Instructions.voice_behaviour} name="voice_behaviour" autoComplete='off' rows={5} placeholder="Voice and Behavior (example: You are Maria, a personal assistant. You are a female. Answer in a soft tone. For any background noise, miswritten or understandable questions, tell the user - I didn't understand that, can you please repeat what you asked?)" onChange={InstructionSet} />
-                <label>Scope/What I Can Talk About</label>
-                <textarea value={Instructions.scope} name="scope" autoComplete='off' rows={5} placeholder="Scope (example: Provide information only about Demo Technologies. If user asks about other companies or unrelated topics, say: I can only provide information about Demo Technologies. How may I help you regarding our services or products?)" onChange={InstructionSet} />
-                <label>Allowed Contact Details</label>
-                <textarea value={Instructions.contact_details} name="contact_details" autoComplete='off' rows={5} placeholder="Contact Details (example: Email, sales (phone no), HR)" onChange={InstructionSet} />
-                <label>Privacy Rules</label>
-                <textarea value={Instructions.privacy_rules} name="privacy_rules" autoComplete='off' rows={5} placeholder="Privacy Rules (example: Do not share personal information)" onChange={InstructionSet} />
-
-                <label>Top Features</label>
-                <textarea value={Instructions.top_features} name="top_features" autoComplete='off' rows={5} placeholder="Top Features (example: 1. Web and Mobile Development)" onChange={InstructionSet} />
-                <label>Products</label>
-                <textarea value={Instructions.product} name="product" autoComplete='off' rows={5} placeholder="Products (example: Mention your products here)" onChange={InstructionSet} />
-                <label>Services</label>
-                <textarea value={Instructions.services} name="services" autoComplete='off' rows={5} placeholder="Services (example: Add the services you provide)" onChange={InstructionSet} />
-                <label>Office Locations</label>
-                <textarea value={Instructions.office_locations} name="office_locations" autoComplete='off' rows={5} placeholder="Office Locations (example: USA, India)" onChange={InstructionSet} />
-                <label>Pricing Rules</label>
-                <textarea value={Instructions.pricing_rules} name="pricing_rules" autoComplete="off" rows={5} placeholder="Pricing Rules (example: Do not provide specific prices)" onChange={InstructionSet} />
-                <label>Restrictions</label>
-                <textarea value={Instructions.restrictions} name="restrictions" autoComplete="off" rows={5} placeholder="Restrictions (example: Do not provide personal information)" onChange={InstructionSet} />
-                <label>Tone Examples</label>
-                <textarea value={Instructions.tone_examples} name="tone_examples" autoComplete='off' rows={5} placeholder="Tone Examples (example: 1. Greeting: Enter your type)" onChange={InstructionSet} />
-                <label>Additional Instructions</label>
-                <textarea value={Instructions.additional_instructions} name="additional_instructions" autoComplete="off" rows={5} placeholder="Additional Instructions (example: Add the additional instructions you want to enhance your assistant)" onChange={InstructionSet} />
-
-
-                <label>
-                  Assistant Voice:
-                  <select
-                    value={formData.voice}
-                    onChange={(e) => setFormData({ ...formData, voice: e.target.value })}
-                    autoComplete="off"
-                  >
-                    <option value="alloy">Alloy</option>
-                    <option value="ash">Ash</option>
-                    <option value="ballad">Ballad</option>
-                    <option value="cedar">Cedar</option>
-                    <option value="coral">Coral</option>
-                    <option value="echo">Echo</option>
-                    <option value="marin">Marin</option>
-                    <option value="sage">Sage</option>
-                    <option value="shimmer">Shimmer</option>
-                    <option value="verse">Verse</option>
-                  </select>
-                </label>
-                <label>
-                  Noise Reduction:
-                  <select
-                    value={formData.noise_reduction_mode}
-                    onChange={(e) => setFormData({ ...formData, noise_reduction_mode: e.target.value })}
-                    autoComplete="off"
-                  >
-                    <option value="near_field">Near Field</option>
-                    <option value="far_field">Far Field</option>
-                  </select>
-                </label>
-                <label>
-                  VAD Threshold:
-                  <input
-                    type="text"
-                    value={formData.noise_reduction_threshold}
-                    onChange={(e) => setFormData({ ...formData, noise_reduction_threshold: e.target.value })}
-                    autoComplete="off"
-                    placeholder="0.65"
-                  />
-                </label>
-                <label>
-                  Prefix Padding (ms):
-                  <input
-                    type="number"
-                    value={formData.noise_reduction_prefix_padding_ms}
-                    onChange={(e) => setFormData({ ...formData, noise_reduction_prefix_padding_ms: parseInt(e.target.value) || 150 })}
-                    autoComplete="off"
-                    min="0"
-                  />
-                </label>
-                <label>
-                  Silence Duration (ms):
-                  <input
-                    type="number"
-                    value={formData.noise_reduction_silence_duration_ms}
-                    onChange={(e) => setFormData({ ...formData, noise_reduction_silence_duration_ms: parseInt(e.target.value) || 600 })}
-                    autoComplete="off"
-                    min="0"
-                  />
-                </label>
-                <div className="form-actions">
-                  <button type="button" onClick={() => handleCancelEdit()} className="cancel-btn">
-                    Cancel
-                  </button>
-                  <button type="submit" disabled={updateMutation.isLoading}>
-                    {updateMutation.isLoading ? 'Updating...' : 'Update Agent'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-      {showWidgetModal && selectedAgentForWidget && (
-        <div
-          className="modal-overlay"
-          onClick={(e) => {
-            console.log('modal-overlay clicked', e)
-            // Only close if clicking directly on the overlay, not on child elements
-            if (e.target === e.currentTarget) {
-              setShowWidgetModal(false)
-              setWidgetCode(null)
-              setWidgetId(null)
-              setCopied(false)
-            }
-          }}
-        >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h3>Widget Code - {selectedAgentForWidget.name}</h3>
-              <button className="modal-close" onClick={() => {
-                setShowWidgetModal(false)
-                setWidgetCode(null)
-                setWidgetId(null)
-                setCopied(false)
-              }}>×</button>
-            </div>
-
-            <div className="modal-body">
-
-              <div className="chrome-tabs">
-                <button
-                  type="button"
-                  className={tab === "float" ? "active" : ""}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleTabChange("float")
-                  }}
-                >
-                  Floating
-                </button>
-                <button
-                  type="button"
-                  className={tab === "static" ? "active" : ""}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleTabChange("static")
-                  }}
-                >
-                  Static
-                </button>
-              </div>
-
-              <div className="widget-code-section">
-                <div className="code-header" onClick={(e) => e.stopPropagation()}>
-                  <span>
-                    Copy this code to integrate the widget on <strong>{selectedAgentForWidget.domain}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    disabled={!widgetCode}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      e.preventDefault()
-                      if (widgetCode) {
-                        handleCopyWidgetCode(e)
-                      }
-                    }}
-                    className="copy-btn"
-                    style={{
-                      opacity: widgetCode ? 1 : 0.6,
-                      cursor: widgetCode ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    {copied ? "✓ Copied!" : "Copy Code"}
-                  </button>
-                </div>
-
-                <pre className="widget-code">
-                  <code>{widgetCode || "Loading..."}</code>
-                </pre>
-
-                <div className="widget-info">
-                  <p><strong>Widget ID:</strong> {widgetId || "N/A"}</p>
-                  <p><strong>Agent ID:</strong> {selectedAgentForWidget.id}</p>
-                  <p><strong>Domain:</strong> {selectedAgentForWidget.domain}</p>
-                  <p className="widget-note">
-                    <strong>Note:</strong> This widget code should only be used on <strong>{selectedAgentForWidget.domain}</strong> or its subdomains.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {selectedInstructionsAgent && (
-        <div className="modal-overlay" onClick={() => setSelectedInstructionsAgent(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>System Instructions - {selectedInstructionsAgent.name}</h3>
-              <button className="modal-close" onClick={() => setSelectedInstructionsAgent(null)}>×</button>
-            </div>
-            <div className="modal-body">
-              <div className="instructions-text"
-                dangerouslySetInnerHTML={{
-                  __html: convertJsonPrompt(selectedInstructionsAgent.instructions),
-                }}
-              ></div>
-            </div>)
-          </div>
-        </div>
-      )}
+      <EditAgentModal
+        editingAgent={editingAgent}
+        formData={formData}
+        setFormData={setFormData}
+        Instructions={Instructions}
+        InstructionSet={InstructionSet}
+        handleSubmit={handleSubmit}
+        handleCancelEdit={handleCancelEdit}
+        isLoading={updateMutation.isLoading}
+      />
+      <WidgetModal
+        showWidgetModal={showWidgetModal}
+        selectedAgentForWidget={selectedAgentForWidget}
+        widgetCode={widgetCode}
+        widgetId={widgetId}
+        tab={tab}
+        handleTabChange={handleTabChange}
+        handleCopyWidgetCode={handleCopyWidgetCode}
+        copied={copied}
+        onClose={() => {
+          setShowWidgetModal(false)
+          setWidgetCode(null)
+          setWidgetId(null)
+          setCopied(false)
+        }}
+      />
+      <InstructionsModal
+        selectedInstructionsAgent={selectedInstructionsAgent}
+        convertJsonPrompt={convertJsonPrompt}
+        onClose={() => setSelectedInstructionsAgent(null)}
+      />
     </div>
   )
 }

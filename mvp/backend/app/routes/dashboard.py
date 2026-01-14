@@ -3,7 +3,7 @@ Dashboard routes - statistics and analytics endpoints
 """
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Optional
 from app.core.database import get_db
 from app.models.user import User, UserRole
@@ -12,65 +12,16 @@ from app.models.agent import Agent
 from app.models.interaction import Interaction
 from app.schemas.dashboard import DashboardStats
 from app.core.dependencies import  require_active_subscription
+from app.utils.date_range import get_date_range,get_previous_period_range
+from app.utils.email_html import expense_report_html
+from app.tasks.email_task import send_email_task
+from app.core.redis_client import redis_client
+import json
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 # Colors for charts (matching frontend)
 CHART_COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', '#43e97b', '#fa709a', '#fee140']
-
-
-def get_date_range(days: str) -> tuple:
-    """Convert days string to date range (timezone-aware)"""
-    now = datetime.now(timezone.utc)
-    
-    if days == '7d':
-        start_date = now - timedelta(days=7)
-    elif days == '30d':
-        start_date = now - timedelta(days=30)
-    elif days == '90d':
-        start_date = now - timedelta(days=90)
-    elif days == 'today':
-        # Start of today
-        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    elif days == 'this_week':
-        # Start of this week (Monday)
-        days_since_monday = now.weekday()
-        start_date = (now - timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
-    elif days == 'this_month':
-        # Start of this month
-        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    elif days == 'this_year':
-        # Start of this year
-        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-    elif days == 'till_now' or days == 'all':
-        # All time - use a very old date
-        start_date = datetime(2020, 1, 1, tzinfo=timezone.utc)
-    else:
-        # Default to 30 days
-        start_date = now - timedelta(days=30)
-    
-    return start_date, now
-
-
-def get_previous_period_range(days: str) -> tuple:
-    """Get the previous period range for comparison (timezone-aware)"""
-    now = datetime.now(timezone.utc)
-    
-    if days == '7d':
-        period_days = 7
-    elif days == '30d':
-        period_days = 30
-    elif days == '90d':
-        period_days = 90
-    else:
-        period_days = 30
-    
-    current_start = now - timedelta(days=period_days)
-    previous_start = current_start - timedelta(days=period_days)
-    previous_end = current_start
-    
-    return previous_start, previous_end
-
 
 @router.get("/stats", response_model=DashboardStats)
 async def get_dashboard_stats(
@@ -88,6 +39,10 @@ async def get_dashboard_stats(
     - **user_id**: Optional user ID filter (superadmin only, null = all users for superadmin)
     """
     try:
+        cached = redis_client.get(f"{current_user.id}_dashboard_stats")
+        if cached:
+            return DashboardStats.parse_raw(cached)  # deserialize JSON back to Pydantic
+        
         start_date, end_date = get_date_range(days)
         prev_start, prev_end = get_previous_period_range(days)
         
@@ -192,10 +147,7 @@ async def get_dashboard_stats(
             num_days = 30
         else:
             num_days = 90
-        
-        # Create a mapping of key_id to key_name - handle None key_name
-        key_name_map = {k.id: (k.key_name or f"Key {k.id}") for k in all_keys if k.key_name is not None}
-        
+
         for i in range(num_days):
             day = end_date - timedelta(days=num_days - 1 - i)
             day_date = day.date()  # Just the date part for comparison
@@ -239,7 +191,7 @@ async def get_dashboard_stats(
         # Available keys for dropdown
         available_keys = [{'id': k.id, 'name': (k.key_name or f"Key {k.id}")} for k in all_keys]
         
-        return DashboardStats(
+        response= DashboardStats(
             total_interactions=total_interactions,
             total_expenses=round(total_expenses, 2),
             total_agents=total_agents,
@@ -251,13 +203,15 @@ async def get_dashboard_stats(
             agents_per_key=agents_per_key,
             available_keys=available_keys
         )
+        redis_client.set(f"{current_user.id}_dashboard_stats",response.json(),ex=300)
+        return response
     except Exception as e:
         import traceback
         import logging
         logging.error(f"Dashboard stats error: {e}")
         logging.error(traceback.format_exc())
         # Return empty stats instead of crashing
-        return DashboardStats(
+        response= DashboardStats(
             total_interactions=0,
             total_expenses=0.0,
             total_agents=0,
@@ -269,6 +223,7 @@ async def get_dashboard_stats(
             agents_per_key=[],
             available_keys=[]
         )
+        return response
 
 
 @router.get("/expenses-per-user")
@@ -328,7 +283,7 @@ async def get_expenses_per_user(
         expenses_list = list(user_expenses.values())
         expenses_list.sort(key=lambda x: x['total_expenses'], reverse=True)
         
-        return {
+        response= {
             'period': {
                 'start': start_date.isoformat(),
                 'end': end_date.isoformat(),
@@ -338,6 +293,7 @@ async def get_expenses_per_user(
             'total_users': len(expenses_list),
             'grand_total_expenses': round(sum(u['total_expenses'] for u in expenses_list), 2)
         }
+        return response
     except Exception as e:
         import traceback
         import logging
@@ -413,12 +369,7 @@ async def send_expenses_report_email(
             '30d': 'Last 30 days',
             '90d': 'Last 90 days'
         }
-        period_label = period_labels.get(days, 'Last 30 days')
-        
-        # Generate HTML email
-        from app.services.email_service import EmailService
-        email_service = EmailService()
-        
+        period_label = period_labels.get(days, 'Last 30 days')  
         # Build HTML table
         table_rows = ""
         for idx, user_expense in enumerate(expenses_list, 1):
@@ -436,111 +387,11 @@ async def send_expenses_report_email(
         
         grand_total = sum(u['total_expenses'] for u in expenses_list)
         
-        html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        @media only screen and (max-width: 600px) {{
-            .email-container {{
-                padding: 10px !important;
-            }}
-            .summary-cards {{
-                flex-direction: column !important;
-            }}
-            .summary-card {{
-                min-width: 100% !important;
-            }}
-            table {{
-                font-size: 12px !important;
-            }}
-            th, td {{
-                padding: 8px 6px !important;
-            }}
-        }}
-    </style>
-</head>
-<body style="margin:0;padding:0;background:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-    <div style="max-width:800px;margin:0 auto;padding:20px;" class="email-container">
-        <!-- Header -->
-        <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:16px 16px 0 0;padding:30px 25px;text-align:center;box-shadow:0 4px 12px rgba(102,126,234,0.2);">
-            <h1 style="margin:0 0 8px 0;color:white;font-size:24px;font-weight:600;letter-spacing:-0.5px;">📊 Per User Expenses Report</h1>
-            <p style="margin:0;color:rgba(255,255,255,0.95);font-size:14px;font-weight:400;">Detailed breakdown of expenses by user</p>
-            <div style="margin-top:12px;padding:8px 16px;background:rgba(255,255,255,0.15);border-radius:8px;display:inline-block;">
-                <span style="color:white;font-size:13px;font-weight:500;">Period: {period_label}</span>
-            </div>
-        </div>
-        
-        <!-- Content -->
-        <div style="background:white;padding:30px 25px;border-radius:0 0 16px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-            <!-- Summary Cards -->
-            <div style="display:flex;gap:15px;margin-bottom:30px;flex-wrap:wrap;" class="summary-cards">
-                <div style="flex:1;min-width:180px;background:#f9fafb;padding:20px;border-radius:12px;border-left:4px solid #667eea;box-shadow:0 2px 6px rgba(0,0,0,0.06);" class="summary-card">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                        <div style="width:40px;height:40px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">👥</div>
-                        <div>
-                            <p style="margin:0;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;">Total Users</p>
-                            <p style="margin:4px 0 0 0;font-size:28px;font-weight:700;color:#333;line-height:1;">{len(expenses_list)}</p>
-                        </div>
-                    </div>
-                </div>
-                <div style="flex:1;min-width:180px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(102,126,234,0.3);color:white;" class="summary-card">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                        <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">💰</div>
-                        <div>
-                            <p style="margin:0;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;opacity:0.95;">Grand Total</p>
-                            <p style="margin:4px 0 0 0;font-size:28px;font-weight:700;line-height:1;">${grand_total:.2f}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- User Breakdown Section -->
-            <div style="margin-top:25px;">
-                <h3 style="color:#333;font-size:18px;font-weight:600;margin:0 0 20px 0;padding-bottom:12px;border-bottom:2px solid #e5e7eb;">User Breakdown</h3>
-                <div style="background:#f9fafb;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
-                    <table style="width:100%;border-collapse:collapse;background:white;">
-                        <thead>
-                            <tr style="background:linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);">
-                                <th style="padding:14px 16px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:2px solid #e5e7eb;">Rank</th>
-                                <th style="padding:14px 16px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:2px solid #e5e7eb;">Username</th>
-                                <th style="padding:14px 16px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:2px solid #e5e7eb;">Email</th>
-                                <th style="padding:14px 16px;text-align:center;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:2px solid #e5e7eb;">Interactions</th>
-                                <th style="padding:14px 16px;text-align:right;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:2px solid #e5e7eb;">Expenses</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {table_rows if table_rows else '<tr><td colspan="5" style="padding:40px 20px;text-align:center;color:#6b7280;font-size:14px;">No expenses data available for this period</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Footer -->
-            <div style="border-top:1px solid #e5e7eb;padding-top:20px;margin-top:30px;text-align:center;">
-                <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.6;">
-                    Generated on <strong>{datetime.now(timezone.utc).strftime('%B %d, %Y at %H:%M:%S UTC')}</strong>
-                </p>
-                <p style="margin:8px 0 0 0;color:#cbd5e1;font-size:11px;">
-                    Voice Assistant Platform - Expenses Report
-                </p>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-        """
+        html_content = expense_report_html(period_label=period_label,expenses_list=expenses_list,table_rows=table_rows,grand_total=grand_total)
         
         # Send email
         subject = f"Per User Expenses Report - {period_label}"
-        email_service.send_email(
-            to_email=current_user.email,
-            subject=subject,
-            html_content=html_content
-        )
-        
+        send_email_task.delay(current_user.email,subject,html_content) 
         return {
             "message": f"Expenses report sent to {current_user.email}",
             "period": period_label,

@@ -4,6 +4,7 @@ import { useAuthStore } from '../context/authStore'
 import { authService, forgotPassword } from '../services/services'
 import '../styles/Login.css'
 import { showError,showSuccess } from '../utils/toast'
+import { bootstrapAuth } from '../auth/bootstrapAuth'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -23,8 +24,9 @@ function Login() {
       const response = await authService.login({ email, password })
       setAuth(response.access_token, null)
 
-      const userInfo = await authService.getMe()
-      setAuth(response.access_token, userInfo)
+      // const userInfo = await authService.getMe()
+      // setAuth(response.access_token, userInfo)
+      await bootstrapAuth(setAuth)
       showSuccess(`Login successfully`);
       navigate('/')
     } catch (err) {

@@ -36,65 +36,13 @@ function Users() {
     },
   })
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    createMutation.mutate(formData)
-  }
-
   if (isLoading) return <div>Loading...</div>
 
   return (
     <div className="users">
       <div className="page-header">
         <h1>User Management</h1>
-        <button onClick={() => setShowAddForm(!showAddForm)}>
-          {showAddForm ? 'Cancel' : '+ Create User'}
-        </button>
       </div>
-
-      {showAddForm && (
-        <form onSubmit={handleSubmit} className="add-user-form">
-          <input
-            type="email"
-            placeholder="Email"
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            autoComplete="off"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Username"
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            autoComplete="off"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            autoComplete="off"
-            required
-          />
-          <select
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-            autoComplete="off"
-            required
-          >
-            <option value="">Select Role</option>
-            <option value="default">Default User</option>
-            <option value="superadmin">Superadmin</option>
-          </select>
-          {createMutation.error && (
-            <div className="error">
-              {createMutation.error.response?.data?.detail || 'Failed to create user'}
-            </div>
-          )}
-          <button type="submit" disabled={createMutation.isLoading}>
-            {createMutation.isLoading ? 'Creating...' : 'Create User'}
-          </button>
-        </form>
-      )}
 
       <div className="users-list">
         {users?.map((user) => (

@@ -3,13 +3,10 @@ Payment routes for Razorpay integration
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from fastapi import BackgroundTasks
 from app.core.database import get_db
 from app.models.user import User
 from app.models.subscription import Subscription, PlanType, PaymentStatus
 from app.core.dependencies import get_current_user
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime, timedelta, timezone
 from app.core.config import settings
 from app.services.service_account import create_service_account

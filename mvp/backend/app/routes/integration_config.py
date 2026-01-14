@@ -42,14 +42,12 @@ async def create_integration_config(
     elif config_data.oauth_client_id:
         # For OAuth-based integrations (like HubSpot), encrypted_key is not needed
         # But database requires NOT NULL, so set to empty string
+        config.oauth_client_id = config_data.oauth_client_id
         config.encrypted_key = ""
     else:
         # If neither encrypted_key nor OAuth credentials provided, set empty string
         config.encrypted_key = ""
     
-    # Handle OAuth client credentials
-    if config_data.oauth_client_id:
-        config.oauth_client_id = config_data.oauth_client_id
     if config_data.oauth_client_secret:
         config.oauth_client_secret_encrypted = encrypt_api_key(config_data.oauth_client_secret)
     

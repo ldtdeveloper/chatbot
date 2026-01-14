@@ -67,7 +67,7 @@ tailwind.config = {
 
 // API Base URL
 const API_BASE = 'http://localhost:8081';
-
+const APP_BASE_URL = 'http://localhost:3000'
 // Selected plan tracking
 let selectedPlan = null;
 let selectedPlanPrice = null;
@@ -102,6 +102,7 @@ function openRegisterModal() {
 
 // Scroll down for get started
 function scrollDownPlans(duration = 1000) {
+    console.log("Scroll down plans logged.........")
     const target = document.getElementById("pricing");
     if (!target) return;
 
@@ -489,141 +490,123 @@ function resetLoginState() {
     document.getElementById('loadingOverlay').classList.add('hidden');
 }
 
-// Handle login
 async function handleLogin(e) {
     e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
+
+    const email = document.getElementById('loginEmail').value.trim();
+    const passwordInput = document.getElementById('loginPassword');
     const passwordContainer = document.getElementById('passwordContainer');
     const errorDiv = document.getElementById('loginError');
     const loginBtn = document.getElementById('loginBtn');
     const loadingOverlay = document.getElementById('loadingOverlay');
 
-    // If password is set and visible, perform login
-    if (!passwordContainer.classList.contains('hidden')) {
-        const password = document.getElementById('loginPassword').value;
-        if (password == "") {
-            errorDiv.textContent = 'Password is required';
-            errorDiv.classList.remove('hidden');
-            return;
-        }
-        // Show loading
-        loadingOverlay.classList.remove('hidden');
-        loginBtn.disabled = true;
-        errorDiv.classList.add('hidden');
-
-        try {
-            const loginResponse = await fetch(`${API_BASE}/api/auth/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: email,
-                    password: password
-                })
-            });
-
-            if (!loginResponse.ok) {
-                const error = await loginResponse.json();
-                throw new Error(error.detail || 'Login failed');
-            }
-
-            const loginData = await loginResponse.json();
-
-            // Store token
-            if (loginData.access_token) {
-                localStorage.setItem('token', loginData.access_token);
-            }
-
-            // Redirect
-            window.location.href = 'http://localhost:3000/';
-            return;
-
-        } catch (error) {
-            console.error('Login error:', error);
-            errorDiv.textContent = error.message || 'Invalid credentials';
-            errorDiv.classList.remove('hidden');
-            loadingOverlay.classList.add('hidden');
-            loginBtn.disabled = false;
-            return;
-        }
-    }
-
-    const plan = selectedPlan;
-
-    // Show loading
-    loadingOverlay.classList.remove('hidden');
-    loginBtn.disabled = true;
-    errorDiv.classList.add('hidden');
-
-    try {
-        const response = await fetch(`${API_BASE}/api/auth/prefetch`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                email: email,
-                plan: plan
-            })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            if (data.password_set) {
-                passwordContainer.classList.remove('hidden');
-                document.getElementById('forgotPasswordContainer').classList.remove('hidden');
-                loadingOverlay.classList.add('hidden');
-                loginBtn.disabled = false;
-                document.getElementById('loginPassword').focus();
-                return;
-            }
-            else if (data.subscription.exists == false || (data.subscription.status == 'PENDING' && data.subscription.expired == false)) {
-                Toastify({
-                    text: ` Payment Link is sent to your registered email`,
-                    duration: 2000,
-                    gravity: "top",
-                    position: "right",
-                    backgroundColor: "#16a34a",
-                    style: {
-                        borderRadius: "15px"
-                    }
-                }).showToast();
-            }
-            else if(data.subscription.exist && data.next_action == 'SET_PASSWORD'){
-                //TO DO SETUP PASSWORD
-            }
-            else {
-                Toastify({
-                    text: `Subscription expired`,
-                    duration: 2000,
-                    gravity: "top",
-                    position: "right",
-                    backgroundColor: "#16a34a",
-                    style: {
-                        borderRadius: "15px"
-                    }
-                }).showToast();
-
-            }
-            loadingOverlay.classList.add('hidden');
-            document.getElementById('loginModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        } else {
-            const error = await response.json();
-            errorDiv.textContent = error.detail || 'Invalid credentials';
-            errorDiv.classList.remove('hidden');
-            loadingOverlay.classList.add('hidden');
-            loginBtn.disabled = false;
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        errorDiv.textContent = 'Connection error. Please try again.';
+    const showError = (msg) => {
+        errorDiv.textContent = msg;
         errorDiv.classList.remove('hidden');
         loadingOverlay.classList.add('hidden');
         loginBtn.disabled = false;
+    };
+
+    const startLoading = () => {
+        errorDiv.classList.add('hidden');
+        loadingOverlay.classList.remove('hidden');
+        loginBtn.disabled = true;
+    };
+
+    /** LOGIN FLOW **/
+    if (!passwordContainer.classList.contains('hidden')) {
+        const password = passwordInput.value;
+
+        if (!password) {
+            showError('Password is required');
+            return;
+        }
+
+        startLoading();
+
+        try {
+            const res = await fetch(`${API_BASE}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.detail || 'Login failed');
+            }
+
+            if (!data.access_token) {
+                throw new Error('No access token received');
+            }
+
+            localStorage.setItem('token', data.access_token);[]
+            window.location.href = `${APP_BASE_URL}/?token=${data.access_token}`;
+        } catch (err) {
+            console.error(err);
+            showError(err.message);
+            return;
+        }
+    }
+
+    /** PREFETCH FLOW **/
+    startLoading();
+
+    try {
+        const res = await fetch(`${API_BASE}/api/auth/prefetch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, plan: selectedPlan })
+        });
+        const data = await res.json();
+        console.log(`${data} --------------`)
+        if (!res.ok) {
+            throw new Error(data.detail || 'Prefetch failed');
+        }
+        if (data.next_action=='LOGIN') {
+            passwordContainer.classList.remove('hidden');
+            document.getElementById('forgotPasswordContainer').classList.remove('hidden');
+            loadingOverlay.classList.add('hidden');
+            loginBtn.disabled = false;
+            passwordInput.focus();
+            return;
+        }
+        else if (data.next_action=='COMPLETE_PAYMENT') {
+            Toastify({
+                text: 'Payment link sent to your registered email',
+                duration: 2000,
+                gravity: 'top',
+                position: 'right',
+                style: { borderRadius: '15px',background: '#16a34a' }
+            }).showToast();
+            loadingOverlay.classList.add('hidden');
+            closeLoginModal();
+            return;
+        }
+        else if(data.next_action=='CHOOSE_PLAN'){
+            loadingOverlay.classList.add('hidden');
+            Toastify({
+                text: 'Choose a plan',
+                duration: 2000,
+                gravity: 'top',
+                position: 'right',
+                style: {borderRadius: '15px',background:' #dc2626' }
+            }).showToast();
+            closeLoginModal();
+            scrollDownPlans();
+        }
+        if (data.next_action === 'SET_PASSWORD') {
+            // redirect to setup password
+            return;
+        }
+
+    } catch (err) {
+        console.error(err);
+        showError(`${err.message}`);
     }
 }
+
 
 // Close modal on escape key
 document.addEventListener('keydown', (e) => {

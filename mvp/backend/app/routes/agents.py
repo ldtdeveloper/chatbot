@@ -35,7 +35,7 @@ async def create_agent(
     api_key = db.query(ServiceAccountKey).filter(
         ServiceAccountKey.id == agent_data.openai_key_id,
         ServiceAccountKey.user_id == current_user.id,
-        ServiceAccountKey.is_active == True
+        ServiceAccountKey.is_active
     ).first()
     
     logger.info(f"API key lookup: openai_key_id={agent_data.openai_key_id}, user_id={current_user.id}, found={api_key is not None}")
@@ -56,7 +56,7 @@ async def create_agent(
         # Get available keys for better error message
         available_keys = db.query(ServiceAccountKey).filter(
             ServiceAccountKey.user_id == current_user.id,
-            ServiceAccountKey.is_active == True
+            ServiceAccountKey.is_active
         ).all()
         
         available_key_ids = [str(k.id) for k in available_keys]
@@ -160,35 +160,24 @@ async def update_agent(
             detail="Agent not found"
         )
     
-    # Update fields if provided
-    if agent_data.name is not None:
-        agent.name = agent_data.name
-    if agent_data.domain is not None:
-        agent.domain = agent_data.domain
-    if agent_data.instructions is not None:
-        agent.instructions = agent_data.instructions
-    if agent_data.voice is not None:
-        agent.voice = agent_data.voice
-    if agent_data.noise_reduction_mode is not None:
+    update_dict = agent_data.dict(exclude_unset=True)  # Only include fields provided
+     # Handle noise_reduction_mode separately for enum validation
+    noise_mode_value = update_dict.get("noise_reduction_mode", None)
+    if noise_mode_value is not None:
         try:
-            noise_reduction_enum = NoiseReductionMode(agent_data.noise_reduction_mode)
-            agent.noise_reduction_mode = noise_reduction_enum.value  # Use enum value explicitly
+            noise_mode_enum = NoiseReductionMode(noise_mode_value)
+            update_dict["noise_reduction_mode"] = noise_mode_enum.value
         except ValueError:
+            allowed_values = [m.value for m in NoiseReductionMode]
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]} or {[m.name for m in NoiseReductionMode]}"
+                detail=f"Invalid noise reduction mode. Must be one of: {allowed_values}"
             )
-    if agent_data.noise_reduction_threshold is not None:
-        agent.noise_reduction_threshold = agent_data.noise_reduction_threshold
-    if agent_data.noise_reduction_prefix_padding_ms is not None:
-        agent.noise_reduction_prefix_padding_ms = agent_data.noise_reduction_prefix_padding_ms
-    if agent_data.noise_reduction_silence_duration_ms is not None:
-        agent.noise_reduction_silence_duration_ms = agent_data.noise_reduction_silence_duration_ms
-    if agent_data.agent_config is not None:
-        agent.agent_config = agent_data.agent_config
-    if agent_data.enable_mcp_server is not None:
-        agent.enable_mcp_server = agent_data.enable_mcp_server
-    
+
+    # Apply updates dynamically
+    for field, value in update_dict.items():
+        setattr(agent, field, value)
+
     db.commit()
     db.refresh(agent)
     return agent
