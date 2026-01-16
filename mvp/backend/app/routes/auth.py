@@ -10,9 +10,9 @@ from app.models.payment_token import PaymentToken
 from app.models.plans import Plans
 from app.models.subscription import Subscription, PaymentStatus
 from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail
-from app.schemas.user import UserRegisterRequest,UserResponse
+from app.schemas.user import UserCreate,UserRegisterRequest,UserResponse
 from app.utils.auth import verify_password, get_password_hash, create_access_token,decode_access_token
-from app.utils.email_html import generate_email_html,generate_email_html_reset_password
+from app.utils.email_html import generate_email_html
 from app.core.dependencies import get_current_user
 from datetime import timedelta, datetime, timezone
 from app.core.config import settings
