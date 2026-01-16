@@ -6,12 +6,12 @@ from app.models.assistant_config import AssistantConfig
 from app.models.interaction import Interaction
 from app.models.integration_config import IntegrationConfig
 from app.models.report import UserReportPreference, ReportJob, ReportFrequency, JobStatus
-from app.models.subscription import Subscription, PlanType, PaymentStatus
+from app.models.subscription import Subscription, PaymentStatus
 from app.models.payment_token import PaymentToken
-
+from app.models.plans import Plans
 __all__ = [
     "User", "UserRole", "OpenAIKey", "Agent", "AssistantConfig", "Interaction",
     "IntegrationConfig", "UserReportPreference", "ReportJob", "ReportFrequency", "JobStatus",
-    "Subscription", "PlanType", "PaymentStatus", "PaymentToken"
+    "Subscription", "PaymentStatus", "PaymentToken","Plans"
 ]
 

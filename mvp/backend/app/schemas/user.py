@@ -11,7 +11,7 @@ class UserCreate(BaseModel):
 class UserRegisterRequest(BaseModel):
     email: EmailStr
     username: str
-    plan: str  # starter, pro, enterprise
+    plan_id: int 
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None

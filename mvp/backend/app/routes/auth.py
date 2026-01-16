@@ -7,6 +7,7 @@ from sqlalchemy import case
 from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.payment_token import PaymentToken
+from app.models.plans import Plans
 from app.models.subscription import Subscription, PaymentStatus
 from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail
 from app.schemas.user import UserRegisterRequest,UserResponse
@@ -15,16 +16,9 @@ from app.utils.email_html import generate_email_html,generate_email_html_reset_p
 from app.core.dependencies import get_current_user
 from datetime import timedelta, datetime, timezone
 from app.core.config import settings
-from app.services.email_service import EmailService
 from app.tasks.email_task import send_email_task
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
-
-# Plan pricing
-PLAN_PRICES = {
-    "pro": 29.0,
-    "enterprise": 0.0  # Custom pricing
-}
 
 @router.post("/register-with-plan")
 async def register_with_plan(register_data: UserRegisterRequest, db: Session = Depends(get_db)):
@@ -39,15 +33,14 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
             detail="Email or username already registered"
         )
     
+    plan = db.query(Plans).filter((Plans.id== register_data.plan_id)).first()
+
     # Validate plan
-    if register_data.plan.lower() not in PLAN_PRICES:
+    if not plan:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid plan. Must be one of: {list(PLAN_PRICES.keys())}"
+            detail= "Invalid plan"
         )
-    
-    plan = register_data.plan.lower()
-    amount = PLAN_PRICES[plan]
     
     # Create new user without password (inactive)
     db_user = User(
@@ -69,8 +62,8 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
     db_token = PaymentToken(
         user_id=db_user.id,
         token=payment_token,
-        plan_type=plan,
-        amount=amount,
+        plan_id=plan.id,
+        amount=plan.price,
         expires_at=expires_at
     )
     db.add(db_token)
@@ -79,9 +72,9 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
     # Generate payment link
     payment_link = f"{settings.api_base_url}/payment/{payment_token}"
 
-    email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount)
+    email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = plan.price)
     try:
-        send_email_task.delay(register_data.email,f"Complete Your VoiceAI Registration - {plan.upper()} Plan",email_html)
+        send_email_task.delay(register_data.email,f"Complete Your VoiceAI Registration - {plan.name.upper()} Plan",email_html)
     except Exception as e:
         print(f"[Register] Failed to send email: {e}")
         # Don't fail registration if email fails, but log it
@@ -337,15 +330,13 @@ async def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_d
         return response
 
     # Validate plan
-    if request.plan and request.plan.lower() not in PLAN_PRICES:
+    if request.plan:
+        plan = db.query(Plans).filter(Plans.id == request.plan.id).first()
+        if not plan:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid plan. Must be one of: {list(PLAN_PRICES.keys())}"
+                detail="Invalid plan"
             )
-
-    if request.plan:
-        plan = request.plan.lower()
-        amount = PLAN_PRICES[plan]
 
     subscription = (
         db.query(Subscription)
@@ -361,7 +352,7 @@ async def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_d
         if not request.plan:
             response["next_action"]="CHOOSE_PLAN"
             return response
-        payment_token_details = db.query(PaymentToken).filter(PaymentToken.user_id==db_user.id, PaymentToken.plan_type == plan,PaymentToken.is_used.is_(False)).order_by(PaymentToken.created_at.desc()).first()
+        payment_token_details = db.query(PaymentToken).filter(PaymentToken.user_id==db_user.id, PaymentToken.plan_type == request.plan,PaymentToken.is_used.is_(False)).order_by(PaymentToken.created_at.desc()).first()
         if payment_token_details and payment_token_details.expires_at>datetime.now(timezone.utc):
             payment_token = payment_token_details.token
         else:
@@ -372,7 +363,7 @@ async def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_d
         payment_link = f"{settings.api_base_url}/payment/{payment_token}"
 
         # Send email with payment link
-        email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount)
+        email_html = generate_email_html(db_user,payment_link=payment_link,plan=request.plan,amount = plan.price)
         send_email_task.delay(request.email,f"Complete Your VoiceAI Registration - {plan.upper()} Plan",email_html)
         response["next_action"] = "COMPLETE_PAYMENT"
         return response

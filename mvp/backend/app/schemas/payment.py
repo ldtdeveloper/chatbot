@@ -6,7 +6,7 @@ from typing import Optional
 
 
 class CreateOrderRequest(BaseModel):
-    plan: str
+    plan_id: int
     amount: float  # Amount in USD (e.g., 100 for $100)
     user_id: int
 

@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.user import User
-from app.models.subscription import Subscription, PlanType, PaymentStatus
+from app.models.subscription import Subscription, PaymentStatus
+from app.models.plans import Plans
 from app.core.dependencies import get_current_user
 from datetime import datetime, timedelta, timezone
 from app.core.config import settings
@@ -96,11 +97,11 @@ async def create_order_from_token(
     
     # Validate plan
     try:
-        plan_type = PlanType(db_token.plan_type.lower())
+        plan_type = db.get(Plans, db_token.plan_id)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid plan. Must be one of: {[p.value for p in PlanType]}"
+            detail="Invalid plan"
         )
     
     # Convert amount to cents
@@ -109,7 +110,7 @@ async def create_order_from_token(
     # Create subscription record
     subscription = Subscription(
         user_id=user.id,
-        plan_type=plan_type,
+        plan_type=plan_type.id,
         amount=db_token.amount,
         payment_status=PaymentStatus.PENDING
     )
@@ -132,7 +133,7 @@ async def create_order_from_token(
             'receipt': f'sub_{subscription.id}',
             'notes': {
                 'user_id': user.id,
-                'plan': db_token.plan_type,
+                'plan': db_token.plan.name,
                 'subscription_id': subscription.id,
                 'payment_token': token
             }
@@ -166,22 +167,21 @@ async def create_order(
 ):
     """Create a Razorpay order for payment"""
     # Check if in test mode
+    try:
+        plan_type = db.query(Plans).filter(Plans.id == order_data.plan_id).first()
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid plan"
+        )
+    
     if TEST_MODE and not razorpay_client:
         # Mock payment order for testing
         amount_cents = int(order_data.amount * 100)
         
-        # Create subscription record
-        try:
-            plan_type = PlanType(order_data.plan.lower())
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid plan. Must be one of: {[p.value for p in PlanType]}"
-            )
-        
         subscription = Subscription(
             user_id=current_user.id,
-            plan_type=plan_type,
+            plan_type=plan_type.id,
             amount=order_data.amount,
             payment_status=PaymentStatus.PENDING
         )
@@ -209,15 +209,6 @@ async def create_order(
             detail="Razorpay payment gateway is not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to your .env file. See QUICK_RAZORPAY_SETUP.md for details."
         )
     
-    # Validate plan
-    try:
-        plan_type = PlanType(order_data.plan.lower())
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid plan. Must be one of: {[p.value for p in PlanType]}"
-        )
-    
     # Validate user
     if current_user.id != order_data.user_id:
         raise HTTPException(
@@ -232,7 +223,7 @@ async def create_order(
     # Create subscription record
     subscription = Subscription(
         user_id=current_user.id,
-        plan_type=plan_type,
+        plan_type=plan_type.id,
         amount=order_data.amount,  # Store in USD
         payment_status=PaymentStatus.PENDING
     )
@@ -248,7 +239,7 @@ async def create_order(
             'receipt': f'sub_{subscription.id}',
             'notes': {
                 'user_id': current_user.id,
-                'plan': order_data.plan,
+                'plan': plan_type.name,
                 'subscription_id': subscription.id
             }
         })
@@ -273,6 +264,7 @@ async def create_order(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create payment order: {str(e)}"
         )
+    
 @router.post("/verify-from-token", response_model=PaymentVerifyResponse)
 async def verify_payment_from_token(
     payment_data: dict,

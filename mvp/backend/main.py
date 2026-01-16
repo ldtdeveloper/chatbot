@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routes import auth, service_account,agents, assistant_config, widget, users, dashboard, reports, integration_config, payments
+from app.routes import auth, service_account,agents, assistant_config, widget, users, dashboard, reports, integration_config, payments, plans
 from app.routes import payment_link
 from sqlalchemy import text
 
@@ -313,6 +313,7 @@ app.include_router(reports.router)
 app.include_router(integration_config.router)
 app.include_router(payments.router)
 app.include_router(payment_link.router)
+app.include_router(plans.router)
 
 
 @app.get("/")

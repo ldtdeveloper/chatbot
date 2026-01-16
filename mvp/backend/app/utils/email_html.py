@@ -50,7 +50,7 @@ def generate_email_html(user,payment_link,plan,amount):
                                                     <tr>
                                                         <td style="padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.1);">
                                                             <span style="color: #718096; font-size: 14px; font-weight: 500;">Plan:</span>
-                                                            <span style="color: #1a202c; font-size: 16px; font-weight: 700; float: right; text-transform: uppercase; letter-spacing: 0.5px;">{plan.upper()}</span>
+                                                            <span style="color: #1a202c; font-size: 16px; font-weight: 700; float: right; text-transform: uppercase; letter-spacing: 0.5px;">{plan.name.upper()}</span>
                                                         </td>
                                                     </tr>
                                                     <tr>
@@ -497,14 +497,15 @@ def payment_page_html(user,plan_name,settings,db_token,token,amount_cents):
             const API_BASE = '{settings.api_base_url}';
             const paymentToken = '{token}';
             const amount = {amount_cents};
-            const plan = '{db_token.plan_type}';
+            const plan = '{db_token.plan}';
             const userId = {user.id};
-            
+            const plan_name = '{plan_name}';
+            console.log(plan)
             async function initiatePayment() {{
                 const button = document.getElementById('payButton');
                 const loading = document.getElementById('loading');
                 const error = document.getElementById('error');
-                
+                console.log("Intiated Payment ............")
                 button.disabled = true;
                 loading.style.display = 'block';
                 error.style.display = 'none';
@@ -527,8 +528,7 @@ def payment_page_html(user,plan_name,settings,db_token,token,amount_cents):
                     
                     const orderData = await orderResponse.json();
                     
-                    console.log('Order created:', orderData);
-                    
+                    console.log('Order created : ', orderData,plan_name,plan);
                     // Check if Razorpay SDK is loaded
                     if (typeof Razorpay === 'undefined') {{
                         throw new Error('Razorpay SDK not loaded. Please refresh the page.');
@@ -546,7 +546,7 @@ def payment_page_html(user,plan_name,settings,db_token,token,amount_cents):
                         amount: orderData.amount,
                         currency: orderData.currency || 'USD',
                         name: 'VoiceAI Platform',
-                        description: `${{plan.toUpperCase()}} Plan Subscription - ${{(orderData.amount / 100).toFixed(2)}}`,
+                        description: `${{plan_name.toUpperCase()}} Plan Subscription - ${{(orderData.amount / 100).toFixed(2)}}`,
                         order_id: orderData.razorpay_order_id,
                         handler: async function(response) {{
                             console.log('Razorpay payment successful:', response);

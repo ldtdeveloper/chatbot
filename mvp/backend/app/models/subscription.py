@@ -8,12 +8,6 @@ import enum
 from app.core.database import Base
 
 
-class PlanType(str, enum.Enum):
-    STARTER = "starter"
-    PRO = "pro"
-    ENTERPRISE = "enterprise"
-
-
 class PaymentStatus(str, enum.Enum):
     PENDING = "pending"
     SUCCESS = "success"
@@ -26,7 +20,7 @@ class Subscription(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    plan_type = Column(Enum(PlanType), nullable=False)
+    plan_type = Column(Integer, ForeignKey("plans.id"), nullable=False)
     amount = Column(Float, nullable=False)  # Amount in USD
     payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.PENDING)
     
@@ -44,5 +38,6 @@ class Subscription(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     user = relationship("User", back_populates="subscriptions")
+    plans = relationship("Plans",back_populates ="subscriptions")
 
 

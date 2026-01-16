@@ -13,8 +13,8 @@ class PaymentToken(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    token = Column(String, unique=True, index=True, nullable=False)  # Secure token for payment link
-    plan_type = Column(String, nullable=False)  # starter, pro, enterprise
+    token = Column(String, unique=True, index=True, nullable=False) # Secure token for payment link
+    plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False)
     amount = Column(Float, nullable=False)  # Amount in USD
     is_used = Column(Boolean, default=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
@@ -22,7 +22,8 @@ class PaymentToken(Base):
     used_at = Column(DateTime(timezone=True), nullable=True)
     
     user = relationship("User", back_populates="payment_tokens")
-    
+    plan = relationship("Plans",back_populates ="payment_tokens")
+
     @staticmethod
     def generate_token() -> str:
         """Generate a secure random token"""
