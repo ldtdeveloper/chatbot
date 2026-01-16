@@ -15,7 +15,7 @@ import Layout from './components/Layout'
 import ResetPassword from './pages/ResetPassword'
 import { bootstrapAuth } from './auth/bootstrapAuth'
 import {Toaster} from "sonner";
-import Plans from './pages/plans'
+import Plans from './pages/Plans'
 const queryClient = new QueryClient()
 
 function PrivateRoute({ children }) {
