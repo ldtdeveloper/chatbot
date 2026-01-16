@@ -50,19 +50,21 @@
 <!-- Voice Assistant Widget: e -->
 <!-- Voice Assistant Widget: fruit -->
 <!-- Voice Assistant Widget: fruit -->
+<!-- Voice Assistant Widget: food -->
+<!-- Voice Assistant Widget: octopus -->
 <script>
 (function() {
     // API base URL for widget backend connection
     let apiBaseUrl = 'http://localhost:8081';
     
-    // Create and load widget script-
+    // Create and load widget script
     const script = document.createElement('script');
-    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
-    script.setAttribute('data-agent-id', '10');
+    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget-static.js';
+    script.setAttribute('data-agent-id', '3');
     script.setAttribute('data-api-url', apiBaseUrl);
-    script.setAttribute('data-agent-name', 'fruit');
+    script.setAttribute('data-agent-name', 'octopus');
+    script.setAttribute('data-target-id', 'chatbot'); // <<<--- Change to desired container id
     script.async = true;
-    
     document.head.appendChild(script);
 })();
 </script>
