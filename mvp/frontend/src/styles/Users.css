@@ -187,4 +187,37 @@
   border-radius: 4px;
   font-size: 0.9rem;
 }
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  border: 1px solid transparent;
+}
+
+
+.status-badge.active {
+  background-color: #e6f9f0;
+  color: #0f8a5f;
+  border-color: #a6e9d5;
+}
+
+
+.status-badge.inactive {
+  background-color: #fdeaea;
+  color: #c62828;
+  border-color: #f5b5b5;
+}
+
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
 

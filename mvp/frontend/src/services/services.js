@@ -273,3 +273,18 @@ export const resetPasswordService = {
     return response.data
   }
 }
+
+export const userCreate = {
+  createUser: async (data, token) => {
+    const response = await api.post(
+      '/api/auth/register-with-plan',
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+    return response.data
+  },
+}
