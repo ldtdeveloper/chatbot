@@ -36,7 +36,7 @@ export default function ViewPlan({ plan, onBack }) {
 
             <div className="info-item">
               <label>Monthly Price</label>
-              <span>₹{plan.price}</span>
+              <span>${plan.price}</span>
             </div>
 
             <div className="info-item">

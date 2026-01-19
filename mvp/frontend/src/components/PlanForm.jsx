@@ -146,7 +146,7 @@ export default function PlanForm({ initialData, onSubmit, onBack }) {
           </label>
 
           <label>
-            Monthly Price (₹)
+            Monthly Price ($)
             <input
               type="number"
               name="price"

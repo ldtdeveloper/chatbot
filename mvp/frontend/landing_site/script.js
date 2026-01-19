@@ -200,7 +200,7 @@ function renderPlans(plans) {
                 <h3 class="text-2xl font-bold mb-2 text-gray-800">${plan.name}</h3>
                 <p class="text-gray-500 mb-4">${plan.description || 'Choose this plan'}</p>
                 <div class="text-5xl font-extrabold gradient-text">
-                    ${isCustomPrice ? 'Custom' : `₹${plan.price}`}
+                    ${isCustomPrice ? 'Custom' : `$${plan.price}`}
                     ${!isCustomPrice ? '<span class="text-lg font-normal text-gray-400">/month</span>' : ''}
                 </div>
             </div>
