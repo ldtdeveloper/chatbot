@@ -12,7 +12,7 @@ from app.models.subscription import Subscription, PaymentStatus
 from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail, AddToWalletRequest
 from app.schemas.user import UserCreate,UserRegisterRequest,UserResponse
 from app.utils.auth import verify_password, get_password_hash, create_access_token,decode_access_token
-from app.utils.email_html import generate_email_html
+from app.utils.email_html import generate_email_html,generate_email_html_reset_password
 from app.core.dependencies import get_current_user
 from datetime import timedelta, datetime, timezone
 from app.core.config import settings
@@ -191,7 +191,7 @@ async def setup_password_endpoint(
     # Find payment token
     db_token = db.query(PaymentToken).filter(
         PaymentToken.token == password_data.token,
-        PaymentToken.is_used == False
+        PaymentToken.is_used== False
     ).first()
     
     if not db_token:
@@ -323,7 +323,7 @@ async def forget_password(request: ForgetPasswordRequest,db: Session = Depends(g
     )
 
     #Reset password link
-    reset_password_link = f"http://localhost:3000/reset-password?token={reset_token}"
+    reset_password_link = f"{settings.api_base_url}/reset-password?token={reset_token}"
 
     #Send email
     email_html = generate_email_html_reset_password(db_user,reset_password_link)

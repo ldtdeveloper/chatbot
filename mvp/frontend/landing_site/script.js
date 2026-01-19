@@ -752,8 +752,6 @@ async function handleLogin(e) {
             if (!data.access_token) {
                 throw new Error('No access token received');
             }
-
-            localStorage.setItem('token', data.access_token);[]
             window.location.href = `${APP_BASE_URL}/?token=${data.access_token}`;
         } catch (err) {
             console.error(err);

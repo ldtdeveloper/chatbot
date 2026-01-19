@@ -30,6 +30,16 @@ function PrivateRoute({ children }) {
     const { setAuth } = useAuthStore()
 
   useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key === 'token') {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  useEffect(() => {
     bootstrapAuth(setAuth)
   }, [])
   // Fallback check — prevents redirect before effects have a chance to run
