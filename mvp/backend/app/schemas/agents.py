@@ -49,6 +49,7 @@ class AgentResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime]
     enable_mcp_server: Optional[bool]
+    is_active: bool
     
     class Config:
         from_attributes = True

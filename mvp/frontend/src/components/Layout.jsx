@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../context/authStore'
+import WalletModal from './WalletModal'
 import '../styles/Layout.css';
 
 function Layout() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [walletModalOpen, setWalletModalOpen] = useState(false)
   const dropdownRef = useRef(null)
 
   const handleLogout = () => {
@@ -44,12 +46,26 @@ function Layout() {
           {/* {user?.role === 'default' && <Link to="/widget-generator">Widget</Link>} */}
 
           {user?.role !== 'superadmin' && user?.wallet_balance !== undefined && (
-            <div className="wallet-display">
-              <span className="wallet-label">Wallet:</span>
-              <span className={`wallet-amount ${user.wallet_balance <= 2.0 ? 'low-balance' : ''}`}>
+            <button 
+              className="wallet-icon-btn"
+              onClick={() => setWalletModalOpen(true)}
+              title={`Wallet Balance: $${user.wallet_balance.toFixed(2)}`}
+            >
+              <svg 
+                className={`wallet-icon ${user.wallet_balance <= 2.0 ? 'low-balance' : ''}`}
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path>
+                <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path>
+                <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path>
+              </svg>
+              <span className="wallet-amount-text">
                 ${user.wallet_balance.toFixed(2)}
               </span>
-            </div>
+            </button>
           )}
           <div className="navbar-user" ref={dropdownRef}>
             <button 
@@ -99,6 +115,14 @@ function Layout() {
       <main className="main-content">
         <Outlet />
       </main>
+
+      <WalletModal 
+        isOpen={walletModalOpen}
+        onClose={() => setWalletModalOpen(false)}
+        onWalletUpdate={(newBalance) => {
+          // Wallet balance updated, modal will handle user refresh
+        }}
+      />
     </div>
   )
 }

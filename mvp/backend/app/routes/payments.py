@@ -13,7 +13,10 @@ from app.core.config import settings
 from app.services.service_account import create_service_account
 import hmac
 import hashlib
-from app.schemas.payment import CreateOrderRequest,PaymentOrderResponse,PaymentVerifyResponse,VerifyPaymentRequest
+from app.schemas.payment import (
+    CreateOrderRequest, PaymentOrderResponse, PaymentVerifyResponse, VerifyPaymentRequest,
+    WalletTopUpRequest, WalletTopUpOrderResponse, WalletTopUpVerifyRequest, WalletTopUpVerifyResponse
+)
 
 # Try to import razorpay - make it optional
 try:
@@ -485,4 +488,204 @@ async def verify_payment(
         "success": True,
         "message": "Payment verified successfully" + (" (TEST MODE)" if TEST_MODE else ""),
         "subscription_id": subscription.id
+    }
+
+
+@router.post("/wallet-topup/create-order", response_model=WalletTopUpOrderResponse)
+async def create_wallet_topup_order(
+    topup_data: WalletTopUpRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a Razorpay order for wallet top-up"""
+    from app.models.user import UserRole
+    from app.models.wallet_transaction import WalletTransaction, TransactionStatus
+    
+    # Only allow non-superadmin users
+    if current_user.role == UserRole.SUPERADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superadmin users cannot add money to wallet"
+        )
+    
+    # Validate amount
+    if topup_data.amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Amount must be greater than 0"
+        )
+    
+    if topup_data.amount < 1.0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Minimum amount is $1.00"
+        )
+    
+    # Create wallet transaction record
+    transaction = WalletTransaction(
+        user_id=current_user.id,
+        amount=topup_data.amount,
+        status=TransactionStatus.PENDING
+    )
+    db.add(transaction)
+    db.commit()
+    db.refresh(transaction)
+    
+    # Convert amount to cents
+    amount_cents = int(topup_data.amount * 100)
+    
+    if TEST_MODE and not razorpay_client:
+        # Mock payment order for testing
+        import uuid
+        mock_order_id = f"order_wallet_{uuid.uuid4().hex[:16]}"
+        transaction.razorpay_order_id = mock_order_id
+        db.commit()
+        
+        return {
+            "razorpay_key_id": "rzp_test_MOCK_KEY",
+            "razorpay_order_id": mock_order_id,
+            "amount": amount_cents,
+            "currency": "USD",
+            "transaction_id": transaction.id
+        }
+    
+    if not razorpay_client:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Razorpay payment gateway is not configured"
+        )
+    
+    # Create Razorpay order
+    try:
+        razorpay_order = razorpay_client.order.create({
+            'amount': amount_cents,
+            'currency': 'USD',
+            'receipt': f'wallet_{transaction.id}',
+            'notes': {
+                'user_id': current_user.id,
+                'transaction_id': transaction.id,
+                'type': 'wallet_topup'
+            }
+        })
+        
+        transaction.razorpay_order_id = razorpay_order['id']
+        db.commit()
+        
+        return {
+            "razorpay_key_id": settings.razorpay_key_id,
+            "razorpay_order_id": razorpay_order['id'],
+            "amount": amount_cents,
+            "currency": "USD",
+            "transaction_id": transaction.id
+        }
+    except Exception as e:
+        db.delete(transaction)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create payment order: {str(e)}"
+        )
+
+
+@router.post("/wallet-topup/verify", response_model=WalletTopUpVerifyResponse)
+async def verify_wallet_topup(
+    verify_data: WalletTopUpVerifyRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Verify Razorpay payment for wallet top-up and add money to wallet"""
+    from app.models.user import UserRole
+    from app.models.wallet_transaction import WalletTransaction, TransactionStatus
+    from app.utils.wallet import add_to_wallet
+    
+    # Get transaction
+    transaction = db.query(WalletTransaction).filter(
+        WalletTransaction.id == verify_data.transaction_id,
+        WalletTransaction.user_id == current_user.id
+    ).first()
+    
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found"
+        )
+    
+    if transaction.status == TransactionStatus.SUCCESS:
+        # Already processed
+        wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+        return {
+            "success": True,
+            "message": "Transaction already processed",
+            "new_balance": wallet.balance if wallet else 0.0,
+            "transaction_id": transaction.id
+        }
+    
+    # Test mode handling
+    if TEST_MODE and not razorpay_client:
+        transaction.razorpay_payment_id = verify_data.razorpay_payment_id or f"pay_wallet_test_{transaction.id}"
+        transaction.razorpay_signature = verify_data.razorpay_signature or "test_signature"
+        transaction.status = TransactionStatus.SUCCESS
+        db.commit()
+        
+        # Add money to wallet (updates existing wallet)
+        from app.models.wallet import Wallet
+        old_wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+        old_balance = old_wallet.balance if old_wallet else 0.0
+        
+        wallet = add_to_wallet(current_user.id, transaction.amount, db)
+        
+        print(f"[Wallet Top-up] ✅ TEST MODE - User {current_user.id}: Added ${transaction.amount:.2f} to wallet. Old balance: ${old_balance:.2f}, New balance: ${wallet.balance:.2f}")
+        
+        return {
+            "success": True,
+            "message": "Wallet top-up successful (TEST MODE)",
+            "new_balance": round(wallet.balance, 2),
+            "transaction_id": transaction.id
+        }
+    
+    # Real Razorpay verification
+    if not razorpay_client:
+        raise HTTPException(status_code=503, detail="Razorpay not configured")
+    
+    # Verify signature
+    message = f"{verify_data.razorpay_order_id}|{verify_data.razorpay_payment_id}"
+    generated_signature = hmac.new(
+        settings.razorpay_key_secret.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    if generated_signature != verify_data.razorpay_signature:
+        transaction.status = TransactionStatus.FAILED
+        db.commit()
+        return {
+            "success": False,
+            "message": "Invalid payment signature"
+        }
+    
+    # Update transaction
+    transaction.razorpay_payment_id = verify_data.razorpay_payment_id
+    transaction.razorpay_signature = verify_data.razorpay_signature
+    transaction.status = TransactionStatus.SUCCESS
+    db.commit()
+    
+    # Add money to wallet (updates existing wallet, not creates new)
+    from app.models.wallet import Wallet
+    old_wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+    old_balance = old_wallet.balance if old_wallet else 0.0
+    
+    wallet = add_to_wallet(current_user.id, transaction.amount, db)
+    
+    print(f"[Wallet Top-up] ✅ User {current_user.id}: Added ${transaction.amount:.2f} to wallet. Old balance: ${old_balance:.2f}, New balance: ${wallet.balance:.2f}")
+    
+    # Verify wallet was updated
+    db.refresh(wallet)
+    if wallet.balance != round(old_balance + transaction.amount, 6):
+        print(f"[Wallet Top-up] ⚠️ WARNING: Wallet balance mismatch! Expected: ${round(old_balance + transaction.amount, 6):.2f}, Actual: ${wallet.balance:.2f}")
+    
+    return {
+        "success": True,
+        "message": "Wallet top-up successful",
+        "new_balance": round(wallet.balance, 2),
+        "transaction_id": transaction.id
     }

@@ -10,6 +10,7 @@ export const authService = {
     const response = await api.get('/api/auth/me')
     return response.data
   },
+  
 }
 
 export const userService = {
@@ -58,6 +59,18 @@ forgotPassword:async(data)=>{
   const response= await api.post(`/api/auth/forget-password`,data)
   return response.data
 }
+}
+
+export const walletService = {
+  createTopUpOrder: async (data) => {
+    const response = await api.post('/api/payments/wallet-topup/create-order', data)
+    return response.data
+  },
+  
+  verifyTopUp: async (data) => {
+    const response = await api.post('/api/payments/wallet-topup/verify', data)
+    return response.data
+  },
 }
 
 export const openAIKeyService = {

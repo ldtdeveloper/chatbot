@@ -36,4 +36,5 @@ class User(Base):
     subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
     payment_tokens = relationship("PaymentToken", back_populates="user", cascade="all, delete-orphan")
     wallet = relationship("Wallet", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    wallet_transactions = relationship("WalletTransaction", back_populates="user", cascade="all, delete-orphan")
 

@@ -41,3 +41,6 @@ class PreFetchDetails(BaseModel):
 
 class ChangeEmail(BaseModel):
     email : str
+
+class AddToWalletRequest(BaseModel):
+    amount: float

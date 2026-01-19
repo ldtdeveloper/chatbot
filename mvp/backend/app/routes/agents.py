@@ -71,6 +71,22 @@ async def create_agent(
             detail=error_msg
         )
     
+    # Check wallet balance for non-superadmin users - cannot create agent if balance is zero
+    from app.models.user import UserRole
+    agent_is_active = True
+    if current_user.role != UserRole.SUPERADMIN:
+        from app.utils.wallet import get_wallet_balance
+        wallet_balance = get_wallet_balance(current_user.id, db)
+        
+        if wallet_balance <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_402,
+                detail="Insufficient wallet balance. Please recharge to create new agents."
+            )
+        
+        # Set agent active status based on wallet balance
+        agent_is_active = wallet_balance > 0
+    
     # Validate noise reduction mode
     noise_reduction = NoiseReductionMode.NEAR_FIELD
     if agent_data.noise_reduction_mode:
@@ -97,7 +113,8 @@ async def create_agent(
         noise_reduction_prefix_padding_ms=agent_data.noise_reduction_prefix_padding_ms or 300,
         noise_reduction_silence_duration_ms=agent_data.noise_reduction_silence_duration_ms or 500,
         agent_config=agent_data.agent_config or {},
-        enable_mcp_server=agent_data.enable_mcp_server or False
+        enable_mcp_server=agent_data.enable_mcp_server or False,
+        is_active=agent_is_active
     )
     db.add(db_agent)
     db.commit()

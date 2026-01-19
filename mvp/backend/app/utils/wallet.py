@@ -3,7 +3,7 @@ Wallet utility functions
 """
 from sqlalchemy.orm import Session
 from app.models.wallet import Wallet
-from app.models.service_account_key import ServiceAccountKey
+from app.models.agent import Agent
 
 
 def get_or_create_wallet(user_id: int, db: Session) -> Wallet:
@@ -23,7 +23,7 @@ def get_or_create_wallet(user_id: int, db: Session) -> Wallet:
 def add_to_wallet(user_id: int, amount: float, db: Session) -> Wallet:
     """
     Add amount to user's wallet balance.
-    Also reactivates service account key if it was deactivated.
+    Also reactivates all user's agents if wallet now has balance.
     Returns the updated wallet
     """
     wallet = get_or_create_wallet(user_id, db)
@@ -31,15 +31,17 @@ def add_to_wallet(user_id: int, amount: float, db: Session) -> Wallet:
     db.commit()
     db.refresh(wallet)
     
-    # Reactivate service account key if wallet now has balance
+    # Reactivate all user's agents if wallet now has balance
     if wallet.balance > 0:
-        service_key = db.query(ServiceAccountKey).filter(
-            ServiceAccountKey.user_id == user_id
-        ).first()
-        if service_key and not service_key.is_active:
-            service_key.is_active = True
+        agents = db.query(Agent).filter(Agent.user_id == user_id).all()
+        reactivated_count = 0
+        for agent in agents:
+            if not agent.is_active:
+                agent.is_active = True
+                reactivated_count += 1
+        if reactivated_count > 0:
             db.commit()
-            print(f"[Wallet] ✅ Reactivated service account key for user {user_id} (wallet balance: ${wallet.balance:.2f})")
+            print(f"[Wallet] ✅ Reactivated {reactivated_count} agent(s) for user {user_id} (wallet balance: ${wallet.balance:.2f})")
     
     return wallet
 
@@ -48,7 +50,7 @@ def deduct_from_wallet(user_id: int, amount: float, db: Session) -> Wallet:
     """
     Deduct amount from user's wallet balance.
     If insufficient balance, sets balance to 0.
-    Also deactivates service account key if balance becomes zero.
+    Also deactivates all user's agents if balance becomes zero.
     Returns the updated wallet
     """
     wallet = get_or_create_wallet(user_id, db)
@@ -63,15 +65,17 @@ def deduct_from_wallet(user_id: int, amount: float, db: Session) -> Wallet:
     db.commit()
     db.refresh(wallet)
     
-    # Deactivate service account key if balance is now zero
+    # Deactivate all user's agents if balance is now zero
     if wallet.balance <= 0:
-        service_key = db.query(ServiceAccountKey).filter(
-            ServiceAccountKey.user_id == user_id
-        ).first()
-        if service_key and service_key.is_active:
-            service_key.is_active = False
+        agents = db.query(Agent).filter(Agent.user_id == user_id).all()
+        deactivated_count = 0
+        for agent in agents:
+            if agent.is_active:
+                agent.is_active = False
+                deactivated_count += 1
+        if deactivated_count > 0:
             db.commit()
-            print(f"[Wallet] ❌ Deactivated service account key for user {user_id} (wallet balance: ${wallet.balance:.2f})")
+            print(f"[Wallet] ❌ Deactivated {deactivated_count} agent(s) for user {user_id} (wallet balance: ${wallet.balance:.2f})")
     
     return wallet
 

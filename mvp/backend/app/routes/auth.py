@@ -9,7 +9,7 @@ from app.models.user import User, UserRole
 from app.models.payment_token import PaymentToken
 from app.models.plans import Plans
 from app.models.subscription import Subscription, PaymentStatus
-from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail
+from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail, AddToWalletRequest
 from app.schemas.user import UserCreate,UserRegisterRequest,UserResponse
 from app.utils.auth import verify_password, get_password_hash, create_access_token,decode_access_token
 from app.utils.email_html import generate_email_html
@@ -175,6 +175,8 @@ async def get_current_user_info(
     }
     
     return user_dict
+
+
 
 
 @router.post("/setup-password", response_model=Token)
