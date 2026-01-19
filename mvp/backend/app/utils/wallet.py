@@ -3,6 +3,7 @@ Wallet utility functions
 """
 from sqlalchemy.orm import Session
 from app.models.wallet import Wallet
+from app.models.service_account_key import ServiceAccountKey
 
 
 def get_or_create_wallet(user_id: int, db: Session) -> Wallet:
@@ -21,13 +22,25 @@ def get_or_create_wallet(user_id: int, db: Session) -> Wallet:
 
 def add_to_wallet(user_id: int, amount: float, db: Session) -> Wallet:
     """
-    Add amount to user's wallet balance
+    Add amount to user's wallet balance.
+    Also reactivates service account key if it was deactivated.
     Returns the updated wallet
     """
     wallet = get_or_create_wallet(user_id, db)
     wallet.balance = round((wallet.balance or 0.0) + amount, 6)
     db.commit()
     db.refresh(wallet)
+    
+    # Reactivate service account key if wallet now has balance
+    if wallet.balance > 0:
+        service_key = db.query(ServiceAccountKey).filter(
+            ServiceAccountKey.user_id == user_id
+        ).first()
+        if service_key and not service_key.is_active:
+            service_key.is_active = True
+            db.commit()
+            print(f"[Wallet] ✅ Reactivated service account key for user {user_id} (wallet balance: ${wallet.balance:.2f})")
+    
     return wallet
 
 
@@ -35,6 +48,7 @@ def deduct_from_wallet(user_id: int, amount: float, db: Session) -> Wallet:
     """
     Deduct amount from user's wallet balance.
     If insufficient balance, sets balance to 0.
+    Also deactivates service account key if balance becomes zero.
     Returns the updated wallet
     """
     wallet = get_or_create_wallet(user_id, db)
@@ -48,6 +62,17 @@ def deduct_from_wallet(user_id: int, amount: float, db: Session) -> Wallet:
     
     db.commit()
     db.refresh(wallet)
+    
+    # Deactivate service account key if balance is now zero
+    if wallet.balance <= 0:
+        service_key = db.query(ServiceAccountKey).filter(
+            ServiceAccountKey.user_id == user_id
+        ).first()
+        if service_key and service_key.is_active:
+            service_key.is_active = False
+            db.commit()
+            print(f"[Wallet] ❌ Deactivated service account key for user {user_id} (wallet balance: ${wallet.balance:.2f})")
+    
     return wallet
 
 

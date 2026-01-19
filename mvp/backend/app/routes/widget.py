@@ -464,17 +464,47 @@ async def widget_websocket(
         
         # Get OpenAI API key (ServiceAccountKey stores plain text, not encrypted)
         api_key_record = db.query(ServiceAccountKey).filter(
-            ServiceAccountKey.id == agent.openai_key_id,
-            ServiceAccountKey.is_active == True
+            ServiceAccountKey.id == agent.openai_key_id
         ).first()
         
         if not api_key_record:
             await websocket.send_json({
                 "type": "error",
-                "error": "Agent's API key is not active"
+                "error": "Agent's API key not found"
             })
             await websocket.close()
             return
+        
+        # Check if key is active - if not, reject the call
+        if not api_key_record.is_active:
+            await websocket.send_json({
+                "type": "error",
+                "error": "insufficient_balance",
+                "message": "Your wallet balance is insufficient. Please recharge to continue using the service."
+            })
+            await websocket.close()
+            print(f"[Widget WS] ❌ Call rejected: Service account key is inactive for user {agent.user_id}")
+            return
+        
+        # Check wallet balance before allowing call (only for non-superadmin users)
+        user = db.query(User).filter(User.id == agent.user_id).first()
+        if user and user.role != UserRole.SUPERADMIN:
+            from app.utils.wallet import get_wallet_balance
+            wallet_balance = get_wallet_balance(user.id, db)
+            
+            if wallet_balance <= 0:
+                # Deactivate the service account key
+                api_key_record.is_active = False
+                db.commit()
+                print(f"[Widget WS] ❌ Wallet balance is zero. Deactivated service account key for user {user.id}")
+                
+                await websocket.send_json({
+                    "type": "error",
+                    "error": "insufficient_balance",
+                    "message": "Your wallet balance is insufficient. Please recharge to continue using the service."
+                })
+                await websocket.close()
+                return
         
         # ServiceAccountKey stores the key as plain text (not encrypted)
         openai_api_key = api_key_record.service_account_key
