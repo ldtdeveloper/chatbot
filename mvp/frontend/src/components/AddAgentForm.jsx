@@ -12,7 +12,7 @@ function AddAgentForm({
   return (
     <form onSubmit={handleSubmit} className="add-agent-form">
       <div className="form-info">
-        <p><strong>Note:</strong> Agent configurations are stored locally and will be used when making WebRTC calls to OpenAI Realtime API.</p>
+        <p><strong>Note:</strong>  Agent configurations are stored locally and applied during WebRTC real-time sessions.</p>
       </div>
       <input
         type="text"
