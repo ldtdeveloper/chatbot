@@ -10,6 +10,9 @@ import PhoneAgentsSection from '../components/PhoneAgentsSection';
 import EditAgentModal from '../components/EditAgentModal';
 import WidgetModal from '../components/WidgetModal';
 import InstructionsModal from '../components/InstructionsModal';
+import WalletModal from '../components/WalletModal';
+import { useAuthStore } from '../context/authStore';
+import { authService } from '../services/services';
 
 function Agents() {
   console.log("compnoent re renderd ----------------")
@@ -182,6 +185,8 @@ function Agents() {
   const cardsContainerRef = useRef(null)
   const phoneCardsRef = useRef(null)
   const [selectedPhoneAgentId, setSelectedPhoneAgentId] = useState(null)
+  const [showWalletModal, setShowWalletModal] = useState(false)
+  const { user, setAuth } = useAuthStore()
 
   const { data: agents, isLoading } = useQuery({
     queryKey: ['agents', fetchApiKeyId, 'WEB'],
@@ -221,6 +226,14 @@ function Agents() {
       handleCancelEdit()
       showSuccess(`Agent created successfully`);
     },
+    onError: (error) => {
+      // Check if it's a payment required error (402 - insufficient wallet balance)
+      if (error?.response?.status === 402) {
+        setShowWalletModal(true)
+      } else {
+        showError(error?.response?.data?.detail || 'Failed to create agent. Please try again.')
+      }
+    },
   })
 
   const createPhoneMutation = useMutation({
@@ -229,6 +242,15 @@ function Agents() {
       queryClient.invalidateQueries(['agents'])
       setShowPhoneAddForm(false)
       handleCancelPhoneEdit()
+      showSuccess(`Phone agent created successfully`);
+    },
+    onError: (error) => {
+      // Check if it's a payment required error (402 - insufficient wallet balance)
+      if (error?.response?.status === 402) {
+        setShowWalletModal(true)
+      } else {
+        showError(error?.response?.data?.detail || 'Failed to create phone agent. Please try again.')
+      }
     },
   })
 
@@ -778,6 +800,15 @@ function Agents() {
         selectedInstructionsAgent={selectedInstructionsAgent}
         convertJsonPrompt={convertJsonPrompt}
         onClose={() => setSelectedInstructionsAgent(null)}
+      />
+      <WalletModal
+        isOpen={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onWalletUpdate={async (newBalance) => {
+          // Refresh user data after wallet update
+          const userInfo = await authService.getMe()
+          setAuth(null, userInfo)
+        }}
       />
     </div>
   )

@@ -79,9 +79,10 @@ async def create_agent(
         wallet_balance = get_wallet_balance(current_user.id, db)
         
         if wallet_balance <= 0:
+            logger.warning(f"User {current_user.id} attempted to create agent with zero wallet balance (balance: ${wallet_balance:.2f})")
             raise HTTPException(
-                status_code=status.HTTP_402,
-                detail="Insufficient wallet balance. Please recharge to create new agents."
+                status_code=402,  # Payment Required
+                detail="Insufficient wallet balance. Please recharge your wallet to create new agents."
             )
         
         # Set agent active status based on wallet balance
