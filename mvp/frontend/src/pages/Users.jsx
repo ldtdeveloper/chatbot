@@ -5,6 +5,7 @@ import { userService } from '../services/services'
 import { FaEye, FaEdit, FaToggleOn, FaToggleOff } from 'react-icons/fa'
 import axios from 'axios'
 import '../styles/Users.css'
+import { showSuccess,showError } from '../utils/toast'
 
 function Users() {
   const navigate = useNavigate()
@@ -38,8 +39,17 @@ function Users() {
 
   const toggleMutation = useMutation({
     mutationFn: userService.toggleActive,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] })
+    onSuccess: (data) => {
+          queryClient.invalidateQueries({ queryKey: ['users'] });
+
+        if (data.is_active) {
+          showSuccess("User activated successfully");
+        } else {
+          showSuccess("User deactivated successfully");
+        }
+      },
+      onError: () => {
+        showError("Failed to update user status");
     }
   })
 

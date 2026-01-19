@@ -7,8 +7,11 @@ function AddAgentForm({
   InstructionSet, 
   activeApiKeys,
   handleSubmit, 
-  isLoading 
-}) {
+  isLoading,
+  handleCancel
+}) 
+{
+  
   return (
     <form onSubmit={handleSubmit} className="add-agent-form">
       <div className="form-info">
@@ -124,6 +127,9 @@ function AddAgentForm({
       </label>
       <button type="submit" disabled={isLoading}>
         {isLoading ? 'Creating...' : 'Create Agent'}
+      </button>
+      <button onClick={handleCancel}>
+        Cancel
       </button>
     </form>
   )

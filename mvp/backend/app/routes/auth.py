@@ -252,7 +252,7 @@ async def setup_password_endpoint(
         "message": "Password set successfully"
     }
 
-@router.post("/change-password")
+@router.put("/change-password")
 async def change_password(password_data: ChangePassword,db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     '''Change password and get access token '''
     password_verification = False
