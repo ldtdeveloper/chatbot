@@ -685,7 +685,7 @@ function Agents() {
           <h1>Agents</h1>
         </div>
         <div className="no-api-keys-message">
-          <p>You must create an Open AI Api Key First</p>
+          <p>You must create an  Api Key First</p>
         </div>
       </div>
     )
