@@ -119,7 +119,7 @@ async def get_dashboard_stats(
         profit = None
         charging_change = None
         if is_superadmin:
-            total_charging = sum((i.total_cost or 0) for i in current_interactions)
+            total_charging = sum((i.estimated_cost or 0) for i in current_interactions)
             profit = sum(((i.total_cost or 0) - (i.estimated_cost or 0)) for i in current_interactions)
         
         # Previous period stats for comparison
@@ -130,7 +130,7 @@ async def get_dashboard_stats(
         # Previous period charging (superadmin only)
         prev_total_charging = None
         if is_superadmin:
-            prev_total_charging = sum((i.total_cost or 0) for i in prev_interactions)
+            prev_total_charging = sum((i.estimated_cost or 0) for i in prev_interactions)
         
         # Calculate percentage changes
         if prev_total_interactions > 0:
