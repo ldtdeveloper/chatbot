@@ -5,6 +5,7 @@ import '../styles/Plans.css';
 import ViewPlan from '../components/ViewPlan'
 import PlanForm from "../components/PlanForm";
 import { showError,showSuccess } from "../utils/toast";
+import { FaEye, FaEdit, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 
 // Currency symbols mapping
 const getCurrencySymbol = (currency) => {
@@ -143,20 +144,13 @@ export default function Plans() {
             {planList.length!=0 && planList.map((plan) => {
               const currency = plan.currency || 'USD';
               const currencySymbol = getCurrencySymbol(currency);
-              const currencyFlag = getCurrencyFlag(currency);
               const walletCredits = plan.wallet_credits || plan.credits || 0;
               const planType = plan.plan_type || 'monthly';
               
               return (
                 <div key={plan.id} className="plan-card">
                 <div className="plan-info">
-                    <div className="plan-header-row">
-                      <h3>{plan.name}</h3>
-                      <span className="currency-badge" title={currency}>
-                        <span className="currency-flag">{currencyFlag}</span>
-                        <span className="currency-code">{currency}</span>
-                      </span>
-                    </div>
+                    <h3>{plan.name}</h3>
                     
                     {plan.description && (
                       <p className="plan-description">
@@ -167,37 +161,40 @@ export default function Plans() {
                     <div className="plan-meta">
                     <span className="plan-price">
                         <span className="currency-symbol">{currencySymbol}</span>
-                        {plan.price}
+                        <span className="price-amount">{plan.price}</span>
                         <span className="plan-type-badge">{planType}</span>
-                    </span>
-
-                    <span className="plan-credits">
-                        {walletCredits} credits
-                    </span>
-
-                    <span
-                        className={`status ${plan.is_active ? "active" : "inactive"}`}
-                    >
-                        {plan.is_active ? "Active" : "Inactive"}
                     </span>
                     </div>
                 </div>
 
                 <div className="plan-actions">
                     <button
-                    className="view-btn" onClick={() => handleViewPlan(plan)}>
-                    View
+                    className="action-btn view-btn" 
+                    onClick={() => handleViewPlan(plan)}
+                    title="View Plan">
+                    <FaEye />
                     </button>
 
-                    <button className="view-btn" onClick={() => handleEditPlan(plan)}>
-                    Edit Plan
+                    <button 
+                    className="action-btn edit-btn" 
+                    onClick={() => handleEditPlan(plan)}
+                    title="Edit Plan">
+                    <FaEdit />
                     </button>
 
-                    <button onClick={() => handleIsActive(plan.id,!plan.is_active)}>
-                    {plan.is_active ? "Deactivate" : "Activate"}
-                    </button>
-                    <button className= "delete-btn" onClick={()=> handleDelete(plan.id)}>
-                        Delete
+                    <button 
+                    className="action-btn edit-btn"
+                    onClick={() => handleIsActive(plan.id, !plan.is_active)}
+                    title={plan.is_active ? "Deactivate Plan" : "Activate Plan"}
+                >
+                  {plan.is_active ? <FaToggleOn /> : <FaToggleOff />}
+                </button>
+
+                    <button 
+                    className="action-btn delete-btn" 
+                    onClick={()=> handleDelete(plan.id)}
+                    title="Delete Plan">
+                    <FaTrash />
                     </button>
                 </div>
                 </div>
