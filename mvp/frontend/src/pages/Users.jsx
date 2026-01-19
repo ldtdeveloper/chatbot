@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '../services/services'
+import { FaEye, FaEdit, FaToggleOn, FaToggleOff } from 'react-icons/fa'
 import axios from 'axios'
 import '../styles/Users.css'
 
@@ -177,27 +178,39 @@ function Users() {
           <div key={user.id} className="user-card">
             <div className="user-info">
               <h3>{user.username}</h3>
-              <p>{user.email}</p>
-              <span className={`role-badge ${user.role}`}>
-                {user.role.toUpperCase()}
-              </span>
-              <span className={`status ${user.is_active ? 'active' : 'inactive'}`}>
-                {user.is_active ? 'Active' : 'Inactive'}
-              </span>
+              <p className="user-email">{user.email}</p>
+              <div className="user-meta">
+                <span className={`role-badge ${user.role}`}>
+                  {user.role.toUpperCase()}
+                </span>
+                <span className={`status ${user.is_active ? 'active' : 'inactive'}`}>
+                  {user.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
             </div>
 
             <div className="user-actions">
-              <button onClick={() => navigate(`/users/${user.id}/profile`)}>
-                View
-              </button>
-              <button onClick={() => navigate(`/users/${user.id}/profile-update`)}>
-                Edit
+              <button
+                className="action-btn view-btn"
+                onClick={() => navigate(`/users/${user.id}/profile`)}
+                title="View User"
+              >
+                <FaEye />
               </button>
               <button
+                className="action-btn edit-btn"
+                onClick={() => navigate(`/users/${user.id}/profile-update`)}
+                title="Edit User"
+              >
+                <FaEdit />
+              </button>
+              <button
+                className="action-btn edit-btn"
                 onClick={() => toggleMutation.mutate(user.id)}
                 disabled={toggleMutation.isPending}
+                title={user.is_active ? "Deactivate User" : "Activate User"}
               >
-                {user.is_active ? 'Deactivate' : 'Activate'}
+                {user.is_active ? <FaToggleOn /> : <FaToggleOff />}
               </button>
             </div>
           </div>

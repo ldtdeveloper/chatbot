@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { serviceAccountService } from '../services/services' 
+import { serviceAccountService } from '../services/services'
+import { FaEye, FaEdit, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa'
 import '../styles/OpenAIKeys.css'
 
 function OpenAIKeys() {
@@ -115,39 +116,45 @@ function OpenAIKeys() {
       )}
 
       <div className="keys-list">
-        {console.log(keys)}
         {keys?.map((key) => (
           <div key={key.id} className="key-card">
             <div className="key-info">
               <h3>{key.key_name}</h3>
-              {console.log("this is the key"+key.is_active)}
-              <span className={`status ${key.is_active ? 'active' : 'inactive'}`}>
-                {key.is_active ? 'Active' : 'Inactive'}
-              </span>
+              <div className="key-meta">
+                <span className={`status ${key.is_active ? 'active' : 'inactive'}`}>
+                  {key.is_active ? 'Active' : 'Inactive'}
+                </span>
+                <div className="service-id">
+                  <small>ID: {key.openai_service_account_id}</small>
+                </div>
+              </div>
               {visibleKeys[key.id] && (
                 <div className="masked-key">
                   <code>{maskedKeys[key.id] || 'Loading...'}</code>
                 </div>
               )}
-              <div className="service-id">
-                <small>OpenAI ID: {key.openai_service_account_id}</small>
-              </div>
             </div>
             <div className="key-actions">
               <button
+                className="action-btn view-btn"
                 onClick={() => toggleKeyVisibility(key.id)}
-                className="view-key-btn"
+                title={visibleKeys[key.id] ? "Hide Key" : "View Key"}
               >
-                {visibleKeys[key.id] ? 'Hide Key' : 'View Key'}
-              </button>
-              <button onClick={() => toggleMutation.mutate(key.id)}>
-                {key.is_active ? 'Deactivate' : 'Activate'}
+                <FaEye />
               </button>
               <button
-                onClick={() => deleteMutation.mutate(key.id)}
-                className="delete-btn"
+                className="action-btn edit-btn"
+                onClick={() => toggleMutation.mutate(key.id)}
+                title={key.is_active ? "Deactivate" : "Activate"}
               >
-                Delete
+                {key.is_active ? <FaToggleOn /> : <FaToggleOff />}
+              </button>
+              <button
+                className="action-btn delete-btn"
+                onClick={() => deleteMutation.mutate(key.id)}
+                title="Delete Key"
+              >
+                <FaTrash />
               </button>
             </div>
           </div>

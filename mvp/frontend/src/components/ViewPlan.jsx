@@ -1,5 +1,22 @@
 import React from "react";
+import { FaTimes } from "react-icons/fa";
 import "../styles/ViewPlan.css";
+
+// Currency symbols mapping
+const getCurrencySymbol = (currency) => {
+  const currencyMap = {
+    'USD': '$',
+    'INR': '₹',
+    'BHD': 'BD',
+    'KWD': 'KD',
+    'OMR': 'OMR',
+    'SAR': 'SAR',
+    'AED': 'AED',
+    'EUR': '€',
+    'GBP': '£',
+  };
+  return currencyMap[currency] || currency || '$';
+};
 
 export default function ViewPlan({ plan, onBack }) {
   if (!plan) {
@@ -7,16 +24,26 @@ export default function ViewPlan({ plan, onBack }) {
       <div className="plan-profile">
         <div className="error-container">
           <p>Plan not found</p>
-          <button onClick={onBack} className="back-btn">← Back to Plans</button>
+          <button onClick={onBack} className="close-btn" title="Close">
+            <FaTimes />
+          </button>
         </div>
       </div>
     );
   }
+
+  const currency = plan.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(currency);
+  const walletCredits = plan.wallet_credits || plan.credits || 0;
+  const planType = plan.plan_type || 'monthly';
+
   return (
     <div className="plan-profile">
       <div className="profile-header">
-        <button onClick={onBack} className="back-btn">← Back to Plans</button>
-        <h1>Plan Details: {plan.name}</h1>
+        <h1>{plan.name}</h1>
+        <button onClick={onBack} className="close-btn" title="Close">
+          <FaTimes />
+        </button>
       </div>
 
       <div className="profile-content">
@@ -25,23 +52,32 @@ export default function ViewPlan({ plan, onBack }) {
           <h2>Plan Information</h2>
           <div className="info-grid">
             <div className="info-item">
-              <label>Code</label>
-              <span>{plan.code}</span>
-            </div>
-
-            <div className="info-item">
               <label>Description</label>
               <span>{plan.description || "—"}</span>
             </div>
 
             <div className="info-item">
-              <label>Monthly Price</label>
-              <span>${plan.price}</span>
+              <label>Price</label>
+              <span className="price-value">
+                <span className="currency-symbol">{currencySymbol}</span>
+                {plan.price}
+                <span className="plan-type-badge">{planType}</span>
+              </span>
+            </div>
+
+            <div className="info-item">
+              <label>Currency</label>
+              <span className="currency-badge">{currency}</span>
             </div>
 
             <div className="info-item">
               <label>Wallet Credits</label>
-              <span>{plan.credits}</span>
+              <span className="credits-value">{walletCredits} credits</span>
+            </div>
+
+            <div className="info-item">
+              <label>Plan Type</label>
+              <span className="plan-type-value">{planType}</span>
             </div>
 
             <div className="info-item">
@@ -70,6 +106,7 @@ export default function ViewPlan({ plan, onBack }) {
             <div className="features-list">
               {Object.entries(plan.features).map(([key, value]) => (
                 <div key={key} className="feature-item">
+                  <span className="feature-icon">✓</span>
                   <span>{String(value)}</span>
                 </div>
               ))}
