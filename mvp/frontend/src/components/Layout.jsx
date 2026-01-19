@@ -43,6 +43,14 @@ function Layout() {
           {/* <Link to="/agents">Agents</Link> */}
           {/* {user?.role === 'default' && <Link to="/widget-generator">Widget</Link>} */}
 
+          {user?.role !== 'superadmin' && user?.wallet_balance !== undefined && (
+            <div className="wallet-display">
+              <span className="wallet-label">Wallet:</span>
+              <span className={`wallet-amount ${user.wallet_balance <= 2.0 ? 'low-balance' : ''}`}>
+                ${user.wallet_balance.toFixed(2)}
+              </span>
+            </div>
+          )}
           <div className="navbar-user" ref={dropdownRef}>
             <button 
               className="navbar-user-toggle"

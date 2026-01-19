@@ -20,6 +20,7 @@ import {
 import { dashboardService } from '../services/services'
 import { FaEye, FaTimes, FaList, FaTh, FaDownload, FaPaperPlane } from 'react-icons/fa'
 import '../styles/Dashboard.css'
+import '../styles/Login.css'
 import { showError, showSuccess } from '../utils/toast'
 
 function Dashboard() {
@@ -31,7 +32,17 @@ function Dashboard() {
   const [viewMode, setViewMode] = useState('cards') // 'cards' or 'list'
   const [isExporting, setIsExporting] = useState(false)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
+  const [showLowBalancePopup, setShowLowBalancePopup] = useState(false)
   const { user, logout } = useAuthStore()
+
+  // Check wallet balance when dashboard loads
+  useEffect(() => {
+    if (user && user.role !== 'superadmin' && user.wallet_balance !== undefined) {
+      if (user.wallet_balance <= 2.0) {
+        setShowLowBalancePopup(true)
+      }
+    }
+  }, [user])
 
   // Export to CSV
   const handleExportCSV = () => {
@@ -319,6 +330,20 @@ function Dashboard() {
             </span>
           </div>
         </div>
+        {user?.role === 'superadmin' && (
+          <div className="summary-card">
+            <div className="summary-card-icon">💳</div>
+            <div className="summary-card-content">
+              <h3>Total Charging</h3>
+              <p className="summary-card-value">${stats?.total_charging?.toFixed(2) || '0.00'}</p>
+              {stats?.profit !== undefined && stats?.profit !== null && (
+                <p className="summary-card-profit">
+                  Profit: ${stats.profit.toFixed(2)}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
         <div className="summary-card">
           <div className="summary-card-icon">🤖</div>
           <div className="summary-card-content">
@@ -727,6 +752,27 @@ function Dashboard() {
                   <p>No expenses data available for this period</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Low Balance Popup */}
+      {showLowBalancePopup && user && (
+        <div className="low-balance-overlay" onClick={() => setShowLowBalancePopup(false)}>
+          <div className="low-balance-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="low-balance-header">
+              <h2>⚠️ Low Credits Warning</h2>
+              <button className="close-btn" onClick={() => setShowLowBalancePopup(false)}>×</button>
+            </div>
+            <div className="low-balance-content">
+              <p>Your wallet balance is low: <strong>${user.wallet_balance?.toFixed(2) || '0.00'}</strong></p>
+              <p>Please add credits to continue using the service. Calls will be charged from your wallet balance.</p>
+            </div>
+            <div className="low-balance-actions">
+              <button className="btn-primary" onClick={() => setShowLowBalancePopup(false)}>
+                I Understand
+              </button>
             </div>
           </div>
         </div>

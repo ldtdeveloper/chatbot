@@ -209,11 +209,17 @@ async def get_user_profile(
     from app.models.agent import Agent
     from app.models.assistant_config import AssistantConfig
     from app.models.openai_key import OpenAIKey
+    from app.utils.wallet import get_wallet_balance
     
     # Get user's agents, assistants, and keys
     agents = db.query(Agent).filter(Agent.user_id == user_id).all()
     assistants = db.query(AssistantConfig).filter(AssistantConfig.user_id == user_id).all()
     keys = db.query(OpenAIKey).filter(OpenAIKey.user_id == user_id).all()
+    
+    # Get wallet balance for non-superadmin users
+    wallet_balance = None
+    if user.role != UserRole.SUPERADMIN:
+        wallet_balance = get_wallet_balance(user.id, db)
     
     return {
         "user": {
@@ -222,7 +228,8 @@ async def get_user_profile(
             "username": user.username,
             "role": user.role.value,
             "is_active": user.is_active,
-            "created_at": user.created_at
+            "created_at": user.created_at,
+            "wallet_balance": wallet_balance
         },
         "agents": [{"id": a.id, "name": a.name, "description": getattr(a, "description", "")} for a in agents],
         "assistants": [{"id": a.id, "name": a.name, "voice": a.voice, "created_at": a.created_at} for a in assistants],

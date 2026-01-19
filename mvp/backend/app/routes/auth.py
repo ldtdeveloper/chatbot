@@ -133,13 +133,48 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
         expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Check wallet balance for low balance warning (only for non-superadmin users)
+    from app.utils.wallet import get_wallet_balance
+    low_balance = False
+    wallet_balance = None
+    if not is_superadmin:
+        wallet_balance = get_wallet_balance(user.id, db)
+        if wallet_balance <= 2.0:
+            low_balance = True
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "low_balance": low_balance,
+        "wallet_balance": wallet_balance
+    }
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: User = Depends(get_current_user)):
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Get current user information"""
-    return current_user
+    from app.utils.wallet import get_wallet_balance
+    
+    # Add wallet balance for non-superadmin users
+    wallet_balance = None
+    if current_user.role != UserRole.SUPERADMIN:
+        wallet_balance = get_wallet_balance(current_user.id, db)
+    
+    # Create response dict
+    user_dict = {
+        "id": current_user.id,
+        "email": current_user.email,
+        "username": current_user.username,
+        "role": current_user.role.value,
+        "is_active": current_user.is_active,
+        "created_at": current_user.created_at,
+        "wallet_balance": wallet_balance
+    }
+    
+    return user_dict
 
 
 @router.post("/setup-password", response_model=Token)

@@ -24,6 +24,11 @@ class DashboardStats(BaseModel):
     total_agents: int
     active_keys: int
     
+    # Superadmin only - Total Charging and Profit
+    total_charging: Optional[float] = None  # Sum of total_cost (estimated_cost + 10%)
+    profit: Optional[float] = None  # Sum of (total_cost - estimated_cost)
+    charging_change: Optional[float] = None  # Percentage change from previous period
+    
     # Percentage changes from previous period
     interactions_change: float
     expenses_change: float

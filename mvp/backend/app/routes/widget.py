@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSoc
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.core.database import get_db, SessionLocal
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.assistant_config import AssistantConfig
 from app.models.service_account_key import ServiceAccountKey
 from app.models.agent import Agent
@@ -858,6 +858,7 @@ TOOL USAGE:
                         # This shouldn't happen with proper OpenAI responses
                         fallback_cost = round((interaction.duration_seconds / 60) * 0.06, 4)
                         interaction.estimated_cost = fallback_cost
+                        interaction.total_cost = round(fallback_cost * 1.1, 6)
                         print(f"[Widget WS] ⚠️ No usage data, using fallback estimate: ${fallback_cost}")
                     
                     interaction.status = "completed"
@@ -928,8 +929,20 @@ TOOL USAGE:
                         interaction.hubspot_sync_status = "skipped"
                         interaction.hubspot_sync_error = "MCP server not enabled"
                     
+                    # === DEDUCT CALL COST FROM USER WALLET ===
+                    if agent and agent.user_id:
+                        user = db.query(User).filter(User.id == agent.user_id).first()
+                        if user and user.role != UserRole.SUPERADMIN:
+                            from app.utils.wallet import deduct_from_wallet
+                            call_cost = interaction.total_cost or 0.0
+                            wallet = deduct_from_wallet(user.id, call_cost, db)
+                            if wallet.balance > 0:
+                                print(f"[Widget WS] 💰 Deducted ${call_cost:.6f} from wallet. Remaining balance: ${wallet.balance:.2f}")
+                            else:
+                                print(f"[Widget WS] ⚠️ Insufficient wallet balance. Needed ${call_cost:.6f}, balance now: ${wallet.balance:.2f}")
+                    
                     db.commit()
-                    print(f"[Widget WS] ✅ Completed interaction {interaction_id}, duration: {interaction.duration_seconds:.1f}s, cost: ${interaction.estimated_cost:.4f}")
+                    print(f"[Widget WS] ✅ Completed interaction {interaction_id}, duration: {interaction.duration_seconds:.1f}s, cost: ${interaction.estimated_cost:.4f}, total_cost: ${interaction.total_cost:.6f}")
             except Exception as e:
                 print(f"[Widget WS] ❌ Error updating interaction: {e}")
                 import traceback

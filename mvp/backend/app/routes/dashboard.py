@@ -75,6 +75,9 @@ async def get_dashboard_stats(
                 total_expenses=0.0,
                 total_agents=0,
                 active_keys=0,
+                total_charging=None,
+                profit=None,
+                charging_change=None,
                 interactions_change=0.0,
                 expenses_change=0.0,
                 interactions_chart=[],
@@ -111,10 +114,23 @@ async def get_dashboard_stats(
         total_interactions = len(current_interactions)
         total_expenses = sum((i.estimated_cost or 0) for i in current_interactions)
         
+        # Calculate total charging and profit (superadmin only)
+        total_charging = None
+        profit = None
+        charging_change = None
+        if is_superadmin:
+            total_charging = sum((i.total_cost or 0) for i in current_interactions)
+            profit = sum(((i.total_cost or 0) - (i.estimated_cost or 0)) for i in current_interactions)
+        
         # Previous period stats for comparison
         prev_interactions = build_interaction_query(prev_start, prev_end, key_ids).all()
         prev_total_interactions = len(prev_interactions)
         prev_total_expenses = sum((i.estimated_cost or 0) for i in prev_interactions)
+        
+        # Previous period charging (superadmin only)
+        prev_total_charging = None
+        if is_superadmin:
+            prev_total_charging = sum((i.total_cost or 0) for i in prev_interactions)
         
         # Calculate percentage changes
         if prev_total_interactions > 0:
@@ -126,6 +142,13 @@ async def get_dashboard_stats(
             expenses_change = ((total_expenses - prev_total_expenses) / prev_total_expenses) * 100
         else:
             expenses_change = 100.0 if total_expenses > 0 else 0.0
+        
+        # Calculate charging change (superadmin only)
+        if is_superadmin and prev_total_charging is not None:
+            if prev_total_charging > 0:
+                charging_change = ((total_charging - prev_total_charging) / prev_total_charging) * 100
+            else:
+                charging_change = 100.0 if total_charging > 0 else 0.0
         
         # Get agent count
         agents_query = db.query(Agent).filter(Agent.user_id.in_(target_user_ids))
@@ -196,6 +219,9 @@ async def get_dashboard_stats(
             total_expenses=round(total_expenses, 2),
             total_agents=total_agents,
             active_keys=active_keys,
+            total_charging=round(total_charging, 2) if total_charging is not None else None,
+            profit=round(profit, 2) if profit is not None else None,
+            charging_change=round(charging_change, 1) if charging_change is not None else None,
             interactions_change=round(interactions_change, 1),
             expenses_change=round(expenses_change, 1),
             interactions_chart=interactions_chart,
@@ -216,6 +242,9 @@ async def get_dashboard_stats(
             total_expenses=0.0,
             total_agents=0,
             active_keys=0,
+            total_charging=None,
+            profit=None,
+            charging_change=None,
             interactions_change=0.0,
             expenses_change=0.0,
             interactions_chart=[],

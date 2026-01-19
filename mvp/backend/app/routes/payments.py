@@ -4,7 +4,7 @@ Payment routes for Razorpay integration
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.subscription import Subscription, PaymentStatus
 from app.models.plans import Plans
 from app.core.dependencies import get_current_user
@@ -312,6 +312,15 @@ async def verify_payment_from_token(
         subscription.start_date = datetime.now(timezone.utc)
         subscription.end_date = datetime.now(timezone.utc) + timedelta(days=30)
         db.commit()
+        
+        # === ADD WALLET CREDITS (33x plan amount for non-superadmin users) ===
+        if user.role != UserRole.SUPERADMIN:
+            plan = db.query(Plans).filter(Plans.id == db_token.plan_id).first()
+            if plan:
+                from app.utils.wallet import add_to_wallet
+                wallet_credits = plan.price * 33
+                wallet = add_to_wallet(user.id, wallet_credits, db)
+                print(f"===== Added ${wallet_credits:.2f} to wallet for user {user.id} (33x plan amount ${plan.price:.2f}). New balance: ${wallet.balance:.2f} =====")
     else:
         if not razorpay_client:
             raise HTTPException(status_code=503, detail="Razorpay not configured...")
@@ -336,11 +345,19 @@ async def verify_payment_from_token(
         subscription.end_date = datetime.now(timezone.utc) + timedelta(days=30)
         db.commit()
     
+    # === ADD WALLET CREDITS (33x plan amount for non-superadmin users) ===
+    if user.role != UserRole.SUPERADMIN:
+        from app.utils.wallet import add_to_wallet
+        plan = db.query(Plans).filter(Plans.id == db_token.plan_id).first()
+        if plan:
+            wallet_credits = plan.price * 33
+            wallet = add_to_wallet(user.id, wallet_credits, db)
+            print(f"===== Added ${wallet_credits:.2f} to wallet for user {user.id} (33x plan amount ${plan.price:.2f}). New balance: ${wallet.balance:.2f} =====")
+    
     # === CALL OpenAI SERVICE ACCOUNT CREATION ===
     print(f"===== Starting OpenAI service account creation for user {user.id} ({user.email}) =====")
     
     try:
-        current_user: User = Depends(get_current_user),
         result = create_service_account(name_prefix=f"voiceai-{user.id}",user=user,db=db)
         print("===== OpenAI SERVICE ACCOUNT CREATED SUCCESSFULLY =====")
         print("Result:", result)
@@ -389,6 +406,15 @@ async def verify_payment(
         subscription.end_date = datetime.utcnow() + timedelta(days=30)
         db.commit()
         
+        # === ADD WALLET CREDITS (33x plan amount for non-superadmin users) ===
+        if current_user.role != UserRole.SUPERADMIN:
+            from app.utils.wallet import add_to_wallet
+            plan = db.query(Plans).filter(Plans.id == subscription.plan_id).first()
+            if plan:
+                wallet_credits = plan.price * 33
+                wallet = add_to_wallet(current_user.id, wallet_credits, db)
+                print(f"===== Added ${wallet_credits:.2f} to wallet for user {current_user.id} (33x plan amount ${plan.price:.2f}). New balance: ${wallet.balance:.2f} =====")
+        
         print("===== DEBUG: TEST MODE - Subscription updated =====")
         
     else:
@@ -427,6 +453,16 @@ async def verify_payment(
         db.commit()
         
         print("===== DEBUG: REAL payment - Subscription updated =====")
+    
+    # === ADD WALLET CREDITS (33x plan amount for non-superadmin users) ===
+    if current_user.role != UserRole.SUPERADMIN:
+        from app.utils.wallet import add_to_wallet
+        # Get the plan from subscription
+        plan = db.query(Plans).filter(Plans.id == subscription.plan_id).first()
+        if plan:
+            wallet_credits = plan.price * 33
+            wallet = add_to_wallet(current_user.id, wallet_credits, db)
+            print(f"===== Added ${wallet_credits:.2f} to wallet for user {current_user.id} (33x plan amount ${plan.price:.2f}). New balance: ${wallet.balance:.2f} =====")
     
     # === NOW CALL OpenAI IN BOTH MODES ===
     print(f"===== Starting OpenAI service account creation for user {current_user.id} =====")

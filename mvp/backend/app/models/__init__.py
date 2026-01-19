@@ -9,9 +9,10 @@ from app.models.report import UserReportPreference, ReportJob, ReportFrequency, 
 from app.models.subscription import Subscription, PaymentStatus
 from app.models.payment_token import PaymentToken
 from app.models.plans import Plans
+from app.models.wallet import Wallet
 __all__ = [
     "User", "UserRole", "OpenAIKey", "Agent", "AssistantConfig", "Interaction",
     "IntegrationConfig", "UserReportPreference", "ReportJob", "ReportFrequency", "JobStatus",
-    "Subscription", "PaymentStatus", "PaymentToken","Plans"
+    "Subscription", "PaymentStatus", "PaymentToken", "Plans", "Wallet"
 ]
 

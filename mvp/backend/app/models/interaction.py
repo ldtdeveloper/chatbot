@@ -81,6 +81,7 @@ class Interaction(Base):
     # ========== COST TRACKING ==========
     # Real cost from token counts (calculated using OpenAI pricing)
     estimated_cost = Column(Float, default=0.0)  # Total cost in USD
+    total_cost = Column(Float, default=0.0)  # Total cost with 10% markup (estimated_cost * 1.1)
     
     # Breakdown (for detailed analytics)
     audio_input_cost = Column(Float, default=0.0)   # Cost of audio input
@@ -137,6 +138,9 @@ class Interaction(Base):
             self.text_output_cost, 
             6
         )
+        
+        # Calculate total cost with 10% markup
+        self.total_cost = round(self.estimated_cost * 1.1, 6)
     
     def get_cost_breakdown(self) -> dict:
         """Get detailed cost breakdown"""
@@ -154,7 +158,8 @@ class Interaction(Base):
                 "audio_output": self.audio_output_cost,
                 "text_input": self.text_input_cost,
                 "text_output": self.text_output_cost,
-                "total": self.estimated_cost
+                "estimated": self.estimated_cost,
+                "total": self.total_cost
             },
             "pricing": OPENAI_PRICING
         }
