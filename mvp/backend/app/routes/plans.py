@@ -22,9 +22,10 @@ def create_plans(
     
     plans = Plans(
         name = request.name,
-        code = request.code,
         description = request.description,
-        credits = request.credits,
+        currency = request.currency,
+        wallet_credits = request.wallet_credits,
+        plan_type = request.plan_type,
         price = request.price,
         features = request.features,
     )
