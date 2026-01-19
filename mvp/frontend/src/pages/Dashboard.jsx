@@ -334,7 +334,7 @@ function Dashboard() {
           <div className="summary-card">
             <div className="summary-card-icon">💳</div>
             <div className="summary-card-content">
-              <h3>Total Charging</h3>
+              <h3>Actual Charge</h3>
               <p className="summary-card-value">${stats?.total_charging?.toFixed(2) || '0.00'}</p>
               {stats?.profit !== undefined && stats?.profit !== null && (
                 <p className="summary-card-profit">
