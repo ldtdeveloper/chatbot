@@ -6,6 +6,38 @@ import ViewPlan from '../components/ViewPlan'
 import PlanForm from "../components/PlanForm";
 import { showError,showSuccess } from "../utils/toast";
 
+// Currency symbols mapping
+const getCurrencySymbol = (currency) => {
+  const currencyMap = {
+    'USD': '$',
+    'INR': '₹',
+    'BHD': 'BD',
+    'KWD': 'KD',
+    'OMR': 'OMR',
+    'SAR': 'SAR',
+    'AED': 'AED',
+    'EUR': '€',
+    'GBP': '£',
+  };
+  return currencyMap[currency] || currency || '$';
+};
+
+// Currency flag emojis (optional, for visual appeal)
+const getCurrencyFlag = (currency) => {
+  const flagMap = {
+    'USD': '🇺🇸',
+    'INR': '🇮🇳',
+    'BHD': '🇧🇭',
+    'KWD': '🇰🇼',
+    'OMR': '🇴🇲',
+    'SAR': '🇸🇦',
+    'AED': '🇦🇪',
+    'EUR': '🇪🇺',
+    'GBP': '🇬🇧',
+  };
+  return flagMap[currency] || '💵';
+};
+
 export default function Plans() {
       const [showPlanDetail, setPlanDetail] = useState(false)
       const [selectedPlan, setSelectedPlan] = useState()
@@ -108,23 +140,39 @@ export default function Plans() {
            </button>
             </div>
             <div className="plans-list">
-            {planList.length!=0 && planList.map((plan) => (
+            {planList.length!=0 && planList.map((plan) => {
+              const currency = plan.currency || 'USD';
+              const currencySymbol = getCurrencySymbol(currency);
+              const currencyFlag = getCurrencyFlag(currency);
+              const walletCredits = plan.wallet_credits || plan.credits || 0;
+              const planType = plan.plan_type || 'monthly';
+              
+              return (
                 <div key={plan.id} className="plan-card">
                 <div className="plan-info">
-                    <h3>{plan.name}</h3>
-                    <span className="plan-code">{plan.code}</span>
-
-                    <p className="plan-description">
-                    {plan.description}
-                    </p>
+                    <div className="plan-header-row">
+                      <h3>{plan.name}</h3>
+                      <span className="currency-badge" title={currency}>
+                        <span className="currency-flag">{currencyFlag}</span>
+                        <span className="currency-code">{currency}</span>
+                      </span>
+                    </div>
+                    
+                    {plan.description && (
+                      <p className="plan-description">
+                        {plan.description}
+                      </p>
+                    )}
 
                     <div className="plan-meta">
                     <span className="plan-price">
-                        ₹{plan.price}
+                        <span className="currency-symbol">{currencySymbol}</span>
+                        {plan.price}
+                        <span className="plan-type-badge">{planType}</span>
                     </span>
 
                     <span className="plan-credits">
-                        {plan.credits} credits
+                        {walletCredits} credits
                     </span>
 
                     <span
@@ -153,7 +201,8 @@ export default function Plans() {
                     </button>
                 </div>
                 </div>
-            ))}
+              );
+            })}
             {planList.length === 0 && <p>No plans found.</p>}
             </div>
             {showPlanDetail && selectedPlan && (

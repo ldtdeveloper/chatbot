@@ -24,9 +24,43 @@
   flex: 1;
 }
 
+.plan-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  gap: 1rem;
+}
+
 .plan-info h3 {
-  margin: 0 0 0.25rem 0;
+  margin: 0;
   color: #333;
+  flex: 1;
+}
+
+.currency-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  padding: 0.4rem 0.75rem;
+  border-radius: 20px;
+  border: 2px solid #bae6fd;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0369a1;
+  white-space: nowrap;
+}
+
+.currency-flag {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.currency-code {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .plan-code {
@@ -56,6 +90,28 @@
 .plan-price {
   font-weight: 700;
   color: #2d2d2d;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 1.1rem;
+}
+
+.currency-symbol {
+  font-size: 1.2rem;
+  color: #667eea;
+  font-weight: 800;
+}
+
+.plan-type-badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #667eea;
+  background: #f0f9ff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  margin-left: 0.5rem;
+  text-transform: capitalize;
+  border: 1px solid #bae6fd;
 }
 
 .plan-credits {
