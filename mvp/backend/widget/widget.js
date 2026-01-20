@@ -250,6 +250,7 @@
             case 'connected':
                 status.textContent = 'Connected - Ready';
                 startRecording();
+                // Startup message is now handled by the backend automatically
                 break;
             case 'transcript_user':
                 addTranscript('user', data.text);

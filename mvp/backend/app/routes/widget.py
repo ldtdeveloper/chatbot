@@ -587,6 +587,21 @@ TOOL USAGE:
             final_instructions = f"""{agent_instructions}
 
 {mcp_instructions}"""
+        
+        # Handle startup message
+        # If startup_message is provided, bot will say that exact message
+        # If not provided, bot will generate its own greeting based on instructions
+        if agent.startup_message and agent.startup_message.strip():
+            print(f"[Widget WS] Startup message configured: {agent.startup_message}")
+            # Add startup message to instructions so bot says it first
+            startup_instruction = f"\n\nIMPORTANT: When the conversation starts, you MUST say exactly this as your first message: \"{agent.startup_message}\" Do not add anything else, just say this message."
+            final_instructions = final_instructions + startup_instruction
+            print(f"[Widget WS] Startup message added to instructions - bot will say it as first message")
+        else:
+            # No startup message - add instruction to generate a friendly greeting
+            greeting_instruction = "\n\nIMPORTANT: When the conversation starts, you MUST greet the user with a friendly, professional greeting. Introduce yourself briefly and ask how you can help them. Keep it concise and welcoming."
+            final_instructions = final_instructions + greeting_instruction
+            print(f"[Widget WS] No startup message configured - added greeting instruction - bot will generate its own greeting")
 
         session_payload = {
             "type": "session.update",
@@ -757,6 +772,17 @@ TOOL USAGE:
         
         # Start message forwarding tasks
         asyncio.create_task(handle_openai_messages(openai_ws, websocket))
+        
+        # Always trigger an initial response so the bot speaks first
+        # If startup message is configured, bot will say that exact message
+        # If not configured, bot will generate its own greeting based on instructions
+        await asyncio.sleep(0.5)  # Wait a moment for session to be ready
+        response_payload = {"type": "response.create"}
+        await openai_ws.send(json.dumps(response_payload))
+        if agent.startup_message and agent.startup_message.strip():
+            print(f"[Widget WS] Triggered initial response - bot will speak startup message: {agent.startup_message}")
+        else:
+            print(f"[Widget WS] Triggered initial response - bot will generate its own greeting")
         
         # Send connection confirmation
         await websocket.send_json({"type": "connected", "session_id": session_id})

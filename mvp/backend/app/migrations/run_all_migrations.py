@@ -47,6 +47,9 @@ def run_migrations():
         # Agent activation
         ("migrate_agent_is_active", "Add is_active column to agents"),
         
+        # Agent startup message
+        ("migrate_add_startup_message", "Add startup_message column to agents"),
+        
         # Plans schema updates
         ("migrate_plans_schema", "Update plans table schema (currency, plan_type, wallet_credits)"),
     ]

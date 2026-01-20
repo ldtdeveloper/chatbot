@@ -45,6 +45,9 @@ class Agent(Base):
     # Can include: tools, handoffs, inputGuardrails, outputGuardrails, etc.
     agent_config = Column(JSON, default={})
     
+    # Startup message that bot sends automatically when chat starts
+    startup_message = Column(Text, nullable=True)  # Optional startup message (e.g., "Hi, how can I assist you?")
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_active = Column(Boolean, default=True)  # Agent active status - deactivated when wallet balance is zero
