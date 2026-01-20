@@ -552,6 +552,10 @@ function Agents() {
     setSelectedPhoneAgentId(willBeSelected ? agent.id : null)
   }
 
+  const handleCancel = () =>{
+    setShowAddForm(false);
+  }
+  
   const handleCancelEdit = () => {
     setEditingAgent(null)
     setShowAddForm(false)
@@ -767,6 +771,7 @@ function Agents() {
           setSelectedInstructionsAgent={setSelectedInstructionsAgent}
           checked={checked}
           handleChange={handleChange}
+          handleCancel={handleCancel}
         />
       )}
       {showMcpServerCard && <AppIconsCard setShowMcpServerCard={setShowMcpServerCard} setChecked = {setChecked} selectedAgent = {selectedAgent}/>}

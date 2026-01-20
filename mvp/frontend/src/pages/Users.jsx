@@ -5,6 +5,7 @@ import { userService } from '../services/services'
 import { FaEye, FaEdit, FaToggleOn, FaToggleOff } from 'react-icons/fa'
 import axios from 'axios'
 import '../styles/Users.css'
+import { showSuccess,showError } from '../utils/toast'
 
 function Users() {
   const navigate = useNavigate()
@@ -38,8 +39,30 @@ function Users() {
 
   const toggleMutation = useMutation({
     mutationFn: userService.toggleActive,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] })
+    onMutate: async (userId) => {
+      await queryClient.cancelQueries({ queryKey: ['users'] })
+      const previousUsers = queryClient.getQueryData(['users'])
+      
+      queryClient.setQueryData(['users'], (old) => {
+        return old?.map(user => 
+          user.id === userId 
+            ? { ...user, is_active: !user.is_active }
+            : user
+        )
+      })
+      
+      return { previousUsers }
+    },
+    onSuccess: (data) => {
+      if (data.is_active) {
+        showSuccess("User activated successfully");
+      } else {
+        showSuccess("User deactivated successfully");
+      }
+    },
+    onError: (err, userId, context) => {
+      queryClient.setQueryData(['users'], context.previousUsers)
+      showError("Failed to update user status");
     }
   })
 
@@ -204,7 +227,8 @@ function Users() {
               >
                 <FaEdit />
               </button>
-              <button
+              {user.role.toUpperCase() != 'SUPERADMIN' && (
+                <button
                 className="action-btn edit-btn"
                 onClick={() => toggleMutation.mutate(user.id)}
                 disabled={toggleMutation.isPending}
@@ -212,6 +236,7 @@ function Users() {
               >
                 {user.is_active ? <FaToggleOn /> : <FaToggleOff />}
               </button>
+              )}
             </div>
           </div>
         ))}

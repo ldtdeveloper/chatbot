@@ -38,7 +38,11 @@ export const userService = {
     return response.data
   },
   
-  
+  changePassword: async (data) =>{
+    const response = await api.put(`/api/auth/change-password`, data)
+    return response.data
+  },
+
   updateProfile: async (id, data) => {
     const response = await api.patch(`/api/users/${id}`, data)
     return response.data
