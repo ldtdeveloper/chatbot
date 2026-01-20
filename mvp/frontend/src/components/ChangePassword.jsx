@@ -90,77 +90,76 @@ export default function ChangePassword({ onSuccess, onCancel }) {
   };
 
   return (
-    <div className="change-password-container">
-      <div className="change-password-card">
-        <h2>Change Password</h2>
-        <form onSubmit={handleSubmit} className="change-password-form">
-          <div className="form-group">
-            <label htmlFor="oldPassword">Old Password</label>
-            <input
-              id="oldPassword"
-              type="password"
-              value={formData.oldPassword}
-              onChange={(e) => handleChange('oldPassword', e.target.value)}
-              autoComplete="current-password"
-              className={errors.oldPassword ? 'error' : ''}
-            />
-            {errors.oldPassword && (
-              <span className="error-message">{errors.oldPassword}</span>
-            )}
-          </div>
+    <div className="change-password-wrapper">
+      <h2>Change Password</h2>
+      <form onSubmit={handleSubmit} className="change-password-form">
+        <div className="form-group">
+          <label htmlFor="oldPassword">Old Password</label>
+          <input
+            id="oldPassword"
+            type="password"
+            value={formData.oldPassword}
+            onChange={(e) => handleChange('oldPassword', e.target.value)}
+            autoComplete="current-password"
+            className={errors.oldPassword ? 'error' : ''}
+          />
+          {errors.oldPassword && (
+            <span className="error-message">{errors.oldPassword}</span>
+          )}
+        </div>
 
-          <div className="form-group">
-            <label htmlFor="newPassword">New Password</label>
-            <input
-              id="newPassword"
-              type="password"
-              value={formData.newPassword}
-              onChange={(e) => handleChange('newPassword', e.target.value)}
-              autoComplete="new-password"
-              className={errors.newPassword ? 'error' : ''}
-            />
-            {errors.newPassword && (
-              <span className="error-message">{errors.newPassword}</span>
-            )}
-          </div>
+        <div className="form-group">
+          <label htmlFor="newPassword">New Password</label>
+          <input
+            id="newPassword"
+            type="password"
+            value={formData.newPassword}
+            onChange={(e) => handleChange('newPassword', e.target.value)}
+            autoComplete="new-password"
+            className={errors.newPassword ? 'error' : ''}
+          />
+          {errors.newPassword && (
+            <span className="error-message">{errors.newPassword}</span>
+          )}
+        </div>
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              id="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={(e) => handleChange('confirmPassword', e.target.value)}
-              autoComplete="new-password"
-              className={errors.confirmPassword ? 'error' : ''}
-            />
-            {errors.confirmPassword && (
-              <span className="error-message">{errors.confirmPassword}</span>
-            )}
-          </div>
+        <div className="form-group">
+          <label htmlFor="confirmPassword">Confirm Password</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            value={formData.confirmPassword}
+            onChange={(e) => handleChange('confirmPassword', e.target.value)}
+            autoComplete="new-password"
+            className={errors.confirmPassword ? 'error' : ''}
+          />
+          {errors.confirmPassword && (
+            <span className="error-message">{errors.confirmPassword}</span>
+          )}
+        </div>
 
-          <div className="form-actions">
-            {onCancel && (
-              <button
-                type="button"
-                onClick={onCancel}
-                className="btn-cancel"
-                disabled={changePasswordMutation.isLoading}
-              >
-                Cancel
-              </button>
-            )}
+        <div className="form-actions">
+          {onCancel && (
             <button
-              type="submit"
-              className="btn-submit"
+              type="button"
+              onClick={onCancel}
+              className="btn-cancel"
               disabled={changePasswordMutation.isLoading}
             >
-              {changePasswordMutation.isLoading ? 'Changing...' : 'Change Password'}
+              Cancel
             </button>
-          </div>
-        </form>
-      </div>
+          )}
+          <button
+            type="submit"
+            className="btn-submit"
+            disabled={changePasswordMutation.isLoading}
+          >
+            {changePasswordMutation.isLoading ? 'Changing...' : 'Change Password'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
+
 
