@@ -323,7 +323,7 @@ async def forget_password(request: ForgetPasswordRequest,db: Session = Depends(g
     )
 
     #Reset password link
-    reset_password_link = f"{settings.api_base_url}/reset-password?token={reset_token}"
+    reset_password_link = f"{settings.frontend_base_url}/reset-password?token={reset_token}"
 
     #Send email
     email_html = generate_email_html_reset_password(db_user,reset_password_link)

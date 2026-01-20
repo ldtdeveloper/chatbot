@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     # This is the public URL where the API is accessible
     # Can be set via API_BASE_URL environment variable
     api_base_url: str = "http://localhost:8081"
+    frontend_base_url: str = "http://localhost:3000"
     
     #Celery URL
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
