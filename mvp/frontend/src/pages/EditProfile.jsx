@@ -164,7 +164,7 @@ export default function EditProfile() {
               </select>
             </div> */}
             
-            {currentUser.role != 'superadmin' && (
+            {currentUser.id == userId && (
               <div className="form-group">
                 <a href="#" onClick={handlePasswordChange} className="change-password-link">
                   Change Password

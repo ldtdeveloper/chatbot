@@ -53,11 +53,25 @@ function OpenAIKeys() {
   // Toggle active status
   const toggleMutation = useMutation({
     mutationFn: serviceAccountService.toggle,
+    onMutate: async (keyId) => {
+      await queryClient.cancelQueries({ queryKey: ['service-accounts'] })
+      const previousKeys = queryClient.getQueryData(['service-accounts'])
+      
+      queryClient.setQueryData(['service-accounts'], (old) => {
+        return old?.map(key => 
+          key.id === keyId 
+            ? { ...key, is_active: !key.is_active }
+            : key
+        )
+      })
+      
+      return { previousKeys }
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries(['service-accounts'])
       setErrorMessage(null)
     },
-    onError: (error) => {
+    onError: (error, keyId, context) => {
+      queryClient.setQueryData(['service-accounts'], context.previousKeys)
       setErrorMessage(error.response?.data?.detail || 'Failed to toggle status')
     },
   })
