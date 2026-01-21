@@ -313,6 +313,10 @@ async def forget_password(request: ForgetPasswordRequest,db: Session = Depends(g
     if not db_user:
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail = "Email not registered")
     
+    subscription = db.query(Subscription).filter(Subscription.user_id==db_user.id,Subscription.payment_status == PaymentStatus.SUCCESS).order_by(Subscription.created_at.desc()).first()
+    if not subscription:
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "No active subscription")
+    
     # Generate reset token that expires in 15min
     reset_token = create_access_token(
         data={
@@ -320,16 +324,24 @@ async def forget_password(request: ForgetPasswordRequest,db: Session = Depends(g
         },
         expires_delta=timedelta(minutes=15)
     )
+    if db_user.password_set:
+        #Reset password link
+        reset_password_link = f"{settings.frontend_base_url}/password?token={reset_token}&mode=reset"
 
-    #Reset password link
-    reset_password_link = f"{settings.frontend_base_url}/password?token={reset_token}&mode=reset"
-
-    #Send email
-    email_html = generate_email_html_reset_password(db_user,reset_password_link)
-    send_email_task.delay(request.email,"Reset your Voice AI password ",email_html)
+        #Send email
+        email_html = generate_email_html_reset_password(db_user,reset_password_link)
+        send_email_task.delay(request.email,"Reset your Voice AI password ",email_html)
+        return {
+            "message": "Reset password link sent to your registered email",
+            "user_id": db_user.id,
+        }
+    token = get_or_create_payment_token(db=db,user_id=db_user.id,plan_id=subscription.plan_type,amount = subscription.amount)
+    setup_password_link = f"{settings.frontend_base_url}/password?token={token}&mode=setup"
+    email_html= generate_email_html_setup_password(db_user=db_user,setup_password_link=setup_password_link)
+    send_email_task.delay(request.email,"Setup Your VoiceAI account",email_html)
     return {
-        "message": "Reset password link sent to your registered email.Please check your email for the reset password link.",
-        "user_id": db_user.id,
+        "message" : "Setup password link sent to your registered email",
+        "user_id" : db_user.id
     }
 
 @router.post("/change-email")
