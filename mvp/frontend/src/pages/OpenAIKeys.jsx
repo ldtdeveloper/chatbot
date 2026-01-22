@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { serviceAccountService } from '../services/services'
 import { FaEye, FaEdit, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa'
 import '../styles/OpenAIKeys.css'
+import { showError, showSuccess } from '../utils/toast'
 
 function OpenAIKeys() {
   const queryClient = useQueryClient()
@@ -69,10 +70,12 @@ function OpenAIKeys() {
     },
     onSuccess: () => {
       setErrorMessage(null)
+      showSuccess("Service account key updated successfully")
     },
     onError: (error, keyId, context) => {
       queryClient.setQueryData(['service-accounts'], context.previousKeys)
       setErrorMessage(error.response?.data?.detail || 'Failed to toggle status')
+      showError("Key not updated")
     },
   })
 
