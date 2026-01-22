@@ -13,6 +13,7 @@ from app.models.user import  UserRole
 from app.schemas.service_account import ServiceAccountKeyCreate,ServiceAccountKeyMaskedResponse,ServiceAccountKeyResponse
 from app.models.service_account_key import ServiceAccountKey
 from app.core.dependencies import get_current_user
+from app.utils.encryption import decrypt_api_key
 
 router = APIRouter(prefix="/api/openai-keys", tags=["openai-keys"])
 
@@ -81,18 +82,20 @@ async def delete_service_account_key(
     db: Session = Depends(get_db)
 ):
     """Delete a service account key"""
+    if current_user.role!=UserRole.SUPERADMIN:
+        raise HTTPException(status_code = 403, detail = "Admin access only")
+    
     key = db.query(ServiceAccountKey).filter(
-        ServiceAccountKey.id == key_id,
-        ServiceAccountKey.user_id == current_user.id  # ← Fixed!
+        ServiceAccountKey.id == key_id
     ).first()
     if not key:
         raise HTTPException(status_code=404, detail="Service account key not found")
     
     # Check dependent agents
-    agents = db.query(Agent).filter(Agent.service_account_id == key_id).all()
+    agents = db.query(Agent).filter(Agent.openai_key_id == key_id).all()
     
     # Check dependent interactions
-    interactions = db.query(Interaction).filter(Interaction.service_account_id == key_id).all()
+    interactions = db.query(Interaction).filter(Interaction.openai_key_id == key_id).all()
     
     if agents and not force:
         agent_names = [a.name for a in agents]
@@ -120,7 +123,7 @@ async def delete_service_account_key(
         "deleted_interactions": len(interactions) if force else 0
     }
 
-@router.patch("/{key_id}/toggle")
+@router.patch("/{key_id}/toggle",response_model= ServiceAccountKeyResponse)
 async def toggle_service_account_key(
     key_id: int,
     current_user: User = Depends(get_current_user),
@@ -158,14 +161,16 @@ async def get_masked_service_account_key(
     db: Session = Depends(get_db)
 ):
     """Get masked version of the service account key"""
+    if current_user.role!= UserRole.SUPERADMIN:
+        raise HTTPException(status_code = 403, detail = "Admin access only")
+    
     key = db.query(ServiceAccountKey).filter(
         ServiceAccountKey.id == key_id,
-        ServiceAccountKey.user_id == current_user.id
     ).first()
     if not key:
         raise HTTPException(status_code=404, detail="Service account key not found")
     
-    plain_key = key.service_account_key  # Plain field
+    plain_key = decrypt_api_key(key.service_account_key) # Plain field
     
     if len(plain_key) <= 16:
         masked = plain_key[:4] + "..." + plain_key[-4:]

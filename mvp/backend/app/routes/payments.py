@@ -594,9 +594,9 @@ async def verify_wallet_topup(
     db: Session = Depends(get_db)
 ):
     """Verify Razorpay payment for wallet top-up and add money to wallet"""
-    from app.models.user import UserRole
     from app.models.wallet_transaction import WalletTransaction, TransactionStatus
     from app.utils.wallet import add_to_wallet
+    from app.models.wallet import Wallet
     
     # Get transaction
     transaction = db.query(WalletTransaction).filter(

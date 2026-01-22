@@ -23,6 +23,7 @@ import websockets
 from datetime import datetime
 from typing import Optional, Dict
 from urllib.parse import urlparse
+from app.utils.encryption import decrypt_api_key
 
 router = APIRouter(prefix="/api/widget", tags=["widget"])
 
@@ -487,7 +488,7 @@ async def widget_websocket(
             return
         
         # ServiceAccountKey stores the key as plain text (not encrypted)
-        openai_api_key = api_key_record.service_account_key
+        openai_api_key = decrypt_api_key(api_key_record.service_account_key)
         
         print(f"[Widget WS] Agent '{agent.name}' validated, connecting to OpenAI...")
         

@@ -75,7 +75,7 @@ function App() {
             <Route path ="plans" element={<Plans/>}/>
 
           </Route>
-          <Route path ="reset-password" element={<ResetPassword />} />
+          <Route path ="password" element={<ResetPassword />} />
         </Routes>
         <Toaster richColors position="top-right" />
       </Router>
