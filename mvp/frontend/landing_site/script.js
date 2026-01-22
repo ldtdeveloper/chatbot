@@ -806,12 +806,20 @@ async function handleLogin(e) {
             closeLoginModal();
             scrollDownPlans();
         }
-        if (data.next_action === 'SET_PASSWORD') {
-            // redirect to setup password
-            return;
+        else if (data.next_action === 'SET_PASSWORD') {
+            loadingOverlay.classList.add('hidden');
+            Toastify({
+                text: 'Setup Password link sent to your registered email',
+                duration: 2000,
+                gravity: 'top',
+                position: 'right',
+                style: {borderRadius: '15px', background:' #16a34a'}
+            }).showToast();
+                closeLoginModal();
+                return;
+            }
         }
-
-    } catch (err) {
+     catch (err) {
         console.error(err);
         showError(`${err.message}`);
     }

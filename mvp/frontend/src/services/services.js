@@ -291,6 +291,13 @@ export const resetPasswordService = {
   }
 }
 
+export const setupPasswordService = {
+   setupPassword : async (token,password) => {
+    const response = await api.post('api/auth/setup-password', {password: password, token : token})
+    return response.data
+   }
+}
+
 export const planService = {
     createPlans: async (data) => {
       const response = await api.post('/api/plans',data)

@@ -37,7 +37,7 @@ class ForgetPasswordRequest(BaseModel):
 #Prefetch details of user
 class PreFetchDetails(BaseModel):
     email : str
-    plan : Optional [str] = None
+    plan_id: Optional [int] = None
 
 class ChangeEmail(BaseModel):
     email : str
