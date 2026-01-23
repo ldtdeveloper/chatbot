@@ -571,6 +571,251 @@ SELECT pg_size_pretty(pg_database_size('chatbot'));
 
 ---
 
+## Testing Deployment
+
+After deployment, verify that both backend and frontend are working correctly.
+
+### 1. Test Backend Deployment
+
+#### Check PM2 Status
+```bash
+# Check if backend and celery are running
+pm2 status
+
+# Should show:
+# chatbot-backend    | online | running
+# chatbot-celery     | online | running
+```
+
+#### Test Backend API Endpoints
+
+**From Server (Local Test):**
+```bash
+# Test health/root endpoint
+curl http://localhost:8081/
+
+# Test API health endpoint (if available)
+curl http://localhost:8081/api/health
+
+# Test login endpoint (should return 422 for missing credentials, which is expected)
+curl -X POST http://localhost:8081/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"test"}'
+```
+
+**From Local Machine (External Test):**
+```bash
+# Replace with your server IP or domain
+curl http://13.234.149.62:8081/
+
+# Test API endpoint through Nginx
+curl http://13.234.149.62/api/
+
+# Test with domain (if configured)
+curl https://yourdomain.com/api/
+```
+
+#### Check Backend Logs
+```bash
+# View real-time backend logs
+pm2 logs chatbot-backend
+
+# Check for any errors
+pm2 logs chatbot-backend --err
+
+# Check last 100 lines
+pm2 logs chatbot-backend --lines 100
+```
+
+#### Verify Database Connection
+```bash
+# Connect to database and check if tables exist
+sudo -u postgres psql chatbot -c "\dt"
+
+# Should show tables like: users, agents, interactions, etc.
+```
+
+#### Test Celery Worker
+```bash
+# Check Celery logs
+pm2 logs chatbot-celery
+
+# Should see: "celery@hostname ready" message
+```
+
+### 2. Test Frontend Deployment
+
+#### Check Frontend Files
+```bash
+# Verify dist folder exists and has files
+ls -la /home/voicequik/app/chatbot/mvp/frontend/dist/
+
+# Should see: index.html, assets/ folder, etc.
+```
+
+#### Test Frontend via Browser
+
+**Access Frontend:**
+1. Open your browser
+2. Navigate to: `http://13.234.149.62` or `https://yourdomain.com`
+3. You should see the login page or application interface
+
+**Check Browser Console:**
+1. Open browser Developer Tools (F12)
+2. Go to Console tab
+3. Check for any JavaScript errors
+4. Check Network tab for API calls
+
+#### Test Frontend API Connection
+```bash
+# Test if frontend can reach backend API
+curl -I http://13.234.149.62/api/
+
+# Should return HTTP 200 or 404 (not 502 or 503)
+```
+
+#### Verify Nginx is Serving Frontend
+```bash
+# Test Nginx configuration
+sudo nginx -t
+
+# Check Nginx access logs
+sudo tail -f /var/log/nginx/access.log
+
+# Check Nginx error logs
+sudo tail -f /var/log/nginx/error.log
+```
+
+### 3. Integration Testing
+
+#### Test Complete Flow
+
+1. **Login Test:**
+   - Open frontend in browser
+   - Try to login with valid credentials
+   - Should redirect to dashboard on success
+
+2. **API Communication Test:**
+   - Open browser Developer Tools → Network tab
+   - Perform any action (login, fetch data, etc.)
+   - Check if API calls are successful (status 200)
+   - Verify API URL is correct (should point to `/api/`)
+
+3. **WebSocket Test (if using widget):**
+   - Open widget on a page
+   - Check browser console for WebSocket connection
+   - Should see "Connected" or similar message
+
+### 4. Quick Health Check Script
+
+Create a simple health check script:
+
+```bash
+# Create health check script
+nano /home/voicequik/app/chatbot/health_check.sh
+```
+
+**Health Check Script:**
+
+```bash
+#!/bin/bash
+
+echo "=== Deployment Health Check ==="
+echo ""
+
+# Check PM2 services
+echo "1. Checking PM2 Services..."
+pm2 status | grep -E "chatbot-backend|chatbot-celery"
+if [ $? -eq 0 ]; then
+    echo "✅ PM2 services are running"
+else
+    echo "❌ PM2 services are not running"
+fi
+echo ""
+
+# Check Backend API
+echo "2. Checking Backend API..."
+BACKEND_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/)
+if [ "$BACKEND_RESPONSE" = "200" ] || [ "$BACKEND_RESPONSE" = "404" ]; then
+    echo "✅ Backend API is responding (HTTP $BACKEND_RESPONSE)"
+else
+    echo "❌ Backend API is not responding (HTTP $BACKEND_RESPONSE)"
+fi
+echo ""
+
+# Check Frontend Files
+echo "3. Checking Frontend Files..."
+if [ -d "/home/voicequik/app/chatbot/mvp/frontend/dist" ] && [ -f "/home/voicequik/app/chatbot/mvp/frontend/dist/index.html" ]; then
+    echo "✅ Frontend build files exist"
+else
+    echo "❌ Frontend build files not found"
+fi
+echo ""
+
+# Check Nginx
+echo "4. Checking Nginx..."
+NGINX_STATUS=$(sudo systemctl is-active nginx)
+if [ "$NGINX_STATUS" = "active" ]; then
+    echo "✅ Nginx is running"
+else
+    echo "❌ Nginx is not running"
+fi
+echo ""
+
+# Check Database
+echo "5. Checking Database..."
+DB_CHECK=$(sudo -u postgres psql -t -c "SELECT 1" chatbot 2>/dev/null)
+if [ "$DB_CHECK" = "1" ]; then
+    echo "✅ Database connection successful"
+else
+    echo "❌ Database connection failed"
+fi
+echo ""
+
+# Check Redis
+echo "6. Checking Redis..."
+REDIS_CHECK=$(redis-cli ping 2>/dev/null)
+if [ "$REDIS_CHECK" = "PONG" ]; then
+    echo "✅ Redis is running"
+else
+    echo "❌ Redis is not running"
+fi
+echo ""
+
+echo "=== Health Check Complete ==="
+```
+
+```bash
+# Make executable
+chmod +x /home/voicequik/app/chatbot/health_check.sh
+
+# Run health check
+/home/voicequik/app/chatbot/health_check.sh
+```
+
+### 5. Expected Results
+
+**✅ Successful Deployment Indicators:**
+
+- PM2 shows both `chatbot-backend` and `chatbot-celery` as `online`
+- Backend API responds with HTTP 200 or 404 (not 502/503)
+- Frontend loads in browser without errors
+- Browser console shows no critical errors
+- API calls from frontend return successful responses
+- Database connection works
+- Redis connection works
+- Nginx serves frontend files correctly
+
+**❌ Common Issues:**
+
+- **502 Bad Gateway**: Backend not running or Nginx can't reach it
+- **503 Service Unavailable**: Backend crashed or not started
+- **Blank page**: Frontend files not found or Nginx misconfigured
+- **CORS errors**: Backend CORS configuration issue
+- **API 404**: Nginx routing misconfigured
+
+---
+
 ## Troubleshooting
 
 ### Backend Not Starting
@@ -588,26 +833,72 @@ source venv/bin/activate
 python -c "from app.core.config import settings; print(settings.database_url)"
 ```
 
-### Frontend Not Loading
+### Frontend Not Loading / 500 Internal Server Error
+
+**Common Causes:**
+1. File permissions issue (Nginx can't read files)
+2. Frontend dist folder missing or empty
+3. Nginx configuration error
+4. Wrong file paths in Nginx config
+
+**Step-by-Step Fix:**
 
 ```bash
-# Check if build exists
+# 1. Check if dist folder exists
 ls -la /home/voicequik/app/chatbot/mvp/frontend/dist
 
-# If dist folder doesn't exist, pull from repository
+# 2. If dist folder doesn't exist, pull from repository
 cd /home/voicequik/app/chatbot
 git pull origin dev  # or your branch name
 
-# Verify dist folder exists
+# 3. Verify dist folder exists and has files
 ls -la mvp/frontend/dist/
+# Should see: index.html, assets/ folder, etc.
 
-# If still missing, rebuild on server
-cd mvp/frontend
+# 4. Fix file permissions (CRITICAL - Nginx needs read access)
+# Option A: Add Nginx user to voicequik group (Recommended)
+sudo usermod -a -G voicequik www-data
+sudo chmod -R 755 /home/voicequik/app/chatbot/mvp/frontend/dist
+sudo chown -R voicequik:voicequik /home/voicequik/app/chatbot/mvp/frontend/dist
+
+# Option B: Make files readable by all (Alternative)
+sudo chmod -R 755 /home/voicequik/app/chatbot/mvp/frontend/dist
+sudo chmod -R 644 /home/voicequik/app/chatbot/mvp/frontend/dist/*
+
+# 5. Verify Nginx can access the directory
+sudo -u www-data ls /home/voicequik/app/chatbot/mvp/frontend/dist/
+# If this fails, there's a permission issue
+
+# 6. Check Nginx error logs for specific error
+sudo tail -20 /var/log/nginx/error.log
+
+# 7. Test Nginx configuration
+sudo nginx -t
+
+# 8. If config is OK, reload Nginx
+sudo systemctl reload nginx
+
+# 9. If still not working, check Nginx config path
+sudo cat /etc/nginx/sites-available/chatbot | grep "root"
+# Should show: root /home/voicequik/app/chatbot/mvp/frontend/dist;
+
+# 10. If dist folder is missing, rebuild on server
+cd /home/voicequik/app/chatbot/mvp/frontend
 npm install
 npm run build
+```
 
-# Check Nginx configuration points to correct path
-sudo nginx -t
+**Quick Permission Fix (Run these commands):**
+```bash
+# Fix permissions for frontend files
+sudo chmod -R 755 /home/voicequik/app/chatbot/mvp/frontend
+sudo chmod -R 644 /home/voicequik/app/chatbot/mvp/frontend/dist/*
+sudo chmod 755 /home/voicequik/app/chatbot/mvp/frontend/dist
+
+# Add www-data to voicequik group
+sudo usermod -a -G voicequik www-data
+
+# Reload Nginx
 sudo systemctl reload nginx
 ```
 
