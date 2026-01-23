@@ -2,9 +2,8 @@ module.exports = {
   apps: [
     {
       name: 'chatbot-backend',
-      script: 'uvicorn',
-      args: 'main:app --host 0.0.0.0 --port 8081',
-      interpreter: 'mvp/backend/venv/bin/python',
+      script: 'mvp/backend/venv/bin/python',
+      args: '-m uvicorn main:app --host 0.0.0.0 --port 8081',
       cwd: '/home/voicequik/app/chatbot/mvp/backend',
       instances: 1,
       exec_mode: 'fork',
@@ -22,9 +21,8 @@ module.exports = {
     },
     {
       name: 'chatbot-celery',
-      script: 'celery',
-      args: '-A app.core.celery_app worker --loglevel=info',
-      interpreter: 'mvp/backend/venv/bin/python',
+      script: 'mvp/backend/venv/bin/python',
+      args: '-m celery -A app.core.celery_app worker --loglevel=info',
       cwd: '/home/voicequik/app/chatbot/mvp/backend',
       instances: 1,
       exec_mode: 'fork',

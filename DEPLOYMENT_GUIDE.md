@@ -10,6 +10,21 @@
 
 ---
 
+## Deployment Strategy
+
+### Frontend Deployment
+- **Pre-built Approach**: The frontend build files (`dist/`) are included in the repository
+- **Deployment**: Simply pull the latest code from the repository - no build needed on server
+- **Benefits**: Faster deployments, no Node.js build dependencies on production server
+- **When to Rebuild**: Only rebuild if you need to change environment variables (API URL, etc.)
+
+### Backend Deployment
+- **Source Code**: Backend code is deployed and run directly on the server
+- **Dependencies**: Installed via pip in virtual environment
+- **Process Management**: Managed by PM2
+
+---
+
 ## Prerequisites
 
 ### Local Machine Requirements
@@ -20,7 +35,7 @@
 ### Server Requirements
 - Ubuntu 20.04/22.04 LTS
 - Python 3.12+
-- Node.js 18+ and npm
+- Node.js 18+ and npm (optional - only needed if rebuilding frontend on server)
 - PostgreSQL 14+
 - Redis
 - Nginx
@@ -196,29 +211,52 @@ python -m app.scripts.seed_db
 
 ### 5. Frontend Setup
 
+**Option 1: Deploy Pre-built Frontend (Recommended)**
+
+Since the build files are already in the repository (`mvp/frontend/dist/`), you can deploy them directly without building on the server:
+
+```bash
+# The dist folder is already in the repository
+# No need to build on the server - just verify it exists
+cd ../../mvp/frontend
+ls -la dist/
+
+# If dist folder exists, you're ready to deploy
+# The Nginx configuration will serve files from this directory
+```
+
+**Option 2: Build Frontend on Server (If needed)**
+
+If you need to rebuild on the server or the dist folder is missing:
+
 ```bash
 cd ../../mvp/frontend
 
 # Install dependencies
 npm install
 
-# Create .env file
+# Create .env file (if building on server)
 nano .env
 ```
 
-**Frontend .env Configuration:**
+**Frontend .env Configuration (if building on server):**
 
 ```env
 VITE_API_URL=http://13.234.149.62:8081
+# Or use your domain:
+# VITE_API_URL=https://yourdomain.com/api
 VITE_RAZORPAY_KEY_ID=your-razorpay-key-id
 ```
-
-### 6. Build Frontend
 
 ```bash
 # Build for production
 npm run build
+
+# Verify build was created
+ls -la dist/
 ```
+
+**Note:** The pre-built frontend in the repository uses the API URL from when it was built. If you need to change the API URL, you'll need to rebuild with the new `.env` file.
 
 ---
 
@@ -420,8 +458,8 @@ sudo systemctl status certbot.timer
 sudo su - voicequik
 cd /home/voicequik/app/chatbot
 
-# Pull latest changes
-git pull origin main  # or your branch name
+# Pull latest changes (includes pre-built frontend)
+git pull origin dev  # or your branch name (main/master)
 
 # Backend updates
 cd mvp/backend
@@ -430,14 +468,27 @@ pip install -r requirements.txt
 python -m app.migrations.run_all_migrations
 deactivate
 
-# Frontend updates
+# Frontend updates (if using pre-built files from repository)
+# The dist folder is already in the repository, so no build needed
+# Just verify the dist folder exists
 cd ../frontend
-npm install
-npm run build
+if [ -d "dist" ]; then
+    echo "✅ Frontend build found in repository"
+    ls -la dist/
+else
+    echo "⚠️  Frontend build not found. Building on server..."
+    npm install
+    npm run build
+fi
 
 # Restart services
 pm2 restart all
+
+# Reload Nginx to serve updated frontend
+sudo systemctl reload nginx
 ```
+
+**Note:** The frontend build files are included in the repository, so you typically don't need to build on the server. Just pull the latest changes and restart services. If you need to change the API URL or other environment variables, rebuild the frontend locally and push the new `dist/` folder to the repository.
 
 ### 2. Database Backup
 
@@ -543,9 +594,21 @@ python -c "from app.core.config import settings; print(settings.database_url)"
 # Check if build exists
 ls -la /home/voicequik/app/chatbot/mvp/frontend/dist
 
-# Rebuild if needed
-cd /home/voicequik/app/chatbot/mvp/frontend
+# If dist folder doesn't exist, pull from repository
+cd /home/voicequik/app/chatbot
+git pull origin dev  # or your branch name
+
+# Verify dist folder exists
+ls -la mvp/frontend/dist/
+
+# If still missing, rebuild on server
+cd mvp/frontend
+npm install
 npm run build
+
+# Check Nginx configuration points to correct path
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
 ### Database Connection Issues
@@ -613,6 +676,10 @@ sudo su - voicequik
 # Navigate to app
 cd /home/voicequik/app/chatbot
 
+# Deploy frontend (pre-built from repository)
+git pull origin dev  # Pull latest code including dist folder
+sudo systemctl reload nginx  # Reload Nginx to serve updated frontend
+
 # PM2 commands
 pm2 status
 pm2 logs
@@ -626,6 +693,9 @@ sudo systemctl restart redis-server
 # View logs
 pm2 logs chatbot-backend
 sudo tail -f /var/log/nginx/error.log
+
+# Verify frontend build exists
+ls -la /home/voicequik/app/chatbot/mvp/frontend/dist
 ```
 
 ---
