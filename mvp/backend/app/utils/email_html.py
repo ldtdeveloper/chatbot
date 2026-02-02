@@ -733,6 +733,7 @@ def setup_password_page_html(settings,token):
         <script>
             const API_BASE = '{settings.api_base_url}';
             const token = '{token}';
+            const FRONTEND_BASE = '{settings.frontend_base_url}';
             
             async function setupPassword(e) {{
                 e.preventDefault();
@@ -789,7 +790,7 @@ def setup_password_page_html(settings,token):
                     // Redirect to dashboard (adjust URL based on your frontend)
                     setTimeout(() => {{
                         // If frontend is on different port, adjust this
-                        window.location.href = 'http://localhost:3000/';
+                        window.location.href = `${{FRONTEND_BASE}}`;
                     }}, 2000);
                     
                 }} catch (err) {{

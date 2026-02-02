@@ -85,7 +85,7 @@
     };
     
     // Determine WebSocket URL
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsProtocol = 'wss:';
     const wsHost = apiBaseUrl.replace(/^https?:/, '').replace(/^\/\//, '');
     const wsUrl = `${wsProtocol}//${wsHost}/api/widget/ws?agent_id=${agentId}`;
     

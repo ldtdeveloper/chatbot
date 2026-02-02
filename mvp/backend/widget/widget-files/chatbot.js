@@ -2,7 +2,7 @@
 (async () => {
   console.info("[Voice Bot] Initializing...");
 
-  const WS_URL = "ws://your address/ws";
+  const WS_URL = "wss://your address/ws";
   let ws = null;
   let audioContext = null;
   let processor = null;
