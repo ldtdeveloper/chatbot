@@ -290,7 +290,6 @@ export const resetPasswordService = {
     return response.data
   }
 }
-
 export const setupPasswordService = {
    setupPassword : async (token,password) => {
     const response = await api.post('api/auth/setup-password', {password: password, token : token})
@@ -318,4 +317,19 @@ export const planService = {
       const response = await api.delete(`/api/plans/${id}`)
       return  response.data
     }
+}
+
+export const userCreate = {
+  createUser: async (data, token) => {
+    const response = await api.post(
+      '/api/auth/register-with-plan',
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+    return response.data
+  },
 }

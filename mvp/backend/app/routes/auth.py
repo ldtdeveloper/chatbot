@@ -35,6 +35,7 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
         )
     
     plan = db.query(Plans).filter((Plans.id== register_data.plan_id)).first()
+   
 
     # Validate plan
     if not plan:

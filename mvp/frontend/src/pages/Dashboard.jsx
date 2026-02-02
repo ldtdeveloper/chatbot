@@ -365,7 +365,10 @@ function Dashboard() {
       <div className="chart-card full-width">
         <div className="chart-header">
           <h2>Interactions</h2>
-          <p className="chart-subtitle">Number of interactions per OpenAI API key over time</p>
+          <p className="chart-subtitle">
+          {user?.role === 'superadmin'? 'Number of interactions per OpenAI API key over time': 'Number of interactions over time'}
+</p>
+          {/* <p className="chart-subtitle">{user?.role === 'superadmin'}Number of interactions per OpenAI API key over time</p> */}
         </div>
         <div className="chart-container">
           {stats?.interactions_chart?.length > 0 ? (
@@ -409,7 +412,9 @@ function Dashboard() {
         <div className="chart-card half-width">
           <div className="chart-header">
             <h2>Expenses</h2>
-            <p className="chart-subtitle">Cost per OpenAI API key (USD)</p>
+             
+            <p className="chart-subtitle">{user?.role === 'superadmin'? 'Cost per OpenAI API key (USD)': 'Cost per key'}</p>
+            {/* <p className="chart-subtitle">Cost per OpenAI API key (USD)</p> */}
           </div>
           <div className="chart-container">
             {stats?.expenses_chart?.length > 0 ? (
@@ -449,7 +454,9 @@ function Dashboard() {
         <div className="chart-card half-width">
           <div className="chart-header">
             <h2>Active Agents</h2>
-            <p className="chart-subtitle">Distribution of agents per OpenAI API key</p>
+              {/* <p className="chart-subtitle">{user?.role === 'superadmin'? 'Cost per OpenAI API key (USD)': 'Cost per key'}</p> */}
+            {/* <p className="chart-subtitle">Distribution of agents per OpenAI API key</p> */}
+             <p className="chart-subtitle">{user?.role === 'superadmin'? 'Distribution of agents per OpenAI API key': 'Distribution of agents API key'}</p>
           </div>
           <div className="chart-container pie-chart-wrapper">
             {stats?.agents_per_key?.length > 0 && totalAgents > 0 ? (

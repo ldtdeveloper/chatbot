@@ -1,203 +1,248 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { userService } from '../services/services'
-import { FaEye, FaEdit, FaToggleOn, FaToggleOff } from 'react-icons/fa'
-import axios from 'axios'
-import '../styles/Users.css'
-import { showSuccess,showError } from '../utils/toast'
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { userCreate, userService, planService } from '../services/services';
+import { showError, showSuccess } from '../utils/toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FaEye, FaEdit, FaToggleOn, FaToggleOff, FaTimes } from 'react-icons/fa';
+import '../styles/Users.css';
 
 function Users() {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     email: '',
     username: '',
-    password: '',
     role: '',
-    plan: ''
-  })
+    planId: '', // renamed from plan_id to planId for consistency
+  });
 
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-  const token = localStorage.getItem('token')
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const token = localStorage.getItem('token');
 
-  const { data: users, isLoading } = useQuery({
+  const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: userService.list
-  })
+    queryFn: userService.list,
+  });
+
+  const { data: plans = [], isLoading: plansLoading } = useQuery({
+    queryKey: ['plans'],
+    queryFn: planService.listPlan,
+    enabled: currentUser.role === 'superadmin' && showAddForm,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const createUserMutation = useMutation({
-    mutationFn: userService.create,
+    mutationFn: async (payload) => {
+      const res = await userCreate.createUser(payload, token);
+      return res.data;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-    }
-  })
+      showSuccess('Payment link sent to registered email');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setShowAddForm(false);
+      resetForm();
+    },
+    onError: (err) => {
+      console.error(err);
+      showError(err?.response?.data?.detail || 'Failed to create user');
+    },
+  });
 
   const toggleMutation = useMutation({
     mutationFn: userService.toggleActive,
     onMutate: async (userId) => {
-      await queryClient.cancelQueries({ queryKey: ['users'] })
-      const previousUsers = queryClient.getQueryData(['users'])
-      
-      queryClient.setQueryData(['users'], (old) => {
-        return old?.map(user => 
-          user.id === userId 
-            ? { ...user, is_active: !user.is_active }
-            : user
+      await queryClient.cancelQueries({ queryKey: ['users'] });
+      const previousUsers = queryClient.getQueryData(['users']);
+
+      queryClient.setQueryData(['users'], (old) =>
+        old?.map((user) =>
+          user.id === userId ? { ...user, is_active: !user.is_active } : user
         )
-      })
-      
-      return { previousUsers }
+      );
+
+      return { previousUsers };
     },
     onSuccess: (data) => {
-      if (data.is_active) {
-        showSuccess("User activated successfully");
-      } else {
-        showSuccess("User deactivated successfully");
-      }
+      showSuccess(data.is_active ? 'User activated successfully' : 'User deactivated successfully');
     },
-    onError: (err, userId, context) => {
-      queryClient.setQueryData(['users'], context.previousUsers)
-      showError("Failed to update user status");
-    }
-  })
+    onError: (_, __, context) => {
+      queryClient.setQueryData(['users'], context.previousUsers);
+      showError('Failed to update user status');
+    },
+  });
 
   const resetForm = () => {
-    setShowAddForm(false)
-    setIsSubmitting(false)
     setFormData({
       email: '',
       username: '',
-      password: '',
       role: '',
-      plan: ''
-    })
-  }
+      planId: '',
+    });
+    setIsSubmitting(false);
+  };
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+    e.preventDefault();
+    setIsSubmitting(true);
 
-    if (currentUser.role === 'superadmin') {
-      if (!formData.plan) {
-        alert('Please select a plan')
-        setIsSubmitting(false)
-        return
-      }
-
-      try {
-        const createdUser = await createUserMutation.mutateAsync({
-          email: formData.email,
-          username: formData.username,
-          password: formData.password,
-          role: formData.role
-        })
-
-        await axios.post(
-          '/api/auth/register-with-plan',
-          {
-            user_id: createdUser.id,
-            email: createdUser.email,
-            username: createdUser.username,
-            plan: formData.plan
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        )
-
-        alert('User created & payment link sent')
-        resetForm()
-      } catch (err) {
-        alert(err?.response?.data?.detail || 'Failed')
-        setIsSubmitting(false)
-      }
-      return
+    if (!formData.email || !formData.username || !formData.role) {
+      showError('Please fill in all required fields');
+      setIsSubmitting(false);
+      return;
     }
+
+    if (currentUser.role === 'superadmin' && !formData.planId) {
+      showError('Please select a plan for the new user');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const payload = {
+      email: formData.email,
+      username: formData.username,
+      role: formData.role,
+      ...(currentUser.role === 'superadmin' && {
+        plan_id: formData.planId, // backend expects plan_id
+      }),
+    };
 
     try {
-      await createUserMutation.mutateAsync(formData)
-      alert('User created')
-      resetForm()
-    } catch (err) {
-      alert(err?.response?.data?.detail || 'Failed')
-      setIsSubmitting(false)
+      await createUserMutation.mutateAsync(payload);
+    } catch {
+      // error handled in onError
+    } finally {
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  if (isLoading) return <div className="loading">Loading users...</div>
+  const isLoading = usersLoading || (currentUser.role === 'superadmin' && showAddForm && plansLoading);
+
+  if (isLoading && !showAddForm) {
+    return <div className="loading">Loading users...</div>;
+  }
 
   return (
     <div className="users">
       <div className="page-header">
         <h1>User Management</h1>
+        <button 
+          className="create-btn" 
+          onClick={() => setShowAddForm(true)}
+          disabled={isSubmitting}
+        >
+          + Create User
+        </button>
       </div>
 
+      {/* Modal Popup */}
       {showAddForm && (
-        <form className="add-user-form" onSubmit={handleSubmit}>
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
+        <div className="modal-overlay" onClick={() => setShowAddForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Create New User</h2>
+              {/* <button 
+                className="modal-close-btn" 
+                onClick={() => setShowAddForm(false)}
+                disabled={isSubmitting}
+              >
+                <FaTimes />
+              </button> */}
+            </div>
 
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            value={formData.username}
-            onChange={handleChange}
-            required
-          />
+            <form className="add-user-form" onSubmit={handleSubmit}>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                disabled={isSubmitting}
+              />
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
+              <input
+                type="text"
+                name="username"
+                placeholder="Username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                disabled={isSubmitting}
+              />
 
-          <select name="role" value={formData.role} onChange={handleChange} required>
-            <option value="">Select Role</option>
-            <option value="default">Default User</option>
-            <option value="superadmin">Superadmin</option>
-          </select>
+              <select 
+                name="role" 
+                value={formData.role} 
+                onChange={handleChange} 
+                required
+                disabled={isSubmitting}
+              >
+                <option value="">Select Role</option>
+                <option value="default">Default User</option>
+                <option value="superadmin">Superadmin</option>
+              </select>
 
-          {currentUser.role === 'superadmin' && (
-            <select name="plan" value={formData.plan} onChange={handleChange}>
-              <option value="">Select Plan</option>
-              <option value="pro">Pro</option>
-              <option value="enterprise">Enterprise</option>
-            </select>
-          )}
+              {currentUser.role === 'superadmin' && (
+                <select
+                  name="planId"
+                  value={formData.planId}
+                  onChange={handleChange}
+                  required
+                  disabled={plansLoading || plans.length === 0 || isSubmitting}
+                >
+                  <option value="">
+                    {plansLoading 
+                      ? 'Loading plans...' 
+                      : plans.length === 0 
+                        ? 'No plans available' 
+                        : 'Select Plan'}
+                  </option>
 
-          <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Processing...' : 'Create User'}
-          </button>
-        </form>
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name}
+                      {plan.price && ` - ${plan.price}`}
+                      {plan.interval && ` / ${plan.interval}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  className="cancel-btn"
+                  onClick={() => setShowAddForm(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="submit-btn"
+                  disabled={isSubmitting || createUserMutation.isPending}
+                >
+                  {isSubmitting ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <div className="users-list">
         {users?.length === 0 && <p>No users found.</p>}
 
-        {users?.map(user => (
+        {users?.map((user) => (
           <div key={user.id} className="user-card">
             <div className="user-info">
               <h3>{user.username}</h3>
@@ -216,7 +261,7 @@ function Users() {
               <button
                 className="action-btn view-btn"
                 onClick={() => navigate(`/users/${user.id}/profile`)}
-                title="View User"
+                title="View Profile"
               >
                 <FaEye />
               </button>
@@ -227,22 +272,23 @@ function Users() {
               >
                 <FaEdit />
               </button>
-              {user.role.toUpperCase() != 'SUPERADMIN' && (
+
+              {user.role.toUpperCase() !== 'SUPERADMIN' && (
                 <button
-                className="action-btn edit-btn"
-                onClick={() => toggleMutation.mutate(user.id)}
-                disabled={toggleMutation.isPending}
-                title={user.is_active ? "Deactivate User" : "Activate User"}
-              >
-                {user.is_active ? <FaToggleOn /> : <FaToggleOff />}
-              </button>
+                  className="action-btn toggle-btn"
+                  onClick={() => toggleMutation.mutate(user.id)}
+                  disabled={toggleMutation.isPending}
+                  title={user.is_active ? 'Deactivate' : 'Activate'}
+                >
+                  {user.is_active ? <FaToggleOn /> : <FaToggleOff />}
+                </button>
               )}
             </div>
           </div>
         ))}
       </div>
     </div>
-  )
+  );
 }
 
-export default Users
+export default Users;
