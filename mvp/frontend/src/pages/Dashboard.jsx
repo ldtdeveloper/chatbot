@@ -34,7 +34,6 @@ function Dashboard() {
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [showLowBalancePopup, setShowLowBalancePopup] = useState(false)
   const { user, logout } = useAuthStore()
-
   // Check wallet balance when dashboard loads
   useEffect(() => {
     if (user && user.role !== 'superadmin' && user.wallet_balance !== undefined) {
@@ -507,11 +506,12 @@ function Dashboard() {
             <h2>🔑 OpenAI Keys</h2>
             <p>Manage your OpenAI API keys</p>
           </Link>}
-          
+          {user.role !== 'superadmin' && 
           <Link to="/agents" className="dashboard-card">
             <h2>🤖 Agents</h2>
             <p>Create and manage agent configurations</p>
           </Link>
+          }
         </div>
       </div>
 

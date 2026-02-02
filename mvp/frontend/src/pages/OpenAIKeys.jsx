@@ -107,9 +107,9 @@ function OpenAIKeys() {
     <div className="service-accounts">
       <div className="page-header">
         <h1>OpenAI Service Accounts</h1>
-        <button onClick={() => setShowAddForm(!showAddForm)}>
+        {/* <button onClick={() => setShowAddForm(!showAddForm)}>
           {showAddForm ? 'Cancel' : '+ Generate New Key'}
-        </button>
+        </button> */}
       </div>
 
       {errorMessage && (

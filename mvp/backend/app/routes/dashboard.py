@@ -15,8 +15,6 @@ from app.core.dependencies import  require_active_subscription
 from app.utils.date_range import get_date_range,get_previous_period_range
 from app.utils.email_html import expense_report_html
 from app.tasks.email_task import send_email_task
-from app.core.redis_client import redis_client
-import json
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -39,10 +37,6 @@ async def get_dashboard_stats(
     - **user_id**: Optional user ID filter (superadmin only, null = all users for superadmin)
     """
     try:
-        cached = redis_client.get(f"{current_user.id}_dashboard_stats")
-        if cached:
-            return DashboardStats.parse_raw(cached)  # deserialize JSON back to Pydantic
-        
         start_date, end_date = get_date_range(days)
         prev_start, prev_end = get_previous_period_range(days)
         
@@ -229,7 +223,6 @@ async def get_dashboard_stats(
             agents_per_key=agents_per_key,
             available_keys=available_keys
         )
-        redis_client.set(f"{current_user.id}_dashboard_stats",response.json(),ex=300)
         return response
     except Exception as e:
         import traceback
