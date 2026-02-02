@@ -7,24 +7,19 @@ from sqlalchemy import case
 from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.payment_token import PaymentToken
+from app.models.plans import Plans
 from app.models.subscription import Subscription, PaymentStatus
-from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail
-from app.schemas.user import UserRegisterRequest,UserResponse
+from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail, AddToWalletRequest
+from app.schemas.user import UserCreate,UserRegisterRequest,UserResponse
 from app.utils.auth import verify_password, get_password_hash, create_access_token,decode_access_token
-from app.utils.email_html import generate_email_html,generate_email_html_reset_password
+from app.utils.email_html import generate_email_html,generate_email_html_reset_password,generate_email_html_setup_password
 from app.core.dependencies import get_current_user
 from datetime import timedelta, datetime, timezone
 from app.core.config import settings
-from app.services.email_service import EmailService
 from app.tasks.email_task import send_email_task
+from app.utils.get_or_create_payment_token import get_or_create_payment_token
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
-
-# Plan pricing
-PLAN_PRICES = {
-    "pro": 29.0,
-    "enterprise": 0.0  # Custom pricing
-}
 
 @router.post("/register-with-plan")
 async def register_with_plan(register_data: UserRegisterRequest, db: Session = Depends(get_db)):
@@ -39,15 +34,15 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
             detail="Email or username already registered"
         )
     
+    plan = db.query(Plans).filter((Plans.id== register_data.plan_id)).first()
+   
+
     # Validate plan
-    if register_data.plan.lower() not in PLAN_PRICES:
+    if not plan:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid plan. Must be one of: {list(PLAN_PRICES.keys())}"
+            detail= "Invalid plan"
         )
-    
-    plan = register_data.plan.lower()
-    amount = PLAN_PRICES[plan]
     
     # Create new user without password (inactive)
     db_user = User(
@@ -64,13 +59,13 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
     
     # Generate payment token
     payment_token = PaymentToken.generate_token()
-    expires_at = datetime.now(timezone.utc) + timedelta(days=7)  # Token valid for 7 days
+    expires_at = datetime.now(timezone.utc) + timedelta(days=3)  # Token valid for 3 days
     
     db_token = PaymentToken(
         user_id=db_user.id,
         token=payment_token,
-        plan_type=plan,
-        amount=amount,
+        plan_id=plan.id,
+        amount=plan.price,
         expires_at=expires_at
     )
     db.add(db_token)
@@ -79,9 +74,9 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
     # Generate payment link
     payment_link = f"{settings.api_base_url}/payment/{payment_token}"
 
-    email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount)
+    email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = plan.price)
     try:
-        send_email_task.delay(register_data.email,f"Complete Your VoiceAI Registration - {plan.upper()} Plan",email_html)
+        send_email_task.delay(register_data.email,f"Complete Your VoiceAI Registration - {plan.name.upper()} Plan",email_html)
     except Exception as e:
         print(f"[Register] Failed to send email: {e}")
         # Don't fail registration if email fails, but log it
@@ -140,14 +135,48 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
         expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Check wallet balance for low balance warning (only for non-superadmin users)
+    from app.utils.wallet import get_wallet_balance
+    low_balance = False
+    wallet_balance = None
+    if not is_superadmin:
+        wallet_balance = get_wallet_balance(user.id, db)
+        if wallet_balance <= 2.0:
+            low_balance = True
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "low_balance": low_balance,
+        "wallet_balance": wallet_balance
+    }
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: User = Depends(get_current_user)):
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Get current user information"""
-    return current_user
-
+    from app.utils.wallet import get_wallet_balance
+    
+    # Add wallet balance for non-superadmin users
+    wallet_balance = None
+    if current_user.role != UserRole.SUPERADMIN:
+        wallet_balance = get_wallet_balance(current_user.id, db)
+    
+    # Create response dict
+    user_dict = {
+        "id": current_user.id,
+        "email": current_user.email,
+        "username": current_user.username,
+        "role": current_user.role.value,
+        "is_active": current_user.is_active,
+        "created_at": current_user.created_at,
+        "wallet_balance": wallet_balance
+    }
+    
+    return user_dict
 
 @router.post("/setup-password", response_model=Token)
 async def setup_password_endpoint(
@@ -161,9 +190,9 @@ async def setup_password_endpoint(
     # Find payment token
     db_token = db.query(PaymentToken).filter(
         PaymentToken.token == password_data.token,
-        PaymentToken.is_used == False
-    ).first()
-    
+        PaymentToken.is_used== False,
+        PaymentToken.expires_at > datetime.now(timezone.utc)
+        ).first()
     if not db_token:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -181,7 +210,8 @@ async def setup_password_endpoint(
     # Verify payment was successful
     subscription = db.query(Subscription).filter(
         Subscription.user_id == user.id,
-        Subscription.payment_status == PaymentStatus.SUCCESS
+        Subscription.payment_status == PaymentStatus.SUCCESS,
+        Subscription.plan_type == db_token.plan_id
     ).first()
     
     if not subscription:
@@ -222,7 +252,7 @@ async def setup_password_endpoint(
         "message": "Password set successfully"
     }
 
-@router.post("/change-password")
+@router.put("/change-password")
 async def change_password(password_data: ChangePassword,db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     '''Change password and get access token '''
     password_verification = False
@@ -284,6 +314,10 @@ async def forget_password(request: ForgetPasswordRequest,db: Session = Depends(g
     if not db_user:
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail = "Email not registered")
     
+    subscription = db.query(Subscription).filter(Subscription.user_id==db_user.id,Subscription.payment_status == PaymentStatus.SUCCESS).order_by(Subscription.created_at.desc()).first()
+    if not subscription:
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "No active subscription")
+    
     # Generate reset token that expires in 15min
     reset_token = create_access_token(
         data={
@@ -291,16 +325,24 @@ async def forget_password(request: ForgetPasswordRequest,db: Session = Depends(g
         },
         expires_delta=timedelta(minutes=15)
     )
+    if db_user.password_set:
+        #Reset password link
+        reset_password_link = f"{settings.frontend_base_url}/password?token={reset_token}&mode=reset"
 
-    #Reset password link
-    reset_password_link = f"http://localhost:3000/reset-password?token={reset_token}"
-
-    #Send email
-    email_html = generate_email_html_reset_password(db_user,reset_password_link)
-    send_email_task.delay(request.email,"Reset your Voice AI password ",email_html)
+        #Send email
+        email_html = generate_email_html_reset_password(db_user,reset_password_link)
+        send_email_task.delay(request.email,"Reset your Voice AI password ",email_html)
+        return {
+            "message": "Reset password link sent to your registered email",
+            "user_id": db_user.id,
+        }
+    token = get_or_create_payment_token(db=db,user_id=db_user.id,plan_id=subscription.plan_type,amount = subscription.amount)
+    setup_password_link = f"{settings.frontend_base_url}/password?token={token}&mode=setup"
+    email_html= generate_email_html_setup_password(db_user=db_user,setup_password_link=setup_password_link)
+    send_email_task.delay(request.email,"Setup Your VoiceAI account",email_html)
     return {
-        "message": "Reset password link sent to your registered email.Please check your email for the reset password link.",
-        "user_id": db_user.id,
+        "message" : "Setup password link sent to your registered email",
+        "user_id" : db_user.id
     }
 
 @router.post("/change-email")
@@ -336,17 +378,6 @@ async def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_d
         response["next_action"] = "LOGIN"
         return response
 
-    # Validate plan
-    if request.plan and request.plan.lower() not in PLAN_PRICES:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid plan. Must be one of: {list(PLAN_PRICES.keys())}"
-            )
-
-    if request.plan:
-        plan = request.plan.lower()
-        amount = PLAN_PRICES[plan]
-
     subscription = (
         db.query(Subscription)
         .filter(Subscription.user_id == db_user.id)
@@ -358,25 +389,28 @@ async def prefetch_details(request: PreFetchDetails, db: Session = Depends(get_d
     )
 
     if not subscription or subscription.payment_status == PaymentStatus.PENDING:
-        if not request.plan:
+        if not request.plan_id:
             response["next_action"]="CHOOSE_PLAN"
             return response
-        payment_token_details = db.query(PaymentToken).filter(PaymentToken.user_id==db_user.id, PaymentToken.plan_type == plan,PaymentToken.is_used.is_(False)).order_by(PaymentToken.created_at.desc()).first()
-        if payment_token_details and payment_token_details.expires_at>datetime.now(timezone.utc):
-            payment_token = payment_token_details.token
-        else:
-            response["next_action"]="CHOOSE_PLAN"
-            return response
+        plan = db.query(Plans).filter(Plans.id == request.plan_id).first()
+        if not plan:
+            raise HTTPException(400, "Invalid plan")
+        payment_token= get_or_create_payment_token(db=db,user_id=db_user.id,plan_id=request.plan_id,amount=plan.price)
         
         # Generate payment link
         payment_link = f"{settings.api_base_url}/payment/{payment_token}"
 
         # Send email with payment link
-        email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = amount)
-        send_email_task.delay(request.email,f"Complete Your VoiceAI Registration - {plan.upper()} Plan",email_html)
+        email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = plan.price)
+        send_email_task.delay(request.email,f"Complete Your VoiceAI Registration - {plan.name.upper()} Plan",email_html)
         response["next_action"] = "COMPLETE_PAYMENT"
         return response
+    
+    payment_token = get_or_create_payment_token(db=db,user_id=db_user.id,plan_id=subscription.plan_type,amount = subscription.amount)
+    setup_password_link = f"{settings.frontend_base_url}/password?token={payment_token}&mode=setup"
+    email_html = generate_email_html_setup_password(db_user,setup_password_link=setup_password_link)
 
     # SUCCESS but password not set
+    send_email_task.delay(request.email,"Setup Your VoiceAI Password",email_html)
     response["next_action"] = "SET_PASSWORD"
     return response

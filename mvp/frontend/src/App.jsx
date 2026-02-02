@@ -15,6 +15,7 @@ import Layout from './components/Layout'
 import ResetPassword from './pages/ResetPassword'
 import { bootstrapAuth } from './auth/bootstrapAuth'
 import {Toaster} from "sonner";
+import Plans from './pages/Plans'
 const queryClient = new QueryClient()
 
 function PrivateRoute({ children }) {
@@ -27,6 +28,16 @@ function PrivateRoute({ children }) {
     }
   }, [token, refreshAuth])
     const { setAuth } = useAuthStore()
+
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key === 'token') {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   useEffect(() => {
     bootstrapAuth(setAuth)
@@ -61,9 +72,10 @@ function App() {
             <Route path="agents" element={<Agents />} />
             <Route path="assistants" element={<Assistants />} />
             <Route path="widget-generator" element={<WidgetGenerator />} />
+            <Route path ="plans" element={<Plans/>}/>
 
           </Route>
-          <Route path ="reset-password" element={<ResetPassword />} />
+          <Route path ="password" element={<ResetPassword />} />
         </Routes>
         <Toaster richColors position="top-right" />
       </Router>

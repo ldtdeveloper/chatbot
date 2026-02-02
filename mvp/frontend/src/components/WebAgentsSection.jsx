@@ -25,6 +25,24 @@ function WebAgentsSection({
   handleChange
 }) {
   const cardsContainerRef = useRef(null)
+  const handleCancel = () =>{
+    setShowAddForm(false)
+  }
+  if (showAddForm) {
+    return (
+      <AddAgentForm
+        formData={formData}
+        setFormData={setFormData}
+        Instructions={Instructions}
+        InstructionSet={InstructionSet}
+        activeApiKeys={activeApiKeys}
+        handleSubmit={handleSubmit}
+        isLoading={createMutation.isLoading}
+        handleCancel= {handleCancel}
+      />
+    );
+  }
+
 
   return (
     <div id="web-agents-section" className="web-agents-container">
@@ -42,18 +60,6 @@ function WebAgentsSection({
           </button>
         </div>
       </div>
-
-      {showAddForm && (
-        <AddAgentForm
-          formData={formData}
-          setFormData={setFormData}
-          Instructions={Instructions}
-          InstructionSet={InstructionSet}
-          activeApiKeys={activeApiKeys}
-          handleSubmit={handleSubmit}
-          isLoading={createMutation.isLoading}
-        />
-      )}
 
       <div className="agents-list" ref={cardsContainerRef}>
         {isLoading ? (

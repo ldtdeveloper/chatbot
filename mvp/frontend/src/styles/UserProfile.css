@@ -126,6 +126,18 @@
   font-size: 0.9rem;
 }
 
+.wallet-balance {
+  font-weight: 600;
+  color: #16a34a;
+  font-size: 1.1rem;
+}
+
+.wallet-balance .low-balance-warning {
+  color: #dc2626;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
 .assistants-list,
 .widgets-list {
   display: grid;

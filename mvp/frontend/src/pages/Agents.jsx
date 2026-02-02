@@ -10,6 +10,9 @@ import PhoneAgentsSection from '../components/PhoneAgentsSection';
 import EditAgentModal from '../components/EditAgentModal';
 import WidgetModal from '../components/WidgetModal';
 import InstructionsModal from '../components/InstructionsModal';
+import WalletModal from '../components/WalletModal';
+import { useAuthStore } from '../context/authStore';
+import { authService } from '../services/services';
 
 function Agents() {
   console.log("compnoent re renderd ----------------")
@@ -158,7 +161,8 @@ function Agents() {
     noise_reduction_mode: 'near_field',
     noise_reduction_threshold: '0.65',  // Optimized: higher = fewer false starts = lower cost
     noise_reduction_prefix_padding_ms: 150,  // Optimized: reduced from 300 = faster responses
-    noise_reduction_silence_duration_ms: 600  // Optimized: balanced for speed and quality
+    noise_reduction_silence_duration_ms: 600,  // Optimized: balanced for speed and quality
+    startup_message: ''  // Startup message that bot sends automatically when chat starts
   })
 
   const [phoneFormData, setPhoneFormData] = useState({
@@ -182,6 +186,8 @@ function Agents() {
   const cardsContainerRef = useRef(null)
   const phoneCardsRef = useRef(null)
   const [selectedPhoneAgentId, setSelectedPhoneAgentId] = useState(null)
+  const [showWalletModal, setShowWalletModal] = useState(false)
+  const { user, setAuth } = useAuthStore()
 
   const { data: agents, isLoading } = useQuery({
     queryKey: ['agents', fetchApiKeyId, 'WEB'],
@@ -221,6 +227,14 @@ function Agents() {
       handleCancelEdit()
       showSuccess(`Agent created successfully`);
     },
+    onError: (error) => {
+      // Check if it's a payment required error (402 - insufficient wallet balance)
+      if (error?.response?.status === 402) {
+        setShowWalletModal(true)
+      } else {
+        showError(error?.response?.data?.detail || 'Failed to create agent. Please try again.')
+      }
+    },
   })
 
   const createPhoneMutation = useMutation({
@@ -229,6 +243,15 @@ function Agents() {
       queryClient.invalidateQueries(['agents'])
       setShowPhoneAddForm(false)
       handleCancelPhoneEdit()
+      showSuccess(`Phone agent created successfully`);
+    },
+    onError: (error) => {
+      // Check if it's a payment required error (402 - insufficient wallet balance)
+      if (error?.response?.status === 402) {
+        setShowWalletModal(true)
+      } else {
+        showError(error?.response?.data?.detail || 'Failed to create phone agent. Please try again.')
+      }
     },
   })
 
@@ -388,7 +411,8 @@ function Agents() {
       noise_reduction_mode: agent.noise_reduction_mode,
       noise_reduction_threshold: agent.noise_reduction_threshold,
       noise_reduction_prefix_padding_ms: agent.noise_reduction_prefix_padding_ms,
-      noise_reduction_silence_duration_ms: agent.noise_reduction_silence_duration_ms
+      noise_reduction_silence_duration_ms: agent.noise_reduction_silence_duration_ms,
+      startup_message: agent.startup_message || ''
     })
     setShowEditModal(true)
   }
@@ -530,6 +554,10 @@ function Agents() {
     setSelectedPhoneAgentId(willBeSelected ? agent.id : null)
   }
 
+  const handleCancel = () =>{
+    setShowAddForm(false);
+  }
+  
   const handleCancelEdit = () => {
     setEditingAgent(null)
     setShowAddForm(false)
@@ -745,6 +773,7 @@ function Agents() {
           setSelectedInstructionsAgent={setSelectedInstructionsAgent}
           checked={checked}
           handleChange={handleChange}
+          handleCancel={handleCancel}
         />
       )}
       {showMcpServerCard && <AppIconsCard setShowMcpServerCard={setShowMcpServerCard} setChecked = {setChecked} selectedAgent = {selectedAgent}/>}
@@ -778,6 +807,15 @@ function Agents() {
         selectedInstructionsAgent={selectedInstructionsAgent}
         convertJsonPrompt={convertJsonPrompt}
         onClose={() => setSelectedInstructionsAgent(null)}
+      />
+      <WalletModal
+        isOpen={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onWalletUpdate={async (newBalance) => {
+          // Refresh user data after wallet update
+          const userInfo = await authService.getMe()
+          setAuth(null, userInfo)
+        }}
       />
     </div>
   )

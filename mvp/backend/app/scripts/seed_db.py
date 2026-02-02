@@ -21,7 +21,7 @@ from app.utils.auth import get_password_hash
 from app.models import (
     OpenAIKey, Agent, AssistantConfig, Interaction,
     IntegrationConfig, UserReportPreference, ReportJob, ReportFrequency, JobStatus,
-    Subscription, PlanType, PaymentStatus, PaymentToken, ServiceAccountKey
+    Subscription, Plans, PaymentStatus, PaymentToken, ServiceAccountKey
 )
 
 

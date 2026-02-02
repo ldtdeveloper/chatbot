@@ -102,6 +102,83 @@
         }
     }
     
+    // Show recharge popup
+    function showRechargePopup(message) {
+        // Create popup overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'recharge-popup-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        // Create popup content
+        const popup = document.createElement('div');
+        popup.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        `;
+        
+        popup.innerHTML = `
+            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600;">⚠️ Insufficient Balance</h2>
+                <button id="close-recharge-popup" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; font-size: 1.5rem; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; padding: 0; line-height: 1;">×</button>
+            </div>
+            <div style="padding: 2rem;">
+                <p style="margin: 0.75rem 0; color: #555; line-height: 1.6; font-size: 1rem;">${message}</p>
+                <p style="margin: 0.75rem 0; color: #555; line-height: 1.6; font-size: 1rem;">Please recharge your wallet to continue using the service.</p>
+            </div>
+            <div style="padding: 0 2rem 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                <button id="recharge-popup-ok" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 2rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; width: auto;">I Understand</button>
+            </div>
+        `;
+        
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+        
+        // Add animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes slideUp {
+                from { transform: translateY(20px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Close handlers
+        const closePopup = () => {
+            overlay.remove();
+            style.remove();
+        };
+        
+        document.getElementById('close-recharge-popup').addEventListener('click', closePopup);
+        document.getElementById('recharge-popup-ok').addEventListener('click', closePopup);
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                closePopup();
+            }
+        });
+    }
+    
     // Toggle panel or stop conversation
     button.addEventListener('click', function() {
         if (isConnected || isRecording) {
@@ -173,6 +250,7 @@
             case 'connected':
                 status.textContent = 'Connected - Ready';
                 startRecording();
+                // Startup message is now handled by the backend automatically
                 break;
             case 'transcript_user':
                 addTranscript('user', data.text);
@@ -216,6 +294,21 @@
             case 'error':
                 status.textContent = 'Error: ' + data.error;
                 console.error('[Widget] Error:', data.error);
+                
+                // Handle insufficient balance error
+                if (data.error === 'insufficient_balance') {
+                    showRechargePopup(data.message || 'Your wallet balance is insufficient. Please recharge to continue using the service.');
+                    // Stop recording if active
+                    if (isRecording) {
+                        stopRecording();
+                    }
+                    // Close connection
+                    if (ws) {
+                        ws.close();
+                        ws = null;
+                        isConnected = false;
+                    }
+                }
                 break;
         }
     }

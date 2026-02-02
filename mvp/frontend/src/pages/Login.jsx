@@ -47,12 +47,16 @@ function Login() {
   setCooldown(true)
 
   try {
-    await forgotPassword.forgotPassword({ email })
-    showSuccess(`Reset link has been sent to your registered email`)
-
-    setTimeout(() => setCooldown(false), 60000)
+    const response = await forgotPassword.forgotPassword({ email })
+    if(response?.message=="Reset password link sent to your registered email"){
+        showSuccess(`Reset password link has been sent to your registered email`)
+    }
+    if(response?.message=='Setup password link sent to your registered email'){
+      showSuccess(`Setup password link sent to your registered email`)
+    }
+    setTimeout(() => setCooldown(false), 2000)
   } catch (err) {
-      showError(`Failed to send reset email`)
+      showError(`Failed to send password setup email`)
     setCooldown(false)
   } finally {
     setLoading(false)

@@ -8,6 +8,8 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    low_balance: Optional[bool] = False
+    wallet_balance: Optional[float] = None
 
 class SetupPasswordRequest(BaseModel):
     token: str  # Payment token
@@ -35,7 +37,10 @@ class ForgetPasswordRequest(BaseModel):
 #Prefetch details of user
 class PreFetchDetails(BaseModel):
     email : str
-    plan : Optional [str] = None
+    plan_id: Optional [int] = None
 
 class ChangeEmail(BaseModel):
     email : str
+
+class AddToWalletRequest(BaseModel):
+    amount: float

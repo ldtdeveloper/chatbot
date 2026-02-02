@@ -52,63 +52,100 @@
 
 /* Summary Cards */
 .summary-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1rem;
   margin-bottom: 2rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.summary-cards::-webkit-scrollbar {
+  height: 6px;
+}
+
+.summary-cards::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.summary-cards::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.summary-cards::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .summary-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
-  gap: 1rem;
-  transition: transform 0.2s, box-shadow 0.2s;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 180px;
+  border: 1px solid rgba(102, 126, 234, 0.1);
 }
 
 .summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-color: rgba(102, 126, 234, 0.2);
 }
 
 .summary-card-icon {
-  font-size: 2.5rem;
-  width: 60px;
-  height: 60px;
+  font-size: 1.75rem;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  border-radius: 10px;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .summary-card-content {
   flex: 1;
+  min-width: 0;
 }
 
 .summary-card-content h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.9rem;
-  color: #666;
-  font-weight: 500;
+  margin: 0 0 0.4rem 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .summary-card-value {
-  margin: 0 0 0.25rem 0;
-  font-size: 1.8rem;
+  margin: 0 0 0.2rem 0;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #333;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.summary-card-profit {
+  font-size: 0.8rem;
+  color: #10b981;
+  margin: 0.25rem 0 0 0;
+  font-weight: 600;
+  display: block;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .summary-card-change {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   display: block;
+  margin-top: 0.2rem;
 }
 
 .summary-card-change.positive {
@@ -236,7 +273,19 @@
   }
 
   .summary-cards {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
+  }
+  
+  .summary-card {
+    min-width: calc(50% - 0.5rem);
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+  
+  @media (max-width: 640px) {
+    .summary-card {
+      min-width: 100%;
+      flex: 1 1 100%;
+    }
   }
 
   .chart-card {

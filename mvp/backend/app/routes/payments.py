@@ -4,15 +4,19 @@ Payment routes for Razorpay integration
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.user import User
-from app.models.subscription import Subscription, PlanType, PaymentStatus
+from app.models.user import User, UserRole
+from app.models.subscription import Subscription, PaymentStatus
+from app.models.plans import Plans
 from app.core.dependencies import get_current_user
 from datetime import datetime, timedelta, timezone
 from app.core.config import settings
 from app.services.service_account import create_service_account
 import hmac
 import hashlib
-from app.schemas.payment import CreateOrderRequest,PaymentOrderResponse,PaymentVerifyResponse,VerifyPaymentRequest
+from app.schemas.payment import (
+    CreateOrderRequest, PaymentOrderResponse, PaymentVerifyResponse, VerifyPaymentRequest,
+    WalletTopUpRequest, WalletTopUpOrderResponse, WalletTopUpVerifyRequest, WalletTopUpVerifyResponse
+)
 
 # Try to import razorpay - make it optional
 try:
@@ -96,11 +100,11 @@ async def create_order_from_token(
     
     # Validate plan
     try:
-        plan_type = PlanType(db_token.plan_type.lower())
+        plan_type = db.get(Plans, db_token.plan_id)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid plan. Must be one of: {[p.value for p in PlanType]}"
+            detail="Invalid plan"
         )
     
     # Convert amount to cents
@@ -109,7 +113,7 @@ async def create_order_from_token(
     # Create subscription record
     subscription = Subscription(
         user_id=user.id,
-        plan_type=plan_type,
+        plan_type=plan_type.id,
         amount=db_token.amount,
         payment_status=PaymentStatus.PENDING
     )
@@ -132,7 +136,7 @@ async def create_order_from_token(
             'receipt': f'sub_{subscription.id}',
             'notes': {
                 'user_id': user.id,
-                'plan': db_token.plan_type,
+                'plan': db_token.plan.name,
                 'subscription_id': subscription.id,
                 'payment_token': token
             }
@@ -166,22 +170,21 @@ async def create_order(
 ):
     """Create a Razorpay order for payment"""
     # Check if in test mode
+    try:
+        plan_type = db.query(Plans).filter(Plans.id == order_data.plan_id).first()
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid plan"
+        )
+    
     if TEST_MODE and not razorpay_client:
         # Mock payment order for testing
         amount_cents = int(order_data.amount * 100)
         
-        # Create subscription record
-        try:
-            plan_type = PlanType(order_data.plan.lower())
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid plan. Must be one of: {[p.value for p in PlanType]}"
-            )
-        
         subscription = Subscription(
             user_id=current_user.id,
-            plan_type=plan_type,
+            plan_type=plan_type.id,
             amount=order_data.amount,
             payment_status=PaymentStatus.PENDING
         )
@@ -209,15 +212,6 @@ async def create_order(
             detail="Razorpay payment gateway is not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to your .env file. See QUICK_RAZORPAY_SETUP.md for details."
         )
     
-    # Validate plan
-    try:
-        plan_type = PlanType(order_data.plan.lower())
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid plan. Must be one of: {[p.value for p in PlanType]}"
-        )
-    
     # Validate user
     if current_user.id != order_data.user_id:
         raise HTTPException(
@@ -232,7 +226,7 @@ async def create_order(
     # Create subscription record
     subscription = Subscription(
         user_id=current_user.id,
-        plan_type=plan_type,
+        plan_type=plan_type.id,
         amount=order_data.amount,  # Store in USD
         payment_status=PaymentStatus.PENDING
     )
@@ -248,7 +242,7 @@ async def create_order(
             'receipt': f'sub_{subscription.id}',
             'notes': {
                 'user_id': current_user.id,
-                'plan': order_data.plan,
+                'plan': plan_type.name,
                 'subscription_id': subscription.id
             }
         })
@@ -273,6 +267,7 @@ async def create_order(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create payment order: {str(e)}"
         )
+    
 @router.post("/verify-from-token", response_model=PaymentVerifyResponse)
 async def verify_payment_from_token(
     payment_data: dict,
@@ -320,6 +315,15 @@ async def verify_payment_from_token(
         subscription.start_date = datetime.now(timezone.utc)
         subscription.end_date = datetime.now(timezone.utc) + timedelta(days=30)
         db.commit()
+        
+        # === ADD WALLET CREDITS (from plan.wallet_credits for non-superadmin users) ===
+        if user.role != UserRole.SUPERADMIN:
+            plan = db.query(Plans).filter(Plans.id == db_token.plan_id).first()
+            if plan:
+                from app.utils.wallet import add_to_wallet
+                wallet_credits = plan.wallet_credits
+                wallet = add_to_wallet(user.id, wallet_credits, db)
+                print(f"===== Added ${wallet_credits:.2f} to wallet for user {user.id} (plan wallet_credits: {plan.wallet_credits}). New balance: ${wallet.balance:.2f} =====")
     else:
         if not razorpay_client:
             raise HTTPException(status_code=503, detail="Razorpay not configured...")
@@ -344,11 +348,19 @@ async def verify_payment_from_token(
         subscription.end_date = datetime.now(timezone.utc) + timedelta(days=30)
         db.commit()
     
+    # === ADD WALLET CREDITS (from plan.wallet_credits for non-superadmin users) ===
+    if user.role != UserRole.SUPERADMIN:
+        from app.utils.wallet import add_to_wallet
+        plan = db.query(Plans).filter(Plans.id == db_token.plan_id).first()
+        if plan:
+            wallet_credits = plan.wallet_credits
+            wallet = add_to_wallet(user.id, wallet_credits, db)
+            print(f"===== Added ${wallet_credits:.2f} to wallet for user {user.id} (plan wallet_credits: {plan.wallet_credits}). New balance: ${wallet.balance:.2f} =====")
+    
     # === CALL OpenAI SERVICE ACCOUNT CREATION ===
     print(f"===== Starting OpenAI service account creation for user {user.id} ({user.email}) =====")
     
     try:
-        current_user: User = Depends(get_current_user),
         result = create_service_account(name_prefix=f"voiceai-{user.id}",user=user,db=db)
         print("===== OpenAI SERVICE ACCOUNT CREATED SUCCESSFULLY =====")
         print("Result:", result)
@@ -397,6 +409,15 @@ async def verify_payment(
         subscription.end_date = datetime.utcnow() + timedelta(days=30)
         db.commit()
         
+        # === ADD WALLET CREDITS (from plan.wallet_credits for non-superadmin users) ===
+        if current_user.role != UserRole.SUPERADMIN:
+            from app.utils.wallet import add_to_wallet
+            plan = db.query(Plans).filter(Plans.id == subscription.plan_id).first()
+            if plan:
+                wallet_credits = plan.wallet_credits
+                wallet = add_to_wallet(current_user.id, wallet_credits, db)
+                print(f"===== Added ${wallet_credits:.2f} to wallet for user {current_user.id} (plan wallet_credits: {plan.wallet_credits}). New balance: ${wallet.balance:.2f} =====")
+        
         print("===== DEBUG: TEST MODE - Subscription updated =====")
         
     else:
@@ -436,6 +457,16 @@ async def verify_payment(
         
         print("===== DEBUG: REAL payment - Subscription updated =====")
     
+    # === ADD WALLET CREDITS (from plan.wallet_credits for non-superadmin users) ===
+    if current_user.role != UserRole.SUPERADMIN:
+        from app.utils.wallet import add_to_wallet
+        # Get the plan from subscription
+        plan = db.query(Plans).filter(Plans.id == subscription.plan_id).first()
+        if plan:
+            wallet_credits = plan.wallet_credits
+            wallet = add_to_wallet(current_user.id, wallet_credits, db)
+            print(f"===== Added ${wallet_credits:.2f} to wallet for user {current_user.id} (plan wallet_credits: {plan.wallet_credits}). New balance: ${wallet.balance:.2f} =====")
+    
     # === NOW CALL OpenAI IN BOTH MODES ===
     print(f"===== Starting OpenAI service account creation for user {current_user.id} =====")
     
@@ -457,4 +488,204 @@ async def verify_payment(
         "success": True,
         "message": "Payment verified successfully" + (" (TEST MODE)" if TEST_MODE else ""),
         "subscription_id": subscription.id
+    }
+
+
+@router.post("/wallet-topup/create-order", response_model=WalletTopUpOrderResponse)
+async def create_wallet_topup_order(
+    topup_data: WalletTopUpRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a Razorpay order for wallet top-up"""
+    from app.models.user import UserRole
+    from app.models.wallet_transaction import WalletTransaction, TransactionStatus
+    
+    # Only allow non-superadmin users
+    if current_user.role == UserRole.SUPERADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superadmin users cannot add money to wallet"
+        )
+    
+    # Validate amount
+    if topup_data.amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Amount must be greater than 0"
+        )
+    
+    if topup_data.amount < 1.0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Minimum amount is $1.00"
+        )
+    
+    # Create wallet transaction record
+    transaction = WalletTransaction(
+        user_id=current_user.id,
+        amount=topup_data.amount,
+        status=TransactionStatus.PENDING
+    )
+    db.add(transaction)
+    db.commit()
+    db.refresh(transaction)
+    
+    # Convert amount to cents
+    amount_cents = int(topup_data.amount * 100)
+    
+    if TEST_MODE and not razorpay_client:
+        # Mock payment order for testing
+        import uuid
+        mock_order_id = f"order_wallet_{uuid.uuid4().hex[:16]}"
+        transaction.razorpay_order_id = mock_order_id
+        db.commit()
+        
+        return {
+            "razorpay_key_id": "rzp_test_MOCK_KEY",
+            "razorpay_order_id": mock_order_id,
+            "amount": amount_cents,
+            "currency": "USD",
+            "transaction_id": transaction.id
+        }
+    
+    if not razorpay_client:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Razorpay payment gateway is not configured"
+        )
+    
+    # Create Razorpay order
+    try:
+        razorpay_order = razorpay_client.order.create({
+            'amount': amount_cents,
+            'currency': 'USD',
+            'receipt': f'wallet_{transaction.id}',
+            'notes': {
+                'user_id': current_user.id,
+                'transaction_id': transaction.id,
+                'type': 'wallet_topup'
+            }
+        })
+        
+        transaction.razorpay_order_id = razorpay_order['id']
+        db.commit()
+        
+        return {
+            "razorpay_key_id": settings.razorpay_key_id,
+            "razorpay_order_id": razorpay_order['id'],
+            "amount": amount_cents,
+            "currency": "USD",
+            "transaction_id": transaction.id
+        }
+    except Exception as e:
+        db.delete(transaction)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create payment order: {str(e)}"
+        )
+
+
+@router.post("/wallet-topup/verify", response_model=WalletTopUpVerifyResponse)
+async def verify_wallet_topup(
+    verify_data: WalletTopUpVerifyRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Verify Razorpay payment for wallet top-up and add money to wallet"""
+    from app.models.wallet_transaction import WalletTransaction, TransactionStatus
+    from app.utils.wallet import add_to_wallet
+    from app.models.wallet import Wallet
+    
+    # Get transaction
+    transaction = db.query(WalletTransaction).filter(
+        WalletTransaction.id == verify_data.transaction_id,
+        WalletTransaction.user_id == current_user.id
+    ).first()
+    
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found"
+        )
+    
+    if transaction.status == TransactionStatus.SUCCESS:
+        # Already processed
+        wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+        return {
+            "success": True,
+            "message": "Transaction already processed",
+            "new_balance": wallet.balance if wallet else 0.0,
+            "transaction_id": transaction.id
+        }
+    
+    # Test mode handling
+    if TEST_MODE and not razorpay_client:
+        transaction.razorpay_payment_id = verify_data.razorpay_payment_id or f"pay_wallet_test_{transaction.id}"
+        transaction.razorpay_signature = verify_data.razorpay_signature or "test_signature"
+        transaction.status = TransactionStatus.SUCCESS
+        db.commit()
+        
+        # Add money to wallet (updates existing wallet)
+        from app.models.wallet import Wallet
+        old_wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+        old_balance = old_wallet.balance if old_wallet else 0.0
+        
+        wallet = add_to_wallet(current_user.id, transaction.amount, db)
+        
+        print(f"[Wallet Top-up] ✅ TEST MODE - User {current_user.id}: Added ${transaction.amount:.2f} to wallet. Old balance: ${old_balance:.2f}, New balance: ${wallet.balance:.2f}")
+        
+        return {
+            "success": True,
+            "message": "Wallet top-up successful (TEST MODE)",
+            "new_balance": round(wallet.balance, 2),
+            "transaction_id": transaction.id
+        }
+    
+    # Real Razorpay verification
+    if not razorpay_client:
+        raise HTTPException(status_code=503, detail="Razorpay not configured")
+    
+    # Verify signature
+    message = f"{verify_data.razorpay_order_id}|{verify_data.razorpay_payment_id}"
+    generated_signature = hmac.new(
+        settings.razorpay_key_secret.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    if generated_signature != verify_data.razorpay_signature:
+        transaction.status = TransactionStatus.FAILED
+        db.commit()
+        return {
+            "success": False,
+            "message": "Invalid payment signature"
+        }
+    
+    # Update transaction
+    transaction.razorpay_payment_id = verify_data.razorpay_payment_id
+    transaction.razorpay_signature = verify_data.razorpay_signature
+    transaction.status = TransactionStatus.SUCCESS
+    db.commit()
+    
+    # Add money to wallet (updates existing wallet, not creates new)
+    from app.models.wallet import Wallet
+    old_wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+    old_balance = old_wallet.balance if old_wallet else 0.0
+    
+    wallet = add_to_wallet(current_user.id, transaction.amount, db)
+    
+    print(f"[Wallet Top-up] ✅ User {current_user.id}: Added ${transaction.amount:.2f} to wallet. Old balance: ${old_balance:.2f}, New balance: ${wallet.balance:.2f}")
+    
+    # Verify wallet was updated
+    db.refresh(wallet)
+    if wallet.balance != round(old_balance + transaction.amount, 6):
+        print(f"[Wallet Top-up] ⚠️ WARNING: Wallet balance mismatch! Expected: ${round(old_balance + transaction.amount, 6):.2f}, Actual: ${wallet.balance:.2f}")
+    
+    return {
+        "success": True,
+        "message": "Wallet top-up successful",
+        "new_balance": round(wallet.balance, 2),
+        "transaction_id": transaction.id
     }

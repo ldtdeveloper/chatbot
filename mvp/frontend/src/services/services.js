@@ -10,6 +10,7 @@ export const authService = {
     const response = await api.get('/api/auth/me')
     return response.data
   },
+  
 }
 
 export const userService = {
@@ -37,7 +38,11 @@ export const userService = {
     return response.data
   },
   
-  
+  changePassword: async (data) =>{
+    const response = await api.put(`/api/auth/change-password`, data)
+    return response.data
+  },
+
   updateProfile: async (id, data) => {
     const response = await api.patch(`/api/users/${id}`, data)
     return response.data
@@ -58,6 +63,18 @@ forgotPassword:async(data)=>{
   const response= await api.post(`/api/auth/forget-password`,data)
   return response.data
 }
+}
+
+export const walletService = {
+  createTopUpOrder: async (data) => {
+    const response = await api.post('/api/payments/wallet-topup/create-order', data)
+    return response.data
+  },
+  
+  verifyTopUp: async (data) => {
+    const response = await api.post('/api/payments/wallet-topup/verify', data)
+    return response.data
+  },
 }
 
 export const openAIKeyService = {
@@ -272,6 +289,34 @@ export const resetPasswordService = {
         }})
     return response.data
   }
+}
+export const setupPasswordService = {
+   setupPassword : async (token,password) => {
+    const response = await api.post('api/auth/setup-password', {password: password, token : token})
+    return response.data
+   }
+}
+
+export const planService = {
+    createPlans: async (data) => {
+      const response = await api.post('/api/plans',data)
+      return response.data
+    },
+
+    updatePlan: async (id, data) => {
+      const response = await api.put(`/api/plans/${id}`,data)
+      return response.data
+    },
+
+    listPlan : async () => {
+      const response = await api.get('/api/plans')
+      return response.data
+    },
+
+    deletePlan: async (id) => {
+      const response = await api.delete(`/api/plans/${id}`)
+      return  response.data
+    }
 }
 
 export const userCreate = {

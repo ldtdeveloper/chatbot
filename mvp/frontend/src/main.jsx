@@ -6,6 +6,9 @@ const params = new URLSearchParams(window.location.search);
 const token = params.get('token');
 
 if (token) {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user'); // If you also store user data
+  
   localStorage.setItem('token', token);
   // clean URL immediately
   params.delete('token');

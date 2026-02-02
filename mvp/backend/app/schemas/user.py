@@ -11,7 +11,7 @@ class UserCreate(BaseModel):
 class UserRegisterRequest(BaseModel):
     email: EmailStr
     username: str
-    plan: str  # starter, pro, enterprise
+    plan_id: int 
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
@@ -27,6 +27,7 @@ class UserResponse(BaseModel):
     role: str
     is_active: bool
     created_at: datetime
+    wallet_balance: Optional[float] = None  # Only for non-superadmin users
     
     class Config:
         from_attributes = True

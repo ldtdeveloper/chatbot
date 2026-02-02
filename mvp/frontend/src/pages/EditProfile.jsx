@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userService, authService } from "../services/services";
 import { useAuthStore } from "../context/authStore";
+import ChangePassword from "../components/ChangePassword";
 import '../styles/UsersUpdate.css';
 import { showError, showSuccess } from "../utils/toast";
 
@@ -18,6 +19,7 @@ export default function EditProfile() {
     role: "",
     password: ""
   });
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const isSelf = Number(userId) === currentUser.id;
   const canEditRole = currentUser.role === 'superadmin';
@@ -42,6 +44,21 @@ export default function EditProfile() {
       });
     }
   }, [user]);
+
+  const handlePasswordChange = (e) => {
+    e.preventDefault();
+    setShowChangePassword(true);
+  };
+
+  const handlePasswordChangeSuccess = () => {
+    setShowChangePassword(false);
+    // Refresh user data after password change
+    queryClient.invalidateQueries(["user", userId]);
+  };
+
+  const handlePasswordChangeCancel = () => {
+    setShowChangePassword(false);
+  };
 
   // Update mutation
   const updateMutation = useMutation({
@@ -107,60 +124,65 @@ export default function EditProfile() {
 
   return (
     <div className="edit-profile-container">
-      <div className="page-header">
-        <h2>Edit User Profile</h2>
-        {currentUser.role === 'superadmin' && (
-          <button type="button" onClick={() => navigate("/users")} className="btn-back">← Back to Users</button>
-        )}
-      </div>
+      {showChangePassword ? (
+        <ChangePassword
+          onSuccess={handlePasswordChangeSuccess}
+          onCancel={handlePasswordChangeCancel}
+        />
+      ) : (
+        <>
+          <div className="page-header">
+            <h2>Edit User Profile</h2>
+            {currentUser.role === 'superadmin' && (
+              <button type="button" onClick={() => navigate("/users")} className="btn-back">← Back to Users</button>
+            )}
+          </div>
 
-      <form className="edit-profile-form" onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required autoComplete="email" />
-        </div>
+          <form className="edit-profile-form" onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required autoComplete="email" />
+            </div>
 
-        <div className="form-group">
-          <label htmlFor="username">Username</label>
-          <input id="username" type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required autoComplete="username" />
-        </div>
+            <div className="form-group">
+              <label htmlFor="username">Username</label>
+              <input id="username" type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required autoComplete="username" />
+            </div>
 
-        <div className="form-group">
-          <label htmlFor="role">Role</label>
-          <select
-            id="role"
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-            required
-            disabled={!canEditRole}
-          >
-            <option value="">Select Role</option>
-            <option value="default">Default User</option>
-            <option value="superadmin">Superadmin</option>
-          </select>
-        </div>
+            {/* <div className="form-group">
+              <label htmlFor="role">Role</label>
+              <select
+                id="role"
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                required
+                disabled={!canEditRole}
+              >
+                <option value="">Select Role</option>
+                <option value="default">Default User</option>
+                <option value="superadmin">Superadmin</option>
+              </select>
+            </div> */}
+            
+            {currentUser.id == userId && (
+              <div className="form-group">
+                <a href="#" onClick={handlePasswordChange} className="change-password-link">
+                  Change Password
+                </a>
+              </div>
+            )}
 
-        <div className="form-group">
-          <label htmlFor="password">Password (leave blank to keep current)</label>
-          <input
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            autoComplete="new-password"
-            placeholder="Enter new password if you want to change"
-          />
-        </div>
+            {updateMutation.error && <div className="error-message">{updateMutation.error.response?.data?.detail || "Failed to update user"}</div>}
 
-        {updateMutation.error && <div className="error-message">{updateMutation.error.response?.data?.detail || "Failed to update user"}</div>}
-
-        <div className="form-actions">
-          {currentUser.role === 'superadmin' && (
-            <button type="button" onClick={() => navigate("/users")} className="btn-cancel" disabled={updateMutation.isLoading}>Cancel</button>
-          )}
-          <button type="submit" className="btn-save" disabled={updateMutation.isLoading}>{updateMutation.isLoading ? 'Saving...' : 'Save Changes'}</button>
-        </div>
-      </form>
+            <div className="form-actions">
+              {currentUser.role === 'superadmin' && (
+                <button type="button" onClick={() => navigate("/users")} className="btn-cancel" disabled={updateMutation.isLoading}>Cancel</button>
+              )}
+              <button type="submit" className="btn-save" disabled={updateMutation.isLoading}>{updateMutation.isLoading ? 'Saving...' : 'Save Changes'}</button>
+            </div>
+          </form>
+        </>
+      )}
     </div>
   );
 }

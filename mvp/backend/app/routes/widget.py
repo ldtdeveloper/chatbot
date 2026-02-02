@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSoc
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.core.database import get_db, SessionLocal
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.assistant_config import AssistantConfig
 from app.models.service_account_key import ServiceAccountKey
 from app.models.agent import Agent
@@ -23,6 +23,7 @@ import websockets
 from datetime import datetime
 from typing import Optional, Dict
 from urllib.parse import urlparse
+from app.utils.encryption import decrypt_api_key
 
 router = APIRouter(prefix="/api/widget", tags=["widget"])
 
@@ -462,22 +463,32 @@ async def widget_websocket(
                 print(f"[Widget WS] Domain validation failed: {request_domain} != {agent.domain}")
                 return
         
+        # Check if agent is active - if not, reject the call
+        if not agent.is_active:
+            await websocket.send_json({
+                "type": "error",
+                "error": "insufficient_balance",
+                "message": "Your wallet balance is insufficient. Please recharge to continue using the service."
+            })
+            await websocket.close()
+            print(f"[Widget WS] ❌ Call rejected: Agent {agent.id} is inactive for user {agent.user_id}")
+            return
+        
         # Get OpenAI API key (ServiceAccountKey stores plain text, not encrypted)
         api_key_record = db.query(ServiceAccountKey).filter(
-            ServiceAccountKey.id == agent.openai_key_id,
-            ServiceAccountKey.is_active == True
+            ServiceAccountKey.id == agent.openai_key_id
         ).first()
         
         if not api_key_record:
             await websocket.send_json({
                 "type": "error",
-                "error": "Agent's API key is not active"
+                "error": "Agent's API key not found"
             })
             await websocket.close()
             return
         
         # ServiceAccountKey stores the key as plain text (not encrypted)
-        openai_api_key = api_key_record.service_account_key
+        openai_api_key = decrypt_api_key(api_key_record.service_account_key)
         
         print(f"[Widget WS] Agent '{agent.name}' validated, connecting to OpenAI...")
         
@@ -577,6 +588,21 @@ TOOL USAGE:
             final_instructions = f"""{agent_instructions}
 
 {mcp_instructions}"""
+        
+        # Handle startup message
+        # If startup_message is provided, bot will say that exact message
+        # If not provided, bot will generate its own greeting based on instructions
+        if agent.startup_message and agent.startup_message.strip():
+            print(f"[Widget WS] Startup message configured: {agent.startup_message}")
+            # Add startup message to instructions so bot says it first
+            startup_instruction = f"\n\nIMPORTANT: When the conversation starts, you MUST say exactly this as your first message: \"{agent.startup_message}\" Do not add anything else, just say this message."
+            final_instructions = final_instructions + startup_instruction
+            print(f"[Widget WS] Startup message added to instructions - bot will say it as first message")
+        else:
+            # No startup message - add instruction to generate a friendly greeting
+            greeting_instruction = "\n\nIMPORTANT: When the conversation starts, you MUST greet the user with a friendly, professional greeting. Introduce yourself briefly and ask how you can help them. Keep it concise and welcoming."
+            final_instructions = final_instructions + greeting_instruction
+            print(f"[Widget WS] No startup message configured - added greeting instruction - bot will generate its own greeting")
 
         session_payload = {
             "type": "session.update",
@@ -748,6 +774,17 @@ TOOL USAGE:
         # Start message forwarding tasks
         asyncio.create_task(handle_openai_messages(openai_ws, websocket))
         
+        # Always trigger an initial response so the bot speaks first
+        # If startup message is configured, bot will say that exact message
+        # If not configured, bot will generate its own greeting based on instructions
+        await asyncio.sleep(0.5)  # Wait a moment for session to be ready
+        response_payload = {"type": "response.create"}
+        await openai_ws.send(json.dumps(response_payload))
+        if agent.startup_message and agent.startup_message.strip():
+            print(f"[Widget WS] Triggered initial response - bot will speak startup message: {agent.startup_message}")
+        else:
+            print(f"[Widget WS] Triggered initial response - bot will generate its own greeting")
+        
         # Send connection confirmation
         await websocket.send_json({"type": "connected", "session_id": session_id})
         
@@ -858,6 +895,7 @@ TOOL USAGE:
                         # This shouldn't happen with proper OpenAI responses
                         fallback_cost = round((interaction.duration_seconds / 60) * 0.06, 4)
                         interaction.estimated_cost = fallback_cost
+                        interaction.total_cost = round(fallback_cost * 1.1, 6)
                         print(f"[Widget WS] ⚠️ No usage data, using fallback estimate: ${fallback_cost}")
                     
                     interaction.status = "completed"
@@ -928,8 +966,20 @@ TOOL USAGE:
                         interaction.hubspot_sync_status = "skipped"
                         interaction.hubspot_sync_error = "MCP server not enabled"
                     
+                    # === DEDUCT CALL COST FROM USER WALLET ===
+                    if agent and agent.user_id:
+                        user = db.query(User).filter(User.id == agent.user_id).first()
+                        if user and user.role != UserRole.SUPERADMIN:
+                            from app.utils.wallet import deduct_from_wallet
+                            call_cost = interaction.total_cost or 0.0
+                            wallet = deduct_from_wallet(user.id, call_cost, db)
+                            if wallet.balance > 0:
+                                print(f"[Widget WS] 💰 Deducted ${call_cost:.6f} from wallet. Remaining balance: ${wallet.balance:.2f}")
+                            else:
+                                print(f"[Widget WS] ⚠️ Insufficient wallet balance. Needed ${call_cost:.6f}, balance now: ${wallet.balance:.2f}")
+                    
                     db.commit()
-                    print(f"[Widget WS] ✅ Completed interaction {interaction_id}, duration: {interaction.duration_seconds:.1f}s, cost: ${interaction.estimated_cost:.4f}")
+                    print(f"[Widget WS] ✅ Completed interaction {interaction_id}, duration: {interaction.duration_seconds:.1f}s, cost: ${interaction.estimated_cost:.4f}, total_cost: ${interaction.total_cost:.6f}")
             except Exception as e:
                 print(f"[Widget WS] ❌ Error updating interaction: {e}")
                 import traceback

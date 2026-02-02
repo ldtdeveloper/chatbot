@@ -29,7 +29,7 @@ async def payment_page(token: str, request: Request, db: Session = Depends(get_d
         PaymentToken.token == token,
         PaymentToken.is_used == False
     ).first()
-
+    print("This api is called ...................................")
     if not db_token:
       
         return HTMLResponse(content="""
@@ -86,9 +86,9 @@ async def payment_page(token: str, request: Request, db: Session = Depends(get_d
     if active_subscription:
         # Already paid, redirect to password setup
         return RedirectResponse(url=f"/setup-password/{token}", status_code=302)
-    
+    print(f"Payment page hitting .................... {db_token.plan}")
     # Generate payment page HTML
-    plan_name = db_token.plan_type.upper()
+    plan_name = db_token.plan.name
     amount_cents = int(db_token.amount * 100)
     
     html_content = payment_page_html(user=user,plan_name=plan_name,settings=settings,db_token=db_token,token=token, amount_cents=amount_cents)

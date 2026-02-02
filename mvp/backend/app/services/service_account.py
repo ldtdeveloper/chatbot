@@ -13,7 +13,7 @@ from fastapi import Depends
 from app.models.user import User
 from app.models.service_account_key import ServiceAccountKey
 from app.core.config import settings
-
+from app.utils.encryption import encrypt_api_key
 logger = logging.getLogger(__name__)
 
 
@@ -55,14 +55,11 @@ def create_service_account(
             if not api_key_value:
                 raise ValueError("No API key returned")
 
-            # TODO: Encrypt!
-            # encrypted_key = fernet.encrypt(api_key_value.encode()).decode()
-
             new_record = ServiceAccountKey(
                 user_id=user.id,
                 email=user.email,
                 key_name=f"Key - {service_account_name}",
-                service_account_key=api_key_value,
+                service_account_key= encrypt_api_key(api_key_value),
                 openai_service_account_id=data["id"],
                 is_active=True
             )

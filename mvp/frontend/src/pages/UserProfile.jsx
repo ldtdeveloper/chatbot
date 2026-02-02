@@ -81,6 +81,17 @@ function UserProfile() {
               <label>Created:</label>
               <span>{new Date(profile.user.created_at).toLocaleDateString()}</span>
             </div>
+            {profile.user.role !== 'superadmin' && profile.user.wallet_balance !== undefined && (
+              <div className="info-item">
+                <label>Wallet Balance:</label>
+                <span className="wallet-balance">
+                  ${profile.user.wallet_balance.toFixed(2)}
+                  {profile.user.wallet_balance <= 2.0 && (
+                    <span className="low-balance-warning"> ⚠️ Low</span>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

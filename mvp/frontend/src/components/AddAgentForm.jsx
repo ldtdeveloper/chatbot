@@ -7,8 +7,11 @@ function AddAgentForm({
   InstructionSet, 
   activeApiKeys,
   handleSubmit, 
-  isLoading 
-}) {
+  isLoading,
+  handleCancel
+}) 
+{
+  
   return (
     <form onSubmit={handleSubmit} className="add-agent-form">
       <div className="form-info">
@@ -122,8 +125,20 @@ function AddAgentForm({
           min="0"
         />
       </label>
+      <label>Startup Message (Optional)</label>
+      <textarea 
+        value={formData.startup_message || ''} 
+        name="startup_message" 
+        autoComplete='off' 
+        rows={3} 
+        placeholder="Startup message (e.g., Hi, how can I assist you?) - If provided, bot will say this exact message. If left empty, bot will generate its own greeting."
+        onChange={(e) => setFormData({ ...formData, startup_message: e.target.value })} 
+      />
       <button type="submit" disabled={isLoading}>
         {isLoading ? 'Creating...' : 'Create Agent'}
+      </button>
+      <button onClick={handleCancel}>
+        Cancel
       </button>
     </form>
   )

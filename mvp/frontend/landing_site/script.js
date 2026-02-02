@@ -68,16 +68,230 @@ tailwind.config = {
 // API Base URL
 const API_BASE = 'http://localhost:8081';
 const APP_BASE_URL = 'http://localhost:3000'
-// Selected plan tracking
+// Selected plan tracking - stores the full plan object
 let selectedPlan = null;
-let selectedPlanPrice = null;
+// Store all plans globally for lookup
+let allPlans = [];
 
-// Plan selection
-function selectPlan(plan, price) {
-    console.log("Selected plan price ----> " + plan + "" + price)
-    selectedPlan = plan;
-    selectedPlanPrice = price;
+// Plan selection - accepts full plan object
+function selectPlan(planObject) {
+    console.log("Selected plan:", planObject);
+    selectedPlan = planObject;
     openRegisterModal();
+}
+
+// Plan selection by ID - looks up plan from allPlans
+function selectPlanById(planId) {
+    const plan = allPlans.find(p => p.id === planId);
+    if (plan) {
+        selectPlan(plan);
+    } else {
+        console.error('Plan not found with ID:', planId);
+    }
+}
+
+// Fetch plans from API
+async function fetchPlans() {
+    try {
+        const response = await fetch(`${API_BASE}/api/plans/public`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch plans');
+        }
+        const plans = await response.json();
+        const activePlans = plans.filter(plan => plan.is_active);
+        // Store plans globally for lookup
+        allPlans = plans;
+        renderPlans(activePlans);
+    } catch (error) {
+        console.error('Error fetching plans:', error);
+        const plansContainer = document.getElementById('plans');
+        const loadingElement = document.getElementById('plansLoading');
+        if (loadingElement) {
+            loadingElement.innerHTML = `
+                <p class="text-red-600">Failed to load plans. Please refresh the page.</p>
+            `;
+        } else {
+            plansContainer.innerHTML = `
+                <div class="w-full text-center py-12">
+                    <p class="text-red-600">Failed to load plans. Please refresh the page.</p>
+                </div>
+            `;
+        }
+    }
+}
+
+// Render plans dynamically
+function renderPlans(plans) {
+    const plansContainer = document.getElementById('plans');
+    const loadingElement = document.getElementById('plansLoading');
+    
+    // Remove loading element
+    if (loadingElement) {
+        loadingElement.remove();
+    }
+
+    // Clear container
+    plansContainer.innerHTML = '';
+
+    // Filter active plans
+    const activePlans = plans && plans.length > 0 ? plans.filter(plan => plan.is_active) : [];
+    
+    // Count total cards (API plans + 1 static Custom Plan)
+    const totalCards = activePlans.length + 1;
+
+    // Set container classes based on total card count
+    if (totalCards <= 4) {
+        // All cards inline - use grid with exact column count
+        let gridClasses = 'grid gap-6 md:gap-8 max-w-7xl mx-auto px-4';
+        
+        // Set responsive grid columns
+        if (totalCards === 1) {
+            gridClasses += ' grid-cols-1';
+        } else if (totalCards === 2) {
+            gridClasses += ' grid-cols-1 sm:grid-cols-2';
+        } else if (totalCards === 3) {
+            gridClasses += ' grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+        } else if (totalCards === 4) {
+            gridClasses += ' grid-cols-1 sm:grid-cols-2 lg:grid-cols-4';
+        }
+        
+        plansContainer.className = gridClasses;
+    } else {
+        // More than 4 cards - allow wrapping with flexbox
+        plansContainer.className = 'flex flex-wrap justify-center items-start gap-6 md:gap-8 max-w-7xl mx-auto px-4';
+    }
+
+    // Render each plan from API
+    activePlans.forEach((plan, index) => {
+        const isPopular = index === 0; // Mark first plan as popular
+        const isCustomPrice = !plan.price || plan.price === 0;
+        
+        const planCard = document.createElement('div');
+        planCard.className = `glass-card rounded-2xl p-6 md:p-8 card-hover flex flex-col ${isPopular ? 'border-2 border-purple-300 relative popular-glow' : ''}`;
+        
+        // Set width based on layout
+        if (totalCards <= 4) {
+            // Grid layout - cards fill grid cells
+            planCard.style.width = '100%';
+            planCard.style.maxWidth = '100%';
+        } else {
+            // Flex layout - cards have fixed max width
+            planCard.style.width = '100%';
+            planCard.style.maxWidth = '320px';
+            planCard.style.flexShrink = '0';
+        }
+        
+        planCard.innerHTML = `
+            ${isPopular ? `
+                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold px-4 py-1.5 rounded-full shadow-lg">
+                        Most Popular
+                    </span>
+                </div>
+            ` : ''}
+            
+            <div class="text-center mb-8 ${isPopular ? 'mt-2' : ''}">
+                <h3 class="text-2xl font-bold mb-2 text-gray-800">${plan.name}</h3>
+                <p class="text-gray-500 mb-4">${plan.description || 'Choose this plan'}</p>
+                <div class="text-5xl font-extrabold gradient-text">
+                    ${isCustomPrice ? 'Custom' : `$${plan.price}`}
+                    ${!isCustomPrice ? '<span class="text-lg font-normal text-gray-400">/month</span>' : ''}
+                </div>
+            </div>
+
+            <ul class="space-y-4 mb-8 flex-grow">
+                ${plan.features && plan.features.length > 0 ? plan.features.map(feature => `
+                    <li class="flex items-center space-x-3">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="text-gray-600">${feature}</span>
+                    </li>
+                `).join('') : '<li class="text-gray-500">No features listed</li>'}
+            </ul>
+
+            <div class="mt-auto">
+            ${isCustomPrice ? `
+                <button class="w-full py-3.5 rounded-full border-2 border-purple-200 text-purple-600 font-semibold hover:bg-purple-50 transition-colors">
+                    Contact Sales
+                </button>
+            ` : `
+                <button onclick="selectPlanById(${plan.id})" class="w-full btn-gradient py-3.5 rounded-full text-white font-semibold" data-plan-id="${plan.id}">
+                    Get Started
+                </button>
+            `}
+            </div>
+        `;
+        
+        plansContainer.appendChild(planCard);
+    });
+
+    // Add static Custom Plan card
+    const customPlanCard = document.createElement('div');
+    customPlanCard.className = 'glass-card rounded-2xl p-6 md:p-8 card-hover flex flex-col';
+    
+    // Set width based on layout
+    if (totalCards <= 4) {
+        // Grid layout - cards fill grid cells
+        customPlanCard.style.width = '100%';
+        customPlanCard.style.maxWidth = '100%';
+    } else {
+        // Flex layout - cards have fixed max width
+        customPlanCard.style.width = '100%';
+        customPlanCard.style.maxWidth = '320px';
+        customPlanCard.style.flexShrink = '0';
+    }
+    
+    customPlanCard.innerHTML = `
+        <div class="text-center mb-8">
+            <h3 class="text-2xl font-bold mb-2 text-gray-800">Custom Plan</h3>
+            <p class="text-gray-500 mb-4">Customize plan according to business needs</p>
+            <div class="text-5xl font-extrabold gradient-text">
+                Custom
+            </div>
+        </div>
+
+        <ul class="space-y-4 mb-8 flex-grow">
+            <li class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span class="text-gray-600">Unlimited agents</span>
+            </li>
+            <li class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span class="text-gray-600">Custom integrations</span>
+            </li>
+            <li class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span class="text-gray-600">Dedicated support</span>
+            </li>
+            <li class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span class="text-gray-600">SLA guarantee</span>
+            </li>
+        </ul>
+
+        <div class="mt-auto">
+            <button class="w-full py-3.5 rounded-full border-2 border-purple-200 text-purple-600 font-semibold hover:bg-purple-50 transition-colors">
+                Contact Sales
+            </button>
+        </div>
+    `;
+    
+    plansContainer.appendChild(customPlanCard);
 }
 
 // Registration modal functions
@@ -86,14 +300,9 @@ function openRegisterModal() {
     document.body.style.overflow = 'hidden';
 
     // Update plan info display
-    if (selectedPlan && selectedPlanPrice) {
-        const planNames = {
-            'starter': 'Starter',
-            'pro': 'Pro',
-            'enterprise': 'Enterprise'
-        };
-        document.getElementById('planName').textContent = planNames[selectedPlan] || selectedPlan;
-        document.getElementById('planPrice').textContent = selectedPlanPrice;
+    if (selectedPlan && selectedPlan.id) {
+        document.getElementById('planName').textContent = selectedPlan.name || 'Plan';
+        document.getElementById('planPrice').textContent = selectedPlan.price || 0;
         document.getElementById('selectedPlanInfo').classList.remove('hidden');
     } else {
         document.getElementById('selectedPlanInfo').classList.add('hidden');
@@ -144,9 +353,12 @@ function switchToLogin() {
 
 function switchToRegister() {
     closeLoginModal();
-    if (!selectedPlan) {
-        selectedPlan = 'starter';
-        selectedPlanPrice = 100;
+    // If no plan selected, select the first available plan
+    if (!selectedPlan && allPlans.length > 0) {
+        const firstActivePlan = allPlans.find(p => p.is_active);
+        if (firstActivePlan) {
+            selectedPlan = firstActivePlan;
+        }
     }
     openRegisterModal();
 }
@@ -162,7 +374,7 @@ async function handleRegister(e) {
     const loadingOverlay = document.getElementById('loadingOverlay');
 
     // Validate plan selection
-    if (!selectedPlan || !selectedPlanPrice) {
+    if (!selectedPlan || !selectedPlan.id) {
         errorDiv.textContent = 'Please select a plan first';
         errorDiv.classList.remove('hidden');
         return;
@@ -184,7 +396,7 @@ async function handleRegister(e) {
             body: JSON.stringify({
                 username: username,
                 email: email,
-                plan: selectedPlan
+                plan_id: selectedPlan.id
             })
         });
 
@@ -238,8 +450,8 @@ async function initiatePayment(token, userId) {
                 'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-                plan: selectedPlan,
-                amount: selectedPlanPrice, // Amount in USD
+                plan_id: selectedPlan.id,
+                amount: selectedPlan.price, // Amount in USD
                 user_id: userId
             })
         });
@@ -270,7 +482,7 @@ async function initiatePayment(token, userId) {
             amount: orderData.amount,
             currency: orderData.currency,
             name: 'VoiceAI Platform',
-            description: `${selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)} Plan Subscription`,
+            description: `${selectedPlan.name || 'Plan'} Subscription`,
             order_id: orderData.razorpay_order_id,
             handler: async function (response) {
                 // Verify payment on backend
@@ -339,7 +551,7 @@ async function verifyPayment(token, razorpayResponse, orderId) {
         if (verifyData.success) {
             // Payment successful - store subscription status
             localStorage.setItem('subscription_active', 'true');
-            localStorage.setItem('subscription_plan', selectedPlan);
+            localStorage.setItem('subscription_plan', selectedPlan.code || selectedPlan.name);
             loadingOverlay.querySelector('p').textContent = 'Payment successful! Redirecting to dashboard...';
             const setupResponse = await fetch(`${API_BASE}/openai-keys`, {
 
@@ -540,8 +752,6 @@ async function handleLogin(e) {
             if (!data.access_token) {
                 throw new Error('No access token received');
             }
-
-            localStorage.setItem('token', data.access_token);[]
             window.location.href = `${APP_BASE_URL}/?token=${data.access_token}`;
         } catch (err) {
             console.error(err);
@@ -557,7 +767,7 @@ async function handleLogin(e) {
         const res = await fetch(`${API_BASE}/api/auth/prefetch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, plan: selectedPlan })
+            body: JSON.stringify({ email, plan_id: selectedPlan ? selectedPlan.id : null })
         });
         const data = await res.json();
         console.log(`${data} --------------`)
@@ -596,12 +806,20 @@ async function handleLogin(e) {
             closeLoginModal();
             scrollDownPlans();
         }
-        if (data.next_action === 'SET_PASSWORD') {
-            // redirect to setup password
-            return;
+        else if (data.next_action === 'SET_PASSWORD') {
+            loadingOverlay.classList.add('hidden');
+            Toastify({
+                text: 'Setup Password link sent to your registered email',
+                duration: 2000,
+                gravity: 'top',
+                position: 'right',
+                style: {borderRadius: '15px', background:' #16a34a'}
+            }).showToast();
+                closeLoginModal();
+                return;
+            }
         }
-
-    } catch (err) {
+     catch (err) {
         console.error(err);
         showError(`${err.message}`);
     }
@@ -655,5 +873,10 @@ document.querySelectorAll('[class*="delay-"]').forEach(el => {
     setTimeout(() => {
         el.style.opacity = '1';
     }, 100);
+});
+
+// Load plans when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    fetchPlans();
 });
 

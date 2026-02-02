@@ -123,6 +123,15 @@ function EditAgentModal({
                 min="0"
               />
             </label>
+            <label>Startup Message (Optional)</label>
+            <textarea 
+              value={formData.startup_message || ''} 
+              name="startup_message" 
+              autoComplete='off' 
+              rows={3} 
+              placeholder="Startup message (e.g., Hi, how can I assist you?) - If provided, bot will say this exact message. If left empty, bot will generate its own greeting."
+              onChange={(e) => setFormData({ ...formData, startup_message: e.target.value })} 
+            />
             <div className="form-actions">
               <button type="button" onClick={() => handleCancelEdit()} className="cancel-btn">
                 Cancel
