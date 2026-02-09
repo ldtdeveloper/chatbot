@@ -792,7 +792,7 @@ async def verify_trial_upgrade(
 ):
     """Verify Razorpay payment for trial upgrade + reset wallet + add plan credits"""
     
-    # 1. Get the pending subscription created for upgrade
+    # Get the pending subscription created for upgrade
     pending_sub = db.query(Subscription).filter(
         Subscription.id == payment_data.order_id,
         Subscription.user_id == current_user.id,
@@ -802,7 +802,7 @@ async def verify_trial_upgrade(
     if not pending_sub:
         raise HTTPException(404, "Subscription not found or already processed")
 
-    # 2. Test mode handling
+    # Test mode handling
     if TEST_MODE:
         pending_sub.razorpay_payment_id = payment_data.razorpay_payment_id or "pay_trial_test"
         pending_sub.razorpay_signature = payment_data.razorpay_signature or "test_sig"
@@ -826,14 +826,11 @@ async def verify_trial_upgrade(
         pending_sub.razorpay_payment_id = payment_data.razorpay_payment_id
         pending_sub.razorpay_signature = payment_data.razorpay_signature
 
-    # 3. Mark as success & activate
     pending_sub.payment_status = PaymentStatus.SUCCESS
     pending_sub.is_active = True
     pending_sub.start_date = datetime.utcnow()
-    pending_sub.end_date = datetime.utcnow() + timedelta(days=30)  # 30 days for paid
+    pending_sub.end_date = datetime.utcnow() + timedelta(days=30)
     db.commit()
-
-    # 4. Deactivate old trial subscription (safe check)
     old_trial = db.query(Subscription).filter(
         Subscription.user_id == current_user.id,
         Subscription.subscription_mode == SubscriptionMode.TRIAL,
@@ -848,13 +845,13 @@ async def verify_trial_upgrade(
             old_trial.end_date = datetime.utcnow()
         db.commit()
 
-    # 5. Reset wallet to 0 (remove trial credits)
+    #Reset wallet to 0 (remove trial credits)
     wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
     old_balance = wallet.balance if wallet else 0.0
     if wallet:
         wallet.balance = 0.0
 
-    # 6. Add new plan credits
+    #Add new plan credits
     plan = db.query(Plans).filter(Plans.id == pending_sub.plan_type).first()
     if plan and plan.wallet_credits > 0 and current_user.role != UserRole.SUPERADMIN:
         new_wallet = add_to_wallet(current_user.id, plan.wallet_credits, db)
