@@ -23,8 +23,13 @@ function Layout() {
     navigate('/login')
   }
 
-  const isTrial = user?.is_trial === true
-  const displayedBalance = isTrial ? 2.0 : (user?.wallet_balance ?? 0)
+  // Detect trial status from active subscription
+  const isTrial =
+    user?.active_subscription?.subscription_mode === 'trial' &&
+    user?.active_subscription?.is_active === true
+
+  // Display $2.00 for trial users
+  const displayedBalance = isTrial ? 2.0 : user?.wallet_balance ?? 0
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -35,7 +40,6 @@ function Layout() {
         setShowWalletMessage(false)
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
@@ -50,27 +54,25 @@ function Layout() {
         <div className="navbar-menu">
           <Link to="/">Dashboard</Link>
 
-          {user?.role === 'superadmin' && (
-            <Link to="/openai-keys">API Keys</Link>
-          )}
+          {user?.role === 'superadmin' && <Link to="/openai-keys">API Keys</Link>}
 
           {user?.role === 'default' && (
             <>
               <Link to="/agents">Agents</Link>
 
-              {/* ✅ UPGRADE BUTTON — AGENTS KE BAAD */}
+              {/* Show Upgrade button only for trial users */}
               {isTrial && (
                 <button
                   className="upgrade-btn"
                   onClick={() => setShowUpgradeModal(true)}
                 >
-                  Upgrade
+                  Upgrade Now
                 </button>
               )}
             </>
           )}
 
-          {/* WALLET */}
+          {/* Wallet Section */}
           {user?.role !== 'superadmin' && (
             <div className="wallet-wrapper" ref={walletRef}>
               <button
@@ -79,6 +81,11 @@ function Layout() {
                 onMouseLeave={() => isTrial && setShowWalletMessage(false)}
                 onClick={() => !isTrial && setWalletModalOpen(true)}
                 disabled={isTrial}
+                title={
+                  isTrial
+                    ? 'Trial wallet limited to $2.00 – Upgrade to unlock full access'
+                    : `Wallet: $${displayedBalance.toFixed(2)}`
+                }
               >
                 <span className="wallet-amount-text">
                   ${displayedBalance.toFixed(2)}
@@ -86,10 +93,11 @@ function Layout() {
                 </span>
               </button>
 
+              {/* Hover message for trial */}
               {isTrial && showWalletMessage && (
                 <div className="wallet-message-card">
-                  <h4>Trial Wallet</h4>
-                  <p>Limited to $2.00. Upgrade to unlock full wallet.</p>
+                  <h4>Trial Wallet Limited</h4>
+                  <p>Fixed at $2.00 during trial. Upgrade to unlock full wallet & features.</p>
                   <button
                     className="upgrade-from-wallet-btn"
                     onClick={() => setShowUpgradeModal(true)}
@@ -101,27 +109,34 @@ function Layout() {
             </div>
           )}
 
-          {/* USER DROPDOWN */}
+          {/* User Dropdown */}
           <div className="navbar-user" ref={dropdownRef}>
             <button
               className="navbar-user-toggle"
               onClick={() => setDropdownOpen(!dropdownOpen)}
             >
-              <span>{user?.username}</span>
+              <span>{user?.username || 'User'}</span>
               {isTrial && <span className="role-badge trial">TRIAL</span>}
               <span className="dropdown-arrow">▼</span>
             </button>
 
             {dropdownOpen && (
               <div className="dropdown-menu">
-                <Link to={`/users/${user?.id}/profile-update`}>
+                <Link
+                  to={`/users/${user?.id}/profile-update`}
+                  onClick={() => setDropdownOpen(false)}
+                >
                   Edit Profile
                 </Link>
 
                 {user?.role === 'superadmin' && (
                   <>
-                    <Link to="/users">Manage Users</Link>
-                    <Link to="/plans">Manage Plans</Link>
+                    <Link to="/users" onClick={() => setDropdownOpen(false)}>
+                      Manage Users
+                    </Link>
+                    <Link to="/plans" onClick={() => setDropdownOpen(false)}>
+                      Manage Plans
+                    </Link>
                   </>
                 )}
 
@@ -136,6 +151,7 @@ function Layout() {
         <Outlet />
       </main>
 
+      {/* Modals */}
       <WalletModal
         isOpen={walletModalOpen}
         onClose={() => setWalletModalOpen(false)}

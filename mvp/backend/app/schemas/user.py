@@ -1,6 +1,14 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from datetime import datetime
+class ActiveSubscription(BaseModel):
+    id: int
+    subscription_mode: str
+    is_active: bool
+    start_date: datetime
+    end_date: Optional[datetime] = None
+    plan_name: Optional[str] = None
+    plan_id: Optional[int] = None
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -27,9 +35,8 @@ class UserResponse(BaseModel):
     role: str
     is_active: bool
     created_at: datetime
-    wallet_balance: Optional[float] = None  # Only for non-superadmin users
-    is_trial:bool
-    trial_start: Optional[datetime] = None
+    wallet_balance: Optional[float] = None
+    active_subscription: Optional[ActiveSubscription] = None
     
     class Config:
         from_attributes = True

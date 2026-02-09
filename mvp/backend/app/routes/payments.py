@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.user import User, UserRole
-from app.models.subscription import Subscription, PaymentStatus
+from app.models.subscription import Subscription, PaymentStatus,SubscriptionMode
 from app.models.plans import Plans
 from app.core.dependencies import get_current_user
 from datetime import datetime, timedelta, timezone
@@ -698,46 +698,62 @@ async def create_trial_upgrade_order(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create Razorpay order specifically for trial → paid upgrade"""
-    if not current_user.is_trial:
+    """Create Razorpay order for trial → paid upgrade"""
+    
+    # Check if user has an ACTIVE trial subscription (new schema way)
+    active_trial_sub = db.query(Subscription).filter(
+        Subscription.user_id == current_user.id,
+        Subscription.subscription_mode == SubscriptionMode.TRIAL,
+        Subscription.is_active == True,
+        Subscription.end_date > datetime.utcnow()
+    ).order_by(Subscription.created_at.desc()).first()
+
+    if not active_trial_sub:
         raise HTTPException(
             status_code=403,
-            detail="This endpoint is only for trial users"
+            detail="This endpoint is only for users with an active trial subscription"
         )
 
     plan = db.query(Plans).filter(Plans.id == order_data.plan_id).first()
     if not plan:
         raise HTTPException(404, "Plan not found")
+
     if plan.name.lower() == 'trial':
         raise HTTPException(400, "Cannot upgrade to trial plan")
 
     amount_cents = int(order_data.amount * 100)
 
-    subscription = Subscription(
+    # Create new paid subscription (pending)
+    new_subscription = Subscription(
         user_id=current_user.id,
         plan_type=plan.id,
         amount=order_data.amount,
-        payment_status=PaymentStatus.PENDING
+        payment_status=PaymentStatus.PENDING,
+        subscription_mode=SubscriptionMode.PAID,
+        start_date=None,  # will be set on verify
+        end_date=None,
+        is_active=False
     )
-    db.add(subscription)
+    db.add(new_subscription)
     db.commit()
-    db.refresh(subscription)
+    db.refresh(new_subscription)
 
+    # Test mode handling
     if TEST_MODE:
         import uuid
         mock_id = f"order_trial_upgrade_{uuid.uuid4().hex[:8]}"
-        subscription.razorpay_order_id = mock_id
+        new_subscription.razorpay_order_id = mock_id
         db.commit()
         return {
             "razorpay_key_id": "rzp_test_MOCK",
             "razorpay_order_id": mock_id,
             "amount": amount_cents,
             "currency": "USD",
-            "order_id": subscription.id
+            "order_id": new_subscription.id
         }
 
     if not razorpay_client:
-        db.delete(subscription)
+        db.delete(new_subscription)
         db.commit()
         raise HTTPException(503, "Razorpay not configured")
 
@@ -745,53 +761,56 @@ async def create_trial_upgrade_order(
         order = razorpay_client.order.create({
             'amount': amount_cents,
             'currency': 'USD',
-            'receipt': f'trial_upgrade_{subscription.id}',
+            'receipt': f'trial_upgrade_{new_subscription.id}',
             'notes': {
                 'user_id': current_user.id,
                 'type': 'trial_upgrade',
                 'plan': plan.name,
-                'subscription_id': subscription.id
+                'subscription_id': new_subscription.id
             }
         })
-        subscription.razorpay_order_id = order['id']
+        new_subscription.razorpay_order_id = order['id']
         db.commit()
+
         return {
             "razorpay_key_id": settings.razorpay_key_id,
             "razorpay_order_id": order['id'],
             "amount": amount_cents,
             "currency": "USD",
-            "order_id": subscription.id
+            "order_id": new_subscription.id
         }
+
     except Exception as e:
-        db.delete(subscription)
+        db.delete(new_subscription)
         db.commit()
         raise HTTPException(500, f"Failed to create upgrade order: {str(e)}")
-
-
 @router.post("/upgrade-from-trial/verify", response_model=PaymentVerifyResponse)
 async def verify_trial_upgrade(
     payment_data: VerifyPaymentRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Verify payment for trial upgrade + reset wallet + add plan credits"""
-    if not current_user.is_trial:
-        raise HTTPException(403, "This endpoint is only for trial users")
-
-    subscription = db.query(Subscription).filter(
+    """Verify Razorpay payment for trial upgrade + reset wallet + add plan credits"""
+    
+    # 1. Get the pending subscription created for upgrade
+    pending_sub = db.query(Subscription).filter(
         Subscription.id == payment_data.order_id,
-        Subscription.user_id == current_user.id
+        Subscription.user_id == current_user.id,
+        Subscription.payment_status == PaymentStatus.PENDING
     ).first()
 
-    if not subscription:
-        raise HTTPException(404, "Subscription not found")
+    if not pending_sub:
+        raise HTTPException(404, "Subscription not found or already processed")
+
+    # 2. Test mode handling
     if TEST_MODE:
-        subscription.razorpay_payment_id = payment_data.razorpay_payment_id or "pay_trial_test"
-        subscription.razorpay_signature = payment_data.razorpay_signature or "test_sig"
+        pending_sub.razorpay_payment_id = payment_data.razorpay_payment_id or "pay_trial_test"
+        pending_sub.razorpay_signature = payment_data.razorpay_signature or "test_sig"
     else:
         if not razorpay_client:
             raise HTTPException(503, "Razorpay not configured")
 
+        # Verify signature
         message = f"{payment_data.razorpay_order_id}|{payment_data.razorpay_payment_id}"
         generated_sig = hmac.new(
             settings.razorpay_key_secret.encode(),
@@ -800,33 +819,46 @@ async def verify_trial_upgrade(
         ).hexdigest()
 
         if generated_sig != payment_data.razorpay_signature:
-            subscription.payment_status = PaymentStatus.FAILED
+            pending_sub.payment_status = PaymentStatus.FAILED
             db.commit()
             return {"success": False, "message": "Invalid signature"}
 
-        subscription.razorpay_payment_id = payment_data.razorpay_payment_id
-        subscription.razorpay_signature = payment_data.razorpay_signature
+        pending_sub.razorpay_payment_id = payment_data.razorpay_payment_id
+        pending_sub.razorpay_signature = payment_data.razorpay_signature
 
-    subscription.payment_status = PaymentStatus.SUCCESS
-    subscription.is_active = True
-    subscription.start_date = datetime.utcnow()
-    subscription.end_date = datetime.utcnow() + timedelta(days=30)
+    # 3. Mark as success & activate
+    pending_sub.payment_status = PaymentStatus.SUCCESS
+    pending_sub.is_active = True
+    pending_sub.start_date = datetime.utcnow()
+    pending_sub.end_date = datetime.utcnow() + timedelta(days=30)  # 30 days for paid
     db.commit()
 
+    # 4. Deactivate old trial subscription (safe check)
+    old_trial = db.query(Subscription).filter(
+        Subscription.user_id == current_user.id,
+        Subscription.subscription_mode == SubscriptionMode.TRIAL,
+        Subscription.is_active == True
+    ).order_by(Subscription.created_at.desc()).first()
 
-    print(f"[TRIAL UPGRADE] User {current_user.id} upgrading from trial")
+    if old_trial:
+        old_trial.is_active = False
+        old_trial.subscription_mode = SubscriptionMode.EXPIRED
+        # Optional: set end_date to now if it was None or future
+        if old_trial.end_date is None or old_trial.end_date > datetime.utcnow():
+            old_trial.end_date = datetime.utcnow()
+        db.commit()
 
-    current_user.is_trial = False
-
+    # 5. Reset wallet to 0 (remove trial credits)
     wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+    old_balance = wallet.balance if wallet else 0.0
     if wallet:
-        print(f"Trial wallet reset: ${wallet.balance:.2f} → $0.00")
         wallet.balance = 0.0
-    plan = db.query(Plans).filter(Plans.id == subscription.plan_type).first()
+
+    # 6. Add new plan credits
+    plan = db.query(Plans).filter(Plans.id == pending_sub.plan_type).first()
     if plan and plan.wallet_credits > 0 and current_user.role != UserRole.SUPERADMIN:
         new_wallet = add_to_wallet(current_user.id, plan.wallet_credits, db)
-        print(f"Added ${plan.wallet_credits:.2f} from '{plan.name}'")
-        print(f"New wallet: ${new_wallet.balance:.2f}")
+        print(f"[TRIAL UPGRADE] Added ${plan.wallet_credits:.2f} credits. New balance: ${new_wallet.balance:.2f}")
 
     db.commit()
     db.refresh(current_user)
@@ -834,5 +866,13 @@ async def verify_trial_upgrade(
     return {
         "success": True,
         "message": "Trial upgraded to paid plan successfully",
-        "subscription_id": subscription.id
+        "subscription_id": pending_sub.id,
+        "updated_user": {
+            "id": current_user.id,
+            "email": current_user.email,
+            "username": current_user.username,
+            "role": current_user.role.value,
+            "is_active": current_user.is_active,
+            "wallet_balance": wallet.balance if wallet else 0.0
+        }
     }

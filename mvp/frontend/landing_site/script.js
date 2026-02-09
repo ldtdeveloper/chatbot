@@ -66,8 +66,8 @@ tailwind.config = {
 }
 
 // API Base URL
-const API_BASE = 'https://api.voicequik.com/';
-const APP_BASE_URL = 'https://app.voicequik.com/'
+const API_BASE = 'http://localhost:8081';
+const APP_BASE_URL = 'http://localhost:3000'
 // Selected plan tracking - stores the full plan object
 let selectedPlan = null;
 // Store all plans globally for lookup
@@ -169,11 +169,16 @@ function renderPlans(plans) {
 
     // Render each plan from API
     activePlans.forEach((plan, index) => {
-        const isPopular = index === 0; // Mark first plan as popular
+        const isPopular = index === 1; // Mark first plan as popular
         const isCustomPrice = !plan.price || plan.price === 0;
-        
+        const isTrial = plan.is_trial
         const planCard = document.createElement('div');
-        planCard.className = `glass-card rounded-2xl p-6 md:p-8 card-hover flex flex-col ${isPopular ? 'border-2 border-purple-300 relative popular-glow' : ''}`;
+        planCard.className = `
+            ${isTrial 
+                ? 'rounded-2xl border border-gray-200 bg-white/70 p-5 md:p-6 flex flex-col' 
+                : 'glass-card rounded-2xl p-6 md:p-8 card-hover flex flex-col'}
+            ${isPopular && !isTrial ? ' border-2 border-purple-300 relative popular-glow' : ''}
+        `.trim();
         
         // Set width based on layout
         if (totalCards <= 4) {
@@ -196,13 +201,18 @@ function renderPlans(plans) {
                 </div>
             ` : ''}
             
-            <div class="text-center mb-8 ${isPopular ? 'mt-2' : ''}">
+            <div class="text-center mb-6 ${isPopular ? 'mt-2' : ''}">
                 <h3 class="text-2xl font-bold mb-2 text-gray-800">${plan.name}</h3>
                 <p class="text-gray-500 mb-4">${plan.description || 'Choose this plan'}</p>
-                <div class="text-5xl font-extrabold gradient-text">
-                    ${isCustomPrice ? 'Custom' : `$${plan.price}`}
-                    ${!isCustomPrice ? '<span class="text-lg font-normal text-gray-400">/month</span>' : ''}
+                <div class="${isTrial ? 'text-base font-semibold text-gray-800 mb-1' : 'text-5xl font-extrabold gradient-text'}">
+                    ${isTrial ? '14-Day Free Trial' : `$${plan.price}`}
+                    ${!isCustomPrice && !isTrial ? '<span class="text-lg font-normal text-gray-400">/month</span>' : ''}
                 </div>
+                ${plan.wallet_credits ? `
+                    <div class="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-purple-50 text-xs font-medium text-purple-700">
+                        Free $${plan.wallet_credits} Credits
+                    </div>
+                ` : ''}
             </div>
 
             <ul class="space-y-4 mb-8 flex-grow">
@@ -215,18 +225,19 @@ function renderPlans(plans) {
                     </li>
                 `).join('') : '<li class="text-gray-500">No features listed</li>'}
             </ul>
+            ${plan.is_trial ? 
+            `<div class="mt-auto">
+            <button onclick="selectPlanById(${plan.id})" class="w-full btn-gradient py-3.5 rounded-full text-white font-semibold" data-plan-id="${plan.id}">
+                Start 14-day free trial
+            </button>
+            </div> `: 
+            `<div class="mt-auto">
+            <button onclick="selectPlanById(${plan.id})" class="w-full btn-gradient py-3.5 rounded-full text-white font-semibold" data-plan-id="${plan.id}">
+                Get Started 
+            </button>
+            </div>`
 
-            <div class="mt-auto">
-            ${isCustomPrice ? `
-                <button class="w-full py-3.5 rounded-full border-2 border-purple-200 text-purple-600 font-semibold hover:bg-purple-50 transition-colors">
-                    Contact Sales
-                </button>
-            ` : `
-                <button onclick="selectPlanById(${plan.id})" class="w-full btn-gradient py-3.5 rounded-full text-white font-semibold" data-plan-id="${plan.id}">
-                    Get Started
-                </button>
-            `}
-            </div>
+            }
         `;
         
         plansContainer.appendChild(planCard);
@@ -301,9 +312,19 @@ function openRegisterModal() {
 
     // Update plan info display
     if (selectedPlan && selectedPlan.id) {
-        document.getElementById('planName').textContent = selectedPlan.name || 'Plan';
-        document.getElementById('planPrice').textContent = selectedPlan.price || 0;
-        document.getElementById('selectedPlanInfo').classList.remove('hidden');
+        const selectedPlanInfo = document.getElementById('selectedPlanInfo');
+        if (selectedPlan.is_trial) {
+            // For trial plans, show a simple "Free 14-Day Trial" label instead of price/month
+            selectedPlanInfo.innerHTML = `
+                <span class="text-sm font-medium text-purple-700">
+                    Selected Plan: ${selectedPlan.name || 'Plan'} - Free 14 Days Trial
+                </span>
+            `;
+        } else {
+            document.getElementById('planName').textContent = selectedPlan.name || 'Plan';
+            document.getElementById('planPrice').textContent = selectedPlan.price || 0;
+        }
+        selectedPlanInfo.classList.remove('hidden');
     } else {
         document.getElementById('selectedPlanInfo').classList.add('hidden');
     }
@@ -418,7 +439,7 @@ async function handleRegister(e) {
             // Show success message
             // alert(`Registration successful! Please check your email (${email}) for the payment link. Click the link in the email to complete payment and set up your password.`);
             Toastify({
-                text: `Registration successful! Check your email for the payment link.`,
+                text: `Registration successful! Please check your email`,
                 duration: 2000,
                 gravity: "top",
                 position: "right",

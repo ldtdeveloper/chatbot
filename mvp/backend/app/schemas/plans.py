@@ -13,6 +13,7 @@ class PlanCreate(BaseModel):
     plan_type: str = "monthly"  # monthly, yearly
     price: float
     features: List[str]
+    is_trial: Optional[bool] = None
 
 class PlanUpdate(BaseModel):
     name: Optional[str] = None
@@ -36,6 +37,7 @@ class PlanResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime]
     features: List[str]
+    is_trial: bool
     
     class Config:
         from_attributes = True

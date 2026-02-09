@@ -38,6 +38,7 @@ class Plans(Base):
     
     # Plan type: monthly or yearly
     plan_type = Column(String, nullable = False, default="monthly")  # monthly, yearly
+    is_trial = Column(Boolean, default = False)
 
     # Price of plan
     price = Column(Float, nullable = False)
