@@ -28,6 +28,8 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     wallet_balance: Optional[float] = None  # Only for non-superadmin users
+    is_trial:bool
+    trial_start: Optional[datetime] = None
     
     class Config:
         from_attributes = True

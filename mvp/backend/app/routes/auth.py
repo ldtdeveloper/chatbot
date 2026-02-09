@@ -172,7 +172,9 @@ async def get_current_user_info(
         "role": current_user.role.value,
         "is_active": current_user.is_active,
         "created_at": current_user.created_at,
-        "wallet_balance": wallet_balance
+        "wallet_balance": wallet_balance,
+        "is_trial":current_user.is_trial,
+        "trial_start":current_user.trial_start
     }
     
     return user_dict

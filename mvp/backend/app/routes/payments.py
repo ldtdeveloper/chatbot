@@ -9,7 +9,9 @@ from app.models.subscription import Subscription, PaymentStatus
 from app.models.plans import Plans
 from app.core.dependencies import get_current_user
 from datetime import datetime, timedelta, timezone
+from app.utils.wallet import add_to_wallet
 from app.core.config import settings
+from app.models.wallet import Wallet
 from app.services.service_account import create_service_account
 import hmac
 import hashlib
@@ -688,4 +690,149 @@ async def verify_wallet_topup(
         "message": "Wallet top-up successful",
         "new_balance": round(wallet.balance, 2),
         "transaction_id": transaction.id
+    }
+
+@router.post("/upgrade-from-trial/create-order", response_model=PaymentOrderResponse)
+async def create_trial_upgrade_order(
+    order_data: CreateOrderRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create Razorpay order specifically for trial → paid upgrade"""
+    if not current_user.is_trial:
+        raise HTTPException(
+            status_code=403,
+            detail="This endpoint is only for trial users"
+        )
+
+    plan = db.query(Plans).filter(Plans.id == order_data.plan_id).first()
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+    if plan.name.lower() == 'trial':
+        raise HTTPException(400, "Cannot upgrade to trial plan")
+
+    amount_cents = int(order_data.amount * 100)
+
+    subscription = Subscription(
+        user_id=current_user.id,
+        plan_type=plan.id,
+        amount=order_data.amount,
+        payment_status=PaymentStatus.PENDING
+    )
+    db.add(subscription)
+    db.commit()
+    db.refresh(subscription)
+
+    if TEST_MODE:
+        import uuid
+        mock_id = f"order_trial_upgrade_{uuid.uuid4().hex[:8]}"
+        subscription.razorpay_order_id = mock_id
+        db.commit()
+        return {
+            "razorpay_key_id": "rzp_test_MOCK",
+            "razorpay_order_id": mock_id,
+            "amount": amount_cents,
+            "currency": "USD",
+            "order_id": subscription.id
+        }
+
+    if not razorpay_client:
+        db.delete(subscription)
+        db.commit()
+        raise HTTPException(503, "Razorpay not configured")
+
+    try:
+        order = razorpay_client.order.create({
+            'amount': amount_cents,
+            'currency': 'USD',
+            'receipt': f'trial_upgrade_{subscription.id}',
+            'notes': {
+                'user_id': current_user.id,
+                'type': 'trial_upgrade',
+                'plan': plan.name,
+                'subscription_id': subscription.id
+            }
+        })
+        subscription.razorpay_order_id = order['id']
+        db.commit()
+        return {
+            "razorpay_key_id": settings.razorpay_key_id,
+            "razorpay_order_id": order['id'],
+            "amount": amount_cents,
+            "currency": "USD",
+            "order_id": subscription.id
+        }
+    except Exception as e:
+        db.delete(subscription)
+        db.commit()
+        raise HTTPException(500, f"Failed to create upgrade order: {str(e)}")
+
+
+@router.post("/upgrade-from-trial/verify", response_model=PaymentVerifyResponse)
+async def verify_trial_upgrade(
+    payment_data: VerifyPaymentRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Verify payment for trial upgrade + reset wallet + add plan credits"""
+    if not current_user.is_trial:
+        raise HTTPException(403, "This endpoint is only for trial users")
+
+    subscription = db.query(Subscription).filter(
+        Subscription.id == payment_data.order_id,
+        Subscription.user_id == current_user.id
+    ).first()
+
+    if not subscription:
+        raise HTTPException(404, "Subscription not found")
+    if TEST_MODE:
+        subscription.razorpay_payment_id = payment_data.razorpay_payment_id or "pay_trial_test"
+        subscription.razorpay_signature = payment_data.razorpay_signature or "test_sig"
+    else:
+        if not razorpay_client:
+            raise HTTPException(503, "Razorpay not configured")
+
+        message = f"{payment_data.razorpay_order_id}|{payment_data.razorpay_payment_id}"
+        generated_sig = hmac.new(
+            settings.razorpay_key_secret.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        if generated_sig != payment_data.razorpay_signature:
+            subscription.payment_status = PaymentStatus.FAILED
+            db.commit()
+            return {"success": False, "message": "Invalid signature"}
+
+        subscription.razorpay_payment_id = payment_data.razorpay_payment_id
+        subscription.razorpay_signature = payment_data.razorpay_signature
+
+    subscription.payment_status = PaymentStatus.SUCCESS
+    subscription.is_active = True
+    subscription.start_date = datetime.utcnow()
+    subscription.end_date = datetime.utcnow() + timedelta(days=30)
+    db.commit()
+
+
+    print(f"[TRIAL UPGRADE] User {current_user.id} upgrading from trial")
+
+    current_user.is_trial = False
+
+    wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+    if wallet:
+        print(f"Trial wallet reset: ${wallet.balance:.2f} → $0.00")
+        wallet.balance = 0.0
+    plan = db.query(Plans).filter(Plans.id == subscription.plan_type).first()
+    if plan and plan.wallet_credits > 0 and current_user.role != UserRole.SUPERADMIN:
+        new_wallet = add_to_wallet(current_user.id, plan.wallet_credits, db)
+        print(f"Added ${plan.wallet_credits:.2f} from '{plan.name}'")
+        print(f"New wallet: ${new_wallet.balance:.2f}")
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {
+        "success": True,
+        "message": "Trial upgraded to paid plan successfully",
+        "subscription_id": subscription.id
     }

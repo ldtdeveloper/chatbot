@@ -319,3 +319,33 @@ export const planService = {
       return  response.data
     }
 }
+export const paymentService = {
+  createOrder: async (data) => {
+    const response = await api.post('/api/payments/create-order', data);
+    return response.data;
+  },
+
+  verifyPayment: async (data) => {
+    const response = await api.post('/api/payments/verify', data);
+    return response.data;
+  },
+  createTrialUpgradeOrder: async (data) => {
+    const response = await api.post('/api/payments/upgrade-from-trial/create-order', data);
+    return response.data;
+  },
+
+  verifyTrialUpgrade: async (data) => {
+    const response = await api.post('/api/payments/upgrade-from-trial/verify', data);
+    return response.data;
+  },
+  createTopUpOrder: async (data) => {
+    const response = await api.post('/api/payments/wallet-topup/create-order', data);
+    return response.data;
+  },
+
+  verifyTopUp: async (data) => {
+    const response = await api.post('/api/payments/wallet-topup/verify', data);
+    return response.data;
+  },
+};
+

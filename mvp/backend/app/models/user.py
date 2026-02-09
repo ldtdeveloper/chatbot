@@ -22,6 +22,8 @@ class User(Base):
     hashed_password = Column(String, nullable=True)  # Nullable - set after payment
     role = Column(Enum(UserRole), default=UserRole.DEFAULT, nullable=False)
     is_active = Column(Boolean, default=False)  # Inactive until password is set
+    is_trial = Column(Boolean, default=False)
+    trial_start = Column(DateTime(timezone=True), nullable=True)
     password_set = Column(Boolean, default=False)  # Track if password has been set
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

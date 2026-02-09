@@ -220,6 +220,7 @@ async def get_user_profile(
     wallet_balance = None
     if user.role != UserRole.SUPERADMIN:
         wallet_balance = get_wallet_balance(user.id, db)
+    print("DEBUG is_trial:", user.is_trial, type(user.is_trial))
     
     return {
         "user": {
@@ -229,7 +230,9 @@ async def get_user_profile(
             "role": user.role.value,
             "is_active": user.is_active,
             "created_at": user.created_at,
-            "wallet_balance": wallet_balance
+            "wallet_balance": wallet_balance,
+            "is_trial":user.is_trial,
+            "trial_start":user.trial_start
         },
         "agents": [{"id": a.id, "name": a.name, "description": getattr(a, "description", "")} for a in agents],
         "assistants": [{"id": a.id, "name": a.name, "voice": a.voice, "created_at": a.created_at} for a in assistants],
