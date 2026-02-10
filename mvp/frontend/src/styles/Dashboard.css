@@ -1307,3 +1307,406 @@
     grid-template-columns: 1fr;
   }
 }
+.scroll-x {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.chart-inner {
+  min-width: 100%;
+}
+
+/* Prevent chart from breaking card layout */
+.chart-card {
+  overflow: hidden;
+}
+
+/* Smooth scrollbar */
+.scroll-x::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scroll-x::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+.chart-note {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 1rem 0 0;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* Ensure center text doesn't overlap on small screens */
+@media (max-width: 768px) {
+  .pie-chart-center-value {
+    font-size: 1.8rem;
+  }
+  .pie-chart-center-label {
+    font-size: 0.8rem;
+  }
+}
+/* Bar Chart Styles */
+.bar-chart-wrapper {
+  padding: 15px;
+}
+
+.horizontal-bar-wrapper {
+  padding: 15px;
+}
+
+/* Chart Summary */
+.chart-summary {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* Distribution Stats */
+.distribution-stats {
+  margin-top: 20px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.stat-box {
+  text-align: center;
+  padding: 15px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Chart Notes */
+.chart-note {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-align: center;
+  margin-top: 15px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 3px solid #cbd5e1;
+}
+
+/* Chart Footer */
+.chart-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.showing-text {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.view-all-btn {
+  padding: 6px 12px;
+  background: #e2e8f0;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-all-btn:hover {
+  background: #cbd5e1;
+}
+
+/* Growth Stats */
+.growth-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+.growth-stat {
+  text-align: center;
+}
+
+.growth-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 5px;
+}
+
+.growth-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chart-summary {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-footer {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  
+  /* Adjust bar chart for mobile */
+  .bar-chart-wrapper .recharts-xAxis {
+    font-size: 10px !important;
+  }
+  
+  .horizontal-bar-wrapper .recharts-yAxis {
+    width: 70px !important;
+  }
+}
+/* Option 1 & 2 Styles */
+.custom-tooltip {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.tooltip-header {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #eaeaea;
+  color: #333;
+  font-size: 14px;
+}
+
+.tooltip-content {
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.tooltip-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.tooltip-item:last-child {
+  border-bottom: none;
+}
+
+.tooltip-item-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.tooltip-item-name {
+  flex: 1;
+  font-size: 12px;
+  color: #555;
+  margin-right: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tooltip-item-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #222;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Tooltip scrollbar styling */
+.tooltip-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tooltip-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.tooltip-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.tooltip-content::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Option 3 Full Custom Tooltip */
+.scrollable-tooltip {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 12px;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+  min-width: 220px;
+  max-width: 350px;
+}
+
+.tooltip-title {
+  display: flex;
+  align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.date-label {
+  font-size: 12px;
+  color: #666;
+  margin-right: 8px;
+  font-weight: 500;
+}
+
+.date-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.tooltip-items-container {
+  padding-right: 5px;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #f8f8f8;
+}
+
+.tooltip-row:last-child {
+  border-bottom: none;
+}
+
+.color-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.name-column {
+  flex: 1;
+  min-width: 0;
+  margin-right: 15px;
+}
+
+.name-column .name {
+  font-size: 12px;
+  color: #444;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.value-column {
+  flex-shrink: 0;
+}
+
+.value-column .value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #222;
+  background: #f8f9fa;
+  padding: 2px 8px;
+  border-radius: 4px;
+  min-width: 40px;
+  text-align: center;
+  display: inline-block;
+}
+
+.tooltip-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eaeaea;
+  font-size: 11px;
+}
+
+.count-badge {
+  background: #e9ecef;
+  color: #495057;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.scroll-hint {
+  color: #6c757d;
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+/* For the default recharts tooltip with scroll */
+.recharts-tooltip-wrapper {
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.recharts-default-tooltip {
+  max-height: 250px !important;
+  overflow-y: auto !important;
+}

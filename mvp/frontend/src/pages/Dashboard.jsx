@@ -15,6 +15,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceLine,
   ResponsiveContainer
 } from 'recharts'
 import { dashboardService } from '../services/services'
@@ -365,7 +366,7 @@ function Dashboard() {
       <div className="chart-card full-width">
         <div className="chart-header">
           <h2>Interactions</h2>
-          <p className="chart-subtitle">Number of interactions per OpenAI API key over time</p>
+          <p className="chart-subtitle">Number of interactions per user over time</p>
         </div>
         <div className="chart-container">
           {stats?.interactions_chart?.length > 0 ? (
@@ -375,23 +376,26 @@ function Dashboard() {
                   {getGradientDefs()}
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={formatDate}
-                  stroke="#666"
-                  style={{ fontSize: '12px' }}
-                />
+                <XAxis dataKey="date"hide={true}/>
                 <YAxis stroke="#666" style={{ fontSize: '12px' }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    padding: '10px'
-                  }}
-                  labelFormatter={(value) => `Date: ${formatDate(value)}`}
-                />
-                <Legend />
+                <Tooltip
+  contentStyle={{
+    backgroundColor: '#fff',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    padding: '10px'
+  }}
+  shared={false}
+  labelFormatter={(value) => `Date: ${formatDate(value)}`}
+  formatter={(value, name) => {
+    
+    const parts = name.split('-')
+    const shortName = parts[3] || name   
+
+    return [value, shortName]
+  }}
+/>
+                {/* <Legend /> */}
                 {getInteractionAreas()}
               </AreaChart>
             </ResponsiveContainer>
@@ -407,95 +411,219 @@ function Dashboard() {
       <div className="charts-row">
         {/* Expenses Chart - 50% Width */}
         <div className="chart-card half-width">
-          <div className="chart-header">
-            <h2>Expenses</h2>
-            <p className="chart-subtitle">Cost per OpenAI API key (USD)</p>
-          </div>
-          <div className="chart-container">
-            {stats?.expenses_chart?.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={stats.expenses_chart} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                  <XAxis 
-                    dataKey="date" 
-                    tickFormatter={formatDate}
-                    stroke="#666"
-                    style={{ fontSize: '11px' }}
-                  />
-                  <YAxis stroke="#666" style={{ fontSize: '12px' }} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#fff', 
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      padding: '10px'
-                    }}
-                    labelFormatter={(value) => `Date: ${formatDate(value)}`}
-                    formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Cost']}
-                  />
-                  <Legend />
-                  {getExpenseBars()}
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="no-data-message">
-                <p>No expense data available for this period</p>
-              </div>
-            )}
-          </div>
-        </div>
+  <div className="chart-header">
+    <h2>Expenses</h2>
+    <p className="chart-subtitle">Cost per User (USD)</p>
+  </div>
+
+  <div className="chart-container scroll-x">
+    {stats?.expenses_chart?.length > 0 ? (
+      <div className="chart-inner">
+        <ResponsiveContainer
+          width={Math.max(stats.expenses_chart.length * 90, 500)}
+          height={350}
+        >
+          <BarChart
+            data={stats.expenses_chart}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+
+            <XAxis
+              dataKey="date"
+              tickFormatter={formatDate}
+              stroke="#666"
+              style={{ fontSize: '11px' }}
+            />
+
+            <YAxis stroke="#666" style={{ fontSize: '12px' }} />
+
+            <Tooltip
+  contentStyle={{
+    backgroundColor: '#fff',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    padding: '10px'
+  }}
+  labelFormatter={(value) => `Date: ${formatDate(value)}`}
+  formatter={(value, name) => {
+    
+    const parts = name.split('-')
+    const shortName = parts[3] || name   
+
+    return [value, shortName]
+  }}
+/>
+
+            {/* <Legend /> */}
+            {getExpenseBars()}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    ) : (
+      <div className="no-data-message">
+        <p>No expense data available for this period</p>
+      </div>
+    )}
+  </div>
+</div>
 
         {/* Active Agents Chart - 50% Width */}
-        <div className="chart-card half-width">
-          <div className="chart-header">
-            <h2>Active Agents</h2>
-            <p className="chart-subtitle">Distribution of agents per OpenAI API key</p>
-          </div>
-          <div className="chart-container pie-chart-wrapper">
-            {stats?.agents_per_key?.length > 0 && totalAgents > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={350}>
-                  <PieChart>
-                    <Pie
-                      data={stats.agents_per_key}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
-                      innerRadius={60}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {stats.agents_per_key.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#fff', 
-                        border: '1px solid #ddd',
-                        borderRadius: '8px',
-                        padding: '10px'
-                      }}
-                      formatter={(value, name) => [value, 'Agents']}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="pie-chart-center">
-                  <div className="pie-chart-center-value">{totalAgents}</div>
-                  <div className="pie-chart-center-label">Total Agents</div>
+<div className="chart-card half-width">
+  <div className="chart-header">
+    <h2>Active Agents</h2>
+    <p className="chart-subtitle">Agents per User (Top 20)</p>
+  </div>
+  <div className="chart-container bar-chart-wrapper">
+    {stats?.agents_per_key?.length > 0 && totalAgents > 0 ? (
+      (() => {
+        const MAX_BARS = 20
+
+        const extractCustomName = (fullName) => {
+          if (!fullName || typeof fullName !== 'string') return 'Unknown'
+          if (!fullName.includes(' - ')) return fullName
+
+          const afterPrefix = fullName.split(' - ')[1]
+          const parts = afterPrefix.split('-')
+
+          if (parts.length >= 4) {
+            let custom = parts[2]
+            return custom.charAt(0).toUpperCase() + custom.slice(1)
+          }
+
+          for (let i = parts.length - 2; i >= 0; i--) {
+            if (isNaN(parts[i])) {
+              return parts[i].charAt(0).toUpperCase() + parts[i].slice(1)
+            }
+          }
+
+          return fullName
+        }
+
+        let userData = [...stats.agents_per_key]
+          .map((entry, index) => ({
+            ...entry,
+            color: entry.color || COLORS[index % COLORS.length],
+            customName: extractCustomName(entry.name),
+          }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, MAX_BARS)
+
+        const average = userData.reduce((sum, item) => sum + item.value, 0) / userData.length
+
+        const CustomTooltip = ({ active, payload, label }) => {
+          if (active && payload && payload.length) {
+            const data = payload[0].payload
+            const value = payload[0].value
+            const percentage = ((value / totalAgents) * 100).toFixed(1)
+
+            return (
+              <div className="custom-recharts-tooltip">
+                <div className="tooltip-header">
+                  <div className="tooltip-short-name">{data.customName}</div>
                 </div>
-              </>
-            ) : (
-              <div className="no-data-message">
-                <p>No agents configured yet</p>
-                <Link to="/agents" className="create-link">Create your first agent</Link>
+                <div className="tooltip-body">
+                  <div className="tooltip-line">
+                    <strong>{value}</strong> agents
+                  </div>
+                  <div className="tooltip-line">
+                    {percentage}% of total ({totalAgents} agents)
+                  </div>
+                </div>
+              </div>
+            )
+          }
+          return null
+        }
+
+        return (
+          <>
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart
+                data={userData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="customName"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  tick={{ fontSize: 11 }}
+                  interval={0}
+                />
+                <YAxis 
+                  label={{ 
+                    value: 'Number of Agents', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    offset: 10,
+                    style: { fontSize: 12 }
+                  }}
+                  tick={{ fontSize: 11 }}
+                />
+                <Tooltip 
+                  content={<CustomTooltip />}
+                  cursor={{ fill: 'rgba(102, 126, 234, 0.08)' }}
+                />
+                <ReferenceLine 
+                  y={average} 
+                  stroke="#ff6b6b" 
+                  strokeDasharray="3 3" 
+                  label={{ 
+                    value: `Avg: ${average.toFixed(1)}`, 
+                    position: 'right',
+                    fill: '#ff6b6b',
+                    fontSize: 11
+                  }}
+                />
+                <Bar 
+                  dataKey="value" 
+                  name="Agents"
+                  radius={[4, 4, 0, 0]}
+                >
+                  {userData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.color} 
+                      fillOpacity={0.8}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+
+            {/* <div className="chart-summary">
+              <div className="summary-item">
+                <span className="summary-label">Total Users:</span>
+                <span className="summary-value">{stats.agents_per_key.length}</span>
+              </div>
+              <div className="summary-item">
+                <span className="summary-label">Total Agents:</span>
+                <span className="summary-value">{totalAgents}</span>
+              </div>
+              <div className="summary-item">
+                <span className="summary-label">Avg per User:</span>
+                <span className="summary-value">{average.toFixed(1)}</span>
+              </div>
+            </div> */}
+
+            {stats.agents_per_key.length > MAX_BARS && (
+              <div className="chart-note">
+                Showing top {MAX_BARS} users out of {stats.agents_per_key.length}
               </div>
             )}
-          </div>
-        </div>
+          </>
+        )
+      })()
+    ) : (
+      <div className="no-data-message">
+        <p>No agents configured yet</p>
+        <Link to="/agents" className="create-link">Create your first agent</Link>
+      </div>
+    )}
+  </div>
+</div>
       </div>
 
       {/* Quick Actions */}
