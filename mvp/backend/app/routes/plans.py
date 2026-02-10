@@ -40,7 +40,7 @@ def list_plans(current_user: User = Depends(get_current_user),db: Session = Depe
     '''List of plans only active plans visible to normal users'''
 
     if current_user.role!= UserRole.SUPERADMIN:
-        query = db.query(Plans).filter(Plans.is_active).order_by(desc(Plans.created_at)) 
+        query = db.query(Plans).filter(Plans.is_active,Plans.is_trial.is_(False)).order_by(desc(Plans.created_at))
     else:
         query = db.query(Plans).order_by(desc(Plans.created_at))
 

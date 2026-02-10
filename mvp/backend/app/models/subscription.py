@@ -17,6 +17,7 @@ class PaymentStatus(str, enum.Enum):
 class SubscriptionMode(str, enum.Enum):
     PAID = "paid"
     TRIAL = "trial"
+    EXPIRED = "expired"
 
 class Subscription(Base):
     __tablename__ = "subscriptions"

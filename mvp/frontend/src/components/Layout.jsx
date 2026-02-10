@@ -22,12 +22,9 @@ function Layout() {
     logout()
     navigate('/login')
   }
-
  
   const isTrial =
-    user?.active_subscription?.subscription_mode === 'trial' &&
-    user?.active_subscription?.is_active === true
-
+    user?.subscription_mode=== 'trial' 
  
   const displayedBalance = isTrial ? 2.0 : user?.wallet_balance ?? 0
 
@@ -122,12 +119,11 @@ function Layout() {
 
             {dropdownOpen && (
               <div className="dropdown-menu">
-                <Link
-                  to={`/users/${user?.id}/profile-update`}
-                  onClick={() => setDropdownOpen(false)}
-                >
+                {user?.role != 'superadmin' && (
+                <Link to={`/users/${user?.id}/profile-update`}>
                   Edit Profile
                 </Link>
+                )}
 
                 {user?.role === 'superadmin' && (
                   <>

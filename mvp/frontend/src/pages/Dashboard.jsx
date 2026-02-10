@@ -758,7 +758,7 @@ function Dashboard() {
       )}
 
       {/* Low Balance Popup */}
-      {showLowBalancePopup && user && (
+      {showLowBalancePopup && user.subscription_mode!="trial" && (
         <div className="low-balance-overlay" onClick={() => setShowLowBalancePopup(false)}>
           <div className="low-balance-popup" onClick={(e) => e.stopPropagation()}>
             <div className="low-balance-header">

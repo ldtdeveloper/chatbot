@@ -20,6 +20,7 @@ from app.tasks.email_task import send_email_task
 from app.utils.get_or_create_payment_token import get_or_create_payment_token
 from app.services.service_account import create_service_account
 from app.utils.wallet import add_to_wallet,get_wallet_balance
+from app.utils.get_subscription_type import get_subscription_type
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -121,6 +122,9 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
             detail = "User not found"
         )
     
+    if not user.password_set :        
+        raise HTTPException(status_code = 409, detail = "PASSWORD_NOT_SET")
+    
     # Check if user is superadmin - exempt from subscription requirement
     is_superadmin = user.role == UserRole.SUPERADMIN
     
@@ -135,9 +139,7 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
         now = datetime.now(timezone.utc)
         if payment_details.end_date < now:
             raise HTTPException(status_code = status.HTTP_403_FORBIDDEN, detail = "Subscription Expired")
-    
-    if not user.password_set :        
-        raise HTTPException(status_code = 409, detail = "PASSWORD_NOT_SET")
+
     
     if not user.is_active:
         raise HTTPException(
@@ -180,26 +182,19 @@ async def get_current_user_info(
     db: Session = Depends(get_db)
 ):
     wallet_balance = get_wallet_balance(current_user.id, db) if current_user.role != UserRole.SUPERADMIN else None
+    subscription_type = None
+    if current_user.role != UserRole.SUPERADMIN:
+        wallet_balance = get_wallet_balance(current_user.id, db)
+        subscription_type = get_subscription_type(current_user.id,db)
 
-    # Get latest ACTIVE subscription
-    active_sub = db.query(Subscription).filter(
-        Subscription.user_id == current_user.id,
-        Subscription.is_active == True
-    ).order_by(Subscription.created_at.desc()).first()
-
-    active_subscription_data = None
-    if active_sub:
-        active_subscription_data = {
-            "id": active_sub.id,
-            "subscription_mode": active_sub.subscription_mode,
-            "is_active": active_sub.is_active,
-            "start_date": active_sub.start_date,
-            "end_date": active_sub.end_date,
-            "plan_name": active_sub.plans.name if active_sub.plans else None,
-            "plan_id": active_sub.plans.id if active_sub.plans else None
-        }
-
-    return {
+        if not subscription_type:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = "No subscription found"
+            )
+    
+    # Create response dict
+    user_dict = {
         "id": current_user.id,
         "email": current_user.email,
         "username": current_user.username,
@@ -207,9 +202,37 @@ async def get_current_user_info(
         "is_active": current_user.is_active,
         "created_at": current_user.created_at,
         "wallet_balance": wallet_balance,
-        "active_subscription": active_subscription_data
-        
+        "subscription_mode" : subscription_type
     }
+    
+    return user_dict
+
+    # # Get latest ACTIVE subscription
+    # active_sub = get_subscription_type(current_user.id,db=db)
+
+    # # active_subscription_data = None
+    # # if active_sub:
+    # #     active_subscription_data = {
+    # #         "id": active_sub.id,
+    # #         "subscription_mode": active_sub.subscription_mode,
+    # #         "is_active": active_sub.is_active,
+    # #         "start_date": active_sub.start_date,
+    # #         "end_date": active_sub.end_date,
+    # #         "plan_name": active_sub.plans.name if active_sub.plans else None,
+    # #         "plan_id": active_sub.plans.id if active_sub.plans else None
+    # #     }
+
+    # return {
+    #     "id": current_user.id,
+    #     "email": current_user.email,
+    #     "username": current_user.username,
+    #     "role": current_user.role.value,
+    #     "is_active": current_user.is_active,
+    #     "created_at": current_user.created_at,
+    #     "wallet_balance": wallet_balance,
+    #     "active_subscription": active_sub
+        
+    # }
 @router.post("/setup-password", response_model=Token)
 async def setup_password_endpoint(
     password_data: SetupPasswordRequest,

@@ -35,8 +35,8 @@ class UserResponse(BaseModel):
     role: str
     is_active: bool
     created_at: datetime
-    wallet_balance: Optional[float] = None
-    active_subscription: Optional[ActiveSubscription] = None
+    wallet_balance: Optional[float] = None  # Only for non-superadmin users
+    subscription_mode: Optional[str] = None
     
     class Config:
         from_attributes = True

@@ -2,12 +2,14 @@ import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { planService, paymentService } from '../services/services'
 import { useAuthStore } from '../context/authStore'
-import toast from 'react-hot-toast'
+import { showSuccess,showError } from '../utils/toast'
 import '../styles/PlansPopup.css'
+import { bootstrapAuth } from '../auth/bootstrapAuth'
 
 const PlansPopup = ({ isOpen, onClose }) => {
   const { user, updateUser } = useAuthStore()
   const [processingPlanId, setProcessingPlanId] = useState(null)
+  const { setAuth } = useAuthStore()
 
   const { data: plans = [], isLoading, error } = useQuery({
     queryKey: ['plans'],
@@ -16,13 +18,12 @@ const PlansPopup = ({ isOpen, onClose }) => {
   })
 
   const handleUpgrade = async (plan) => {
-    const isTrialUser = user?.active_subscription?.subscription_mode === 'trial'
+    const isTrialUser = user?.subscription_mode === 'trial'
 
     const createFn = isTrialUser ? paymentService.createTrialUpgradeOrder : paymentService.createOrder
     const verifyFn = isTrialUser ? paymentService.verifyTrialUpgrade : paymentService.verifyPayment
 
     setProcessingPlanId(plan.id)
-    const toastId = toast.loading(`Initiating upgrade to ${plan.name}...`)
 
     try {
       const orderPayload = {
@@ -51,11 +52,18 @@ const PlansPopup = ({ isOpen, onClose }) => {
 
           try {
             const verifyRes = await verifyFn(verifyPayload)
-            updateUser(verifyRes.updated_user || user)
-            toast.success(`Upgraded to ${plan.name} successfully! 🎉`, { id: toastId })
-            onClose()
+            console.log("We got the 200 of verify response")
+            console.log(verifyRes)
+            if(verifyRes){
+              setTimeout(() => {
+                onClose()
+                bootstrapAuth(setAuth)
+              }, 1000)
+              showSuccess(`Upgraded to ${plan.name} successfully`)
+              return
+            }
           } catch (err) {
-            toast.error('Verification failed. Contact support.', { id: toastId })
+            showError('Verification failed. Contact support.')
           }
         },
         prefill: {
@@ -65,7 +73,7 @@ const PlansPopup = ({ isOpen, onClose }) => {
         theme: { color: '#3b82f6' },
         modal: {
           ondismiss: () => {
-            toast.dismiss(toastId)
+            showError("")
             setProcessingPlanId(null)
           },
         },
@@ -79,7 +87,7 @@ const PlansPopup = ({ isOpen, onClose }) => {
       razorpay.open()
 
     } catch (err) {
-      toast.error('Payment initiation failed: ' + (err.response?.data?.detail || err.message), { id: toastId })
+      showError('Payment initiation failed: ' + (err.response?.data?.detail || err.message))
     } finally {
       setProcessingPlanId(null)
     }

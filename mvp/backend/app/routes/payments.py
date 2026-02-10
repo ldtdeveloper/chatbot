@@ -10,7 +10,9 @@ from app.models.plans import Plans
 from app.core.dependencies import get_current_user
 from datetime import datetime, timedelta, timezone
 from app.utils.wallet import add_to_wallet
+from app.utils.wallet import add_to_wallet
 from app.core.config import settings
+from app.models.wallet import Wallet
 from app.models.wallet import Wallet
 from app.services.service_account import create_service_account
 import hmac
@@ -414,7 +416,7 @@ async def verify_payment(
         # === ADD WALLET CREDITS (from plan.wallet_credits for non-superadmin users) ===
         if current_user.role != UserRole.SUPERADMIN:
             from app.utils.wallet import add_to_wallet
-            plan = db.query(Plans).filter(Plans.id == subscription.plan_id).first()
+            plan = db.query(Plans).filter(Plans.id == subscription.plan_type).first()
             if plan:
                 wallet_credits = plan.wallet_credits
                 wallet = add_to_wallet(current_user.id, wallet_credits, db)
@@ -705,7 +707,6 @@ async def create_trial_upgrade_order(
         Subscription.user_id == current_user.id,
         Subscription.subscription_mode == SubscriptionMode.TRIAL,
         Subscription.is_active == True,
-        Subscription.end_date > datetime.utcnow()
     ).order_by(Subscription.created_at.desc()).first()
 
     if not active_trial_sub:
@@ -784,6 +785,7 @@ async def create_trial_upgrade_order(
         db.delete(new_subscription)
         db.commit()
         raise HTTPException(500, f"Failed to create upgrade order: {str(e)}")
+    
 @router.post("/upgrade-from-trial/verify", response_model=PaymentVerifyResponse)
 async def verify_trial_upgrade(
     payment_data: VerifyPaymentRequest,
@@ -840,9 +842,6 @@ async def verify_trial_upgrade(
     if old_trial:
         old_trial.is_active = False
         old_trial.subscription_mode = SubscriptionMode.EXPIRED
-        # Optional: set end_date to now if it was None or future
-        if old_trial.end_date is None or old_trial.end_date > datetime.utcnow():
-            old_trial.end_date = datetime.utcnow()
         db.commit()
 
     #Reset wallet to 0 (remove trial credits)
