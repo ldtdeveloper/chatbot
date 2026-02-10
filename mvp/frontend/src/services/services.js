@@ -319,3 +319,18 @@ export const planService = {
       return  response.data
     }
 }
+export const paymentService = {
+
+  createOrder: async (data) => api.post('/api/payments/create-order', data).then(r => r.data),
+
+  verifyPayment: async (data) => api.post('/api/payments/verify', data).then(r => r.data),
+
+
+  createTrialUpgradeOrder: async (data) => api.post('/api/payments/upgrade-from-trial/create-order', data).then(r => r.data),
+
+  verifyTrialUpgrade: async (data) => api.post('/api/payments/upgrade-from-trial/verify', data).then(r => r.data),
+
+  // createTopUpOrder: async (data) => api.post('/api/payments/wallet-topup/create-order', data).then(r => r.data),
+
+  // verifyTopUp: async (data) => api.post('/api/payments/wallet-topup/verify', data).then(r => r.data),
+}

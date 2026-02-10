@@ -14,6 +14,10 @@ class PaymentStatus(str, enum.Enum):
     FAILED = "failed"
     REFUNDED = "refunded"
 
+class SubscriptionMode(str, enum.Enum):
+    PAID = "paid"
+    TRIAL = "trial"
+    EXPIRED = "expired"
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
@@ -23,7 +27,7 @@ class Subscription(Base):
     plan_type = Column(Integer, ForeignKey("plans.id"), nullable=False)
     amount = Column(Float, nullable=False)  # Amount in USD
     payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.PENDING)
-    
+    subscription_mode = Column(String, nullable = False, default = "paid")
     # Razorpay details
     razorpay_order_id = Column(String, nullable=True, index=True)
     razorpay_payment_id = Column(String, nullable=True)

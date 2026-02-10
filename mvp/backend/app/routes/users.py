@@ -229,7 +229,7 @@ async def get_user_profile(
             "role": user.role.value,
             "is_active": user.is_active,
             "created_at": user.created_at,
-            "wallet_balance": wallet_balance
+            "wallet_balance": wallet_balance,
         },
         "agents": [{"id": a.id, "name": a.name, "description": getattr(a, "description", "")} for a in agents],
         "assistants": [{"id": a.id, "name": a.name, "voice": a.voice, "created_at": a.created_at} for a in assistants],

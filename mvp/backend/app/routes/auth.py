@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import case
 from app.core.database import get_db
 from app.models.user import User, UserRole
-from app.models.payment_token import PaymentToken
+from app.models.payment_token import PaymentToken,PaymentPurpose
 from app.models.plans import Plans
-from app.models.subscription import Subscription, PaymentStatus
+from app.models.subscription import Subscription, PaymentStatus, SubscriptionMode
 from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail, AddToWalletRequest
 from app.schemas.user import UserCreate,UserRegisterRequest,UserResponse
 from app.utils.auth import verify_password, get_password_hash, create_access_token,decode_access_token
@@ -18,6 +18,9 @@ from datetime import timedelta, datetime, timezone
 from app.core.config import settings
 from app.tasks.email_task import send_email_task
 from app.utils.get_or_create_payment_token import get_or_create_payment_token
+from app.services.service_account import create_service_account
+from app.utils.wallet import add_to_wallet,get_wallet_balance
+from app.utils.get_subscription_type import get_subscription_type
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -53,37 +56,59 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
         password_set=False
     )
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
+    db.flush()  
+
     # Generate payment token
     payment_token = PaymentToken.generate_token()
     expires_at = datetime.now(timezone.utc) + timedelta(days=3)  # Token valid for 3 days
     
+    if plan.is_trial:
+        # Create subscription for trial user
+        subscription = Subscription(
+            user_id = db_user.id,
+            plan_type = plan.id,
+            amount = plan.price,
+            subscription_mode = SubscriptionMode.TRIAL,
+            is_active = False,
+            payment_status = PaymentStatus.SUCCESS
+        )
+        db.add(subscription)
+
+        # Setup password link
+        setup_password_link = f"{settings.frontend_base_url}/password?token={payment_token}&mode=setup"
+        email_html = generate_email_html_setup_password(db_user, setup_password_link=setup_password_link)
+        subject = "Complete Your VoiceAI Registration - Free Trial"
+        payment_purpose = PaymentPurpose.TRIAL
+    else:
+        # Generate payment link
+        payment_link = f"{settings.api_base_url}/payment/{payment_token}"
+
+        email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = plan.price)
+        subject = f"Complete Your VoiceAI Registration - {plan.name.upper()} Plan"
+        payment_purpose = PaymentPurpose.PAID
+
     db_token = PaymentToken(
-        user_id=db_user.id,
-        token=payment_token,
-        plan_id=plan.id,
-        amount=plan.price,
-        expires_at=expires_at
+    user_id=db_user.id,
+    token=payment_token,
+    plan_id=plan.id,
+    amount=plan.price,
+    expires_at=expires_at,
+    token_purpose = payment_purpose
     )
+
     db.add(db_token)
     db.commit()
-    
-    # Generate payment link
-    payment_link = f"{settings.api_base_url}/payment/{payment_token}"
-
-    email_html = generate_email_html(db_user,payment_link=payment_link,plan=plan,amount = plan.price)
     try:
-        send_email_task.delay(register_data.email,f"Complete Your VoiceAI Registration - {plan.name.upper()} Plan",email_html)
+        send_email_task.delay(register_data.email,subject,email_html)
     except Exception as e:
         print(f"[Register] Failed to send email: {e}")
         # Don't fail registration if email fails, but log it
     
     return {
-        "message": "Registration successful. Please check your email for the payment link.",
+        "message": "Registration successful. Please check your email",
         "user_id": db_user.id,
-        "email_sent": True
+        "email_sent": True,
+        "is_trial" : plan.is_trial
     }
 
 
@@ -91,12 +116,14 @@ async def register_with_plan(register_data: UserRegisterRequest, db: Session = D
 async def login(user_data: UserLogin, db: Session = Depends(get_db)):
     """Login and get access token"""
     user = db.query(User).filter(User.email == user_data.email).first()
-    print(user)
     if not user:
         raise HTTPException(
             status_code = status.HTTP_404_NOT_FOUND,
             detail = "User not found"
         )
+    
+    if not user.password_set :        
+        raise HTTPException(status_code = 409, detail = "PASSWORD_NOT_SET")
     
     # Check if user is superadmin - exempt from subscription requirement
     is_superadmin = user.role == UserRole.SUPERADMIN
@@ -112,9 +139,7 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
         now = datetime.now(timezone.utc)
         if payment_details.end_date < now:
             raise HTTPException(status_code = status.HTTP_403_FORBIDDEN, detail = "Subscription Expired")
-    
-    if not user.password_set :        
-        raise HTTPException(status_code = 409, detail = "PASSWORD_NOT_SET")
+
     
     if not user.is_active:
         raise HTTPException(
@@ -156,13 +181,17 @@ async def get_current_user_info(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get current user information"""
-    from app.utils.wallet import get_wallet_balance
-    
-    # Add wallet balance for non-superadmin users
-    wallet_balance = None
+    wallet_balance = get_wallet_balance(current_user.id, db) if current_user.role != UserRole.SUPERADMIN else None
+    subscription_type = None
     if current_user.role != UserRole.SUPERADMIN:
         wallet_balance = get_wallet_balance(current_user.id, db)
+        subscription_type = get_subscription_type(current_user.id,db)
+
+        if not subscription_type:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = "No subscription found"
+            )
     
     # Create response dict
     user_dict = {
@@ -172,11 +201,38 @@ async def get_current_user_info(
         "role": current_user.role.value,
         "is_active": current_user.is_active,
         "created_at": current_user.created_at,
-        "wallet_balance": wallet_balance
+        "wallet_balance": wallet_balance,
+        "subscription_mode" : subscription_type
     }
     
     return user_dict
 
+    # # Get latest ACTIVE subscription
+    # active_sub = get_subscription_type(current_user.id,db=db)
+
+    # # active_subscription_data = None
+    # # if active_sub:
+    # #     active_subscription_data = {
+    # #         "id": active_sub.id,
+    # #         "subscription_mode": active_sub.subscription_mode,
+    # #         "is_active": active_sub.is_active,
+    # #         "start_date": active_sub.start_date,
+    # #         "end_date": active_sub.end_date,
+    # #         "plan_name": active_sub.plans.name if active_sub.plans else None,
+    # #         "plan_id": active_sub.plans.id if active_sub.plans else None
+    # #     }
+
+    # return {
+    #     "id": current_user.id,
+    #     "email": current_user.email,
+    #     "username": current_user.username,
+    #     "role": current_user.role.value,
+    #     "is_active": current_user.is_active,
+    #     "created_at": current_user.created_at,
+    #     "wallet_balance": wallet_balance,
+    #     "active_subscription": active_sub
+        
+    # }
 @router.post("/setup-password", response_model=Token)
 async def setup_password_endpoint(
     password_data: SetupPasswordRequest,
@@ -198,6 +254,14 @@ async def setup_password_endpoint(
             detail="Invalid or expired payment token"
         )
     
+    plan = db.query(Plans).filter(Plans.id== db_token.plan_id).first()
+
+    if not plan:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "Invalid plan"
+        )
+    
     # Get user
     user = db.query(User).filter(User.id == db_token.user_id).first()
     if not user:
@@ -206,18 +270,19 @@ async def setup_password_endpoint(
             detail="User not found"
         )
     
-    # Verify payment was successful
-    subscription = db.query(Subscription).filter(
-        Subscription.user_id == user.id,
-        Subscription.payment_status == PaymentStatus.SUCCESS,
-        Subscription.plan_type == db_token.plan_id
-    ).first()
-    
-    if not subscription:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment not completed. Please complete payment first."
-        )
+    if db_token.token_purpose!=PaymentPurpose.TRIAL:
+        # Verify payment was successful
+        subscription = db.query(Subscription).filter(
+            Subscription.user_id == user.id,
+            Subscription.payment_status == PaymentStatus.SUCCESS,
+            Subscription.plan_type == db_token.plan_id
+        ).first()
+        
+        if not subscription:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Payment not completed. Please complete payment first."
+            )
     
     # Check if password already set
     if user.password_set:
@@ -234,9 +299,18 @@ async def setup_password_endpoint(
     # Mark payment token as used
     db_token.is_used = True
     db_token.used_at = datetime.now(timezone.utc)
-    
+
+    if db_token.token_purpose == PaymentPurpose.TRIAL:
+        result = create_service_account(name_prefix=f"voiceai-{user.id}",user=user,db=db)
+        wallet = add_to_wallet(user.id,plan.wallet_credits,db)
+        subscription = db.query(Subscription).filter(Subscription.user_id == user.id, Subscription.subscription_mode== SubscriptionMode.TRIAL,Subscription.is_active== False).first()
+        if not subscription:
+            raise HTTPException(status_code = 400, detail = "subscription already exist")
+        subscription.is_active = True
+        subscription.start_date = datetime.now(timezone.utc)
+        subscription.end_date = datetime.now(timezone.utc) + timedelta(days=14)
+
     db.commit()
-    db.refresh(user)
     
     # Generate access token for auto-login
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
