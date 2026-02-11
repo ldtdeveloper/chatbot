@@ -1,6 +1,7 @@
 import React, { useRef } from 'react'
 import AgentCard from './AgentCard'
 import AddAgentForm from './AddAgentForm'
+import { useAuthStore } from '../context/authStore'
 
 function WebAgentsSection({ 
   showAddForm,
@@ -25,6 +26,8 @@ function WebAgentsSection({
   handleChange
 }) {
   const cardsContainerRef = useRef(null)
+  const {user} = useAuthStore()
+  const hasAgent = user.subscription_mode == 'trial' && agents && agents.length >= 1;
   const handleCancel = () =>{
     setShowAddForm(false)
   }
@@ -48,8 +51,13 @@ function WebAgentsSection({
     <div id="web-agents-section" className="web-agents-container">
       <div className="page-header">
         <h2>Web Agents</h2>
-        <div className="header-actions">
-          <button onClick={() => {
+        {<div className="header-actions">
+          <button 
+          disabled={hasAgent}
+          onClick={() => {
+            if(hasAgent){
+              return 
+            }
             if (showAddForm) {
               handleCancelEdit()
             } else {
@@ -58,7 +66,7 @@ function WebAgentsSection({
           }}>
             {showAddForm ? 'Cancel' : '+ Create Web Agent'}
           </button>
-        </div>
+        </div>}
       </div>
 
       <div className="agents-list" ref={cardsContainerRef}>

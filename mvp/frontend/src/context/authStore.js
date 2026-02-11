@@ -21,9 +21,7 @@ export const useAuthStore = create((set, get) => ({
   setAuth: (token, user) => {
     if (token) {
       localStorage.setItem('token', token)
-      console.log("token set ")
     }
-    console.log(`No token ${token}`)
     if (user) {
       localStorage.setItem('user', JSON.stringify(user))
       set({ token, user })

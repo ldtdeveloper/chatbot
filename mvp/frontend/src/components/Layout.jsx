@@ -1,4 +1,3 @@
-// src/components/Layout.jsx
 import React, { useState, useRef, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../context/authStore'
@@ -26,7 +25,7 @@ function Layout() {
   const isTrial =
     user?.subscription_mode=== 'trial' 
  
-  const displayedBalance = isTrial ? 2.0 : user?.wallet_balance ?? 0
+  const displayedBalance=user?.wallet_balance
 
   useEffect(() => {
     const handleClickOutside = (e) => {

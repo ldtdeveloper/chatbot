@@ -25,7 +25,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('auth-storage')
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      // window.location.href = '/login'
     }
     // Handle payment required (402) - don't redirect, let components handle it
     if (error.response?.status === 402) {
