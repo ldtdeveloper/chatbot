@@ -833,25 +833,26 @@
     </footer>
 
     <!-- Voice Assistant Widget: Friday -->
-    <script>
-      (function() {
-          // API base URL for widget backend connection
-          let apiBaseUrl = 'http://localhost:8081';
-          
-          // Create and load widget script-
-          const script = document.createElement('script');
-          script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
-          script.setAttribute('data-agent-id', '2');
-          script.setAttribute('data-api-url', apiBaseUrl);
-          script.setAttribute('data-agent-name', 'Friday');
-          script.async = true;
-          
-          document.head.appendChild(script);
-      })();
-      </script>
+    <!-- Voice Assistant Widget: spenser -->
+<!-- Voice Assistant Widget: demo -->
+<script>
+(function() {
+    // API base URL for widget backend connection
+    let apiBaseUrl = 'http://localhost:8081';
+    
+    // Create and load widget script-
+    const script = document.createElement('script');
+    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
+    script.setAttribute('data-agent-id', '11');
+    script.setAttribute('data-api-url', apiBaseUrl);
+    script.setAttribute('data-agent-name', 'demo');
+    script.async = true;
+    
+    document.head.appendChild(script);
+})();
+</script>
 
     <script>
-      u;
       // Smooth scrolling for navigation links
       document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
         anchor.addEventListener("click", function (e) {
