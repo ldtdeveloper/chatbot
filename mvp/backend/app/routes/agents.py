@@ -13,6 +13,7 @@ from app.schemas.agents import (
 )
 
 from app.core.dependencies import get_current_user
+from app.utils.get_subscription_type import get_subscription_type
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 
@@ -28,6 +29,18 @@ async def create_agent(
     logger = logging.getLogger(__name__)
     
     logger.info(f"Creating agent for user {current_user.id} with data: {agent_data}")
+    subscription_type = get_subscription_type(current_user.id,db)
+
+    if not subscription_type:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "No subscription found"
+        )
+    
+    if subscription_type == 'trial':
+        agent_count = db.query(Agent).filter(Agent.user_id==current_user.id).first()
+        if agent_count:
+            raise HTTPException(status_code = status.HTTP_403_UNAUTHORIZED, detail = "Agent creation restricted")
     
     # Validate API key - System uses ServiceAccountKey (not OpenAIKey)
     # Note: Agent model has FK to openai_keys, but we're using ServiceAccountKey IDs

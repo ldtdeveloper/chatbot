@@ -207,32 +207,6 @@ async def get_current_user_info(
     
     return user_dict
 
-    # # Get latest ACTIVE subscription
-    # active_sub = get_subscription_type(current_user.id,db=db)
-
-    # # active_subscription_data = None
-    # # if active_sub:
-    # #     active_subscription_data = {
-    # #         "id": active_sub.id,
-    # #         "subscription_mode": active_sub.subscription_mode,
-    # #         "is_active": active_sub.is_active,
-    # #         "start_date": active_sub.start_date,
-    # #         "end_date": active_sub.end_date,
-    # #         "plan_name": active_sub.plans.name if active_sub.plans else None,
-    # #         "plan_id": active_sub.plans.id if active_sub.plans else None
-    # #     }
-
-    # return {
-    #     "id": current_user.id,
-    #     "email": current_user.email,
-    #     "username": current_user.username,
-    #     "role": current_user.role.value,
-    #     "is_active": current_user.is_active,
-    #     "created_at": current_user.created_at,
-    #     "wallet_balance": wallet_balance,
-    #     "active_subscription": active_sub
-        
-    # }
 @router.post("/setup-password", response_model=Token)
 async def setup_password_endpoint(
     password_data: SetupPasswordRequest,

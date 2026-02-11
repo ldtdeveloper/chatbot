@@ -205,12 +205,12 @@ function renderPlans(plans) {
                 <h3 class="text-2xl font-bold mb-2 text-gray-800">${plan.name}</h3>
                 <p class="text-gray-500 mb-4">${plan.description || 'Choose this plan'}</p>
                 <div class="${isTrial ? 'text-base font-semibold text-gray-800 mb-1' : 'text-5xl font-extrabold gradient-text'}">
-                    ${isTrial ? '14-Day Free Trial' : `$${plan.price}`}
+                    ${isTrial ? 'Free Trial' : `$${plan.price}`}
                     ${!isCustomPrice && !isTrial ? '<span class="text-lg font-normal text-gray-400">/month</span>' : ''}
                 </div>
                 ${plan.wallet_credits ? `
                     <div class="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-purple-50 text-xs font-medium text-purple-700">
-                        Free $${plan.wallet_credits} Credits
+                        ${isTrial ? `Free $${plan.wallet_credits} Credits/14 days` : `Free $${plan.wallet_credits} Credits`}
                     </div>
                 ` : ''}
             </div>
@@ -228,7 +228,7 @@ function renderPlans(plans) {
             ${plan.is_trial ? 
             `<div class="mt-auto">
             <button onclick="selectPlanById(${plan.id})" class="w-full btn-gradient py-3.5 rounded-full text-white font-semibold" data-plan-id="${plan.id}">
-                Start 14-day free trial
+                Start 14 day free trial
             </button>
             </div> `: 
             `<div class="mt-auto">
