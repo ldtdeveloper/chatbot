@@ -199,8 +199,8 @@ async def get_current_user_info(
         "created_at": current_user.created_at,
         "wallet_balance": wallet_balance,
         "remaining_minutes":remaining_minutes,
-        "subscription_mode" : subscription_type.subscription_mode,
-        "allowed_agents" : subscription_type.plans.number_of_agents
+        "subscription_mode" : subscription_type.subscription_mode if subscription_type else None,
+        "allowed_agents" : subscription_type.plans.number_of_agents if subscription_type else None
     }
     
     return user_dict
