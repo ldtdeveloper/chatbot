@@ -35,11 +35,11 @@ class Plans(Base):
     
     # Wallet credits user gets when purchasing this plan
     wallet_credits = Column(Integer, nullable = False, default=0)
-    
+    minutes = Column(Integer, nullable = False)
     # Plan type: monthly or yearly
     plan_type = Column(String, nullable = False, default="monthly")  # monthly, yearly
     is_trial = Column(Boolean, default = False)
-
+    number_of_agents = Column(Integer, nullable = False,default = 1)
     # Price of plan
     price = Column(Float, nullable = False)
     
