@@ -38,7 +38,7 @@ async def create_agent(
             detail = "No subscription found"
         )
     agent_count = db.query(Agent).filter(Agent.user_id==current_user.id).first()
-    if subscription_type == 'trial':
+    if subscription_type.subscription_mode == 'trial':
         if agent_count:
             raise HTTPException(status_code = status.HTTP_403_UNAUTHORIZED, detail = "Agent creation restricted")
     else:

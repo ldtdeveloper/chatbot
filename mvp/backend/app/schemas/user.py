@@ -38,6 +38,7 @@ class UserResponse(BaseModel):
     wallet_balance: Optional[float] = None  # Only for non-superadmin users
     remaining_minutes: int 
     subscription_mode: Optional[str] = None
+    allowed_agents : int
     
     class Config:
         from_attributes = True

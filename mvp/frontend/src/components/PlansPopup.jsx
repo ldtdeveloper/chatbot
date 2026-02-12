@@ -143,7 +143,7 @@ const PlansPopup = ({ isOpen, onClose }) => {
                 <span className="period">/month</span>
               </div>
 
-              <p className="credits">{plan.credits} credits included</p>
+              <p className="credits">{plan.minutes} min included</p>
 
               <ul className="features">
                 {plan.features?.length ? (

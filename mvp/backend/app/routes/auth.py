@@ -173,11 +173,12 @@ async def get_current_user_info(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    wallet_balance = get_wallet_balance(current_user.id, db) if current_user.role != UserRole.SUPERADMIN else None
+    # wallet_balance = get_wallet_balance(current_user.id, db) if current_user.role != UserRole.SUPERADMIN else None
     subscription_type = None
     remaining_minutes = 0
+    wallet_balance = 0
     if current_user.role != UserRole.SUPERADMIN:
-        wallet_balance = get_wallet_balance(current_user.id, db)
+        # wallet_balance = get_wallet_balance(current_user.id, db)
         usage = db.query(UserMinuteBalance).filter_by(user_id=current_user.id).first()
         remaining_minutes = int(usage.remaining_seconds/60) if usage else 0
         subscription_type = get_subscription_type(current_user.id,db)
@@ -198,7 +199,8 @@ async def get_current_user_info(
         "created_at": current_user.created_at,
         "wallet_balance": wallet_balance,
         "remaining_minutes":remaining_minutes,
-        "subscription_mode" : subscription_type
+        "subscription_mode" : subscription_type.subscription_mode,
+        "allowed_agents" : subscription_type.plans.number_of_agents
     }
     
     return user_dict

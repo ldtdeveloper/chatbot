@@ -66,10 +66,9 @@ tailwind.config = {
 }
 
 // API Base URL
-// const API_BASE = 'https://api.voicequik.com';
-// const APP_BASE_URL = 'https://app.voicequik.com'
-const API_BASE = 'http://localhost:8081';
-const APP_BASE_URL = 'http://localhost:3000'
+const API_BASE = 'https://api.voicequik.com';
+const APP_BASE_URL = 'https://app.voicequik.com'
+
 // Selected plan tracking - stores the full plan object
 let selectedPlan = null;
 // Store all plans globally for lookup

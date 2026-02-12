@@ -13,7 +13,7 @@ def get_subscription_type(user, db: Session):
         Subscription.is_active   
         ).first()
     
-    return subscription.subscription_mode
+    return subscription
 
     
         
