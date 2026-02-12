@@ -837,14 +837,14 @@ async def verify_trial_upgrade(
         db.commit()
 
     # Reset User's remaining minutes to 0 (remove trial minutes)
-    usage_seconds = db.query().filter(UserMinuteBalance.user_id == current_user.id).first()
+    usage_seconds = db.query(UserMinuteBalance).filter(UserMinuteBalance.user_id == current_user.id).first()
     if usage_seconds:
         usage_seconds.remaining_seconds = 0
 
     #Add new plan minutes
     plan = db.query(Plans).filter(Plans.id == pending_sub.plan_type).first()
     if plan and plan.minutes > 0 and current_user.role != UserRole.SUPERADMIN:
-        users_usage_seconds = int(plan.minutes/60)
+        users_usage_seconds = int(plan.minutes*60)
         new_seconds= add_to_usage_balance(current_user.id, users_usage_seconds, db)
         print(f"[TRIAL UPGRADE] Added {plan.minutes} minutes. New User's Minutes Usage : {new_seconds.total_seconds} sec")
 
@@ -861,6 +861,5 @@ async def verify_trial_upgrade(
             "username": current_user.username,
             "role": current_user.role.value,
             "is_active": current_user.is_active,
-            "users_usage_sec": usage_seconds.remaining_seconds if usage_seconds else 0
         }
     }

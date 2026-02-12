@@ -48,8 +48,9 @@ def add_to_usage_balance(
 
     usage = get_or_create_usage_minutes(user_id,seconds= seconds,db= db)
 
-    usage.total_seconds = seconds
+    usage.total_seconds += seconds
     usage.remaining_seconds = seconds
+    usage.used_seconds = 0
 
     db.commit()
     db.refresh(usage)
