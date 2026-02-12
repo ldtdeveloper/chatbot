@@ -8,12 +8,13 @@ from app.models.integration_config import IntegrationConfig
 from app.models.report import UserReportPreference, ReportJob, ReportFrequency, JobStatus
 from app.models.subscription import Subscription, PaymentStatus
 from app.models.payment_token import PaymentToken
+from app.models.usage import UserMinuteBalance
 from app.models.plans import Plans
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction, TransactionStatus
 __all__ = [
     "User", "UserRole", "OpenAIKey", "Agent", "AssistantConfig", "Interaction",
     "IntegrationConfig", "UserReportPreference", "ReportJob", "ReportFrequency", "JobStatus",
-    "Subscription", "PaymentStatus", "PaymentToken", "Plans", "Wallet", "WalletTransaction", "TransactionStatus"
+    "Subscription", "PaymentStatus", "PaymentToken", "Plans", "Wallet", "WalletTransaction", "TransactionStatus",UserMinuteBalance
 ]
 

@@ -24,12 +24,12 @@ def create_plans(
         name = request.name,
         description = request.description,
         currency = request.currency,
-        wallet_credits = request.wallet_credits,
+        # wallet_credits = request.wallet_credits,
         plan_type = request.plan_type,
+        minutes=request.minutes,
         price = request.price,
         features = request.features,
         number_of_agents = request.number_of_agents,
-        minutes = request.minutes
     )
     db.add(plans)
     db.commit()

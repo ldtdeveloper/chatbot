@@ -47,6 +47,7 @@ export default function Plans() {
         queryKey: ['plans'],
         queryFn: planService.listPlan,
       })
+      console.log(plans)
       const handleViewPlan = (plan) => {
             console.log(`View plan clicked ${plan}`)
             setSelectedPlan(plan);

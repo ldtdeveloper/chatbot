@@ -311,8 +311,10 @@ export const planService = {
 
     listPlan : async () => {
       const response = await api.get('/api/plans')
+     
       return response.data
     },
+    
 
     deletePlan: async (id) => {
       const response = await api.delete(`/api/plans/${id}`)

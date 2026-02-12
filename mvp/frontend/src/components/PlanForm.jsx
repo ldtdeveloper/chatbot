@@ -9,9 +9,10 @@ export default function PlanForm({ initialData, onSubmit, onBack }) {
     name: data.name || "",
     description: data.description || "",
     currency: data.currency || "USD",
-    wallet_credits: data.wallet_credits || data.credits || 0, // Support old 'credits' field for backward compatibility
+    // wallet_credits: data.wallet_credits || data.credits || 0, // Support old 'credits' field for backward compatibility
     plan_type: data.plan_type || "monthly",
     price: data.price || 0,
+    minutes:data.minutes||0,
     features: Array.isArray(data.features) ? data.features : [],
     is_active: data.is_active ?? true,
   });
@@ -43,9 +44,10 @@ export default function PlanForm({ initialData, onSubmit, onBack }) {
       name: currentData.name || "",
       description: currentData.description || "",
       currency: currentData.currency || "USD",
-      wallet_credits: currentData.wallet_credits || currentData.credits || 0,
+      // wallet_credits: currentData.wallet_credits || currentData.credits || 0,
       plan_type: currentData.plan_type || "monthly",
       price: currentData.price || 0,
+      minutes:currentData.minutes||0,
       features: Array.isArray(currentData.features) ? currentData.features : [],
       is_active: currentData.is_active ?? true,
     });
@@ -90,13 +92,15 @@ export default function PlanForm({ initialData, onSubmit, onBack }) {
 
     const submitData = {
       ...formData,
-      wallet_credits: Number(formData.wallet_credits),
+      // wallet_credits: Number(formData.wallet_credits),
       price: Number(formData.price),
+      minutes:Number(formData.minutes),
       features: formData.features,
     };
     
     // Remove old 'credits' field if it exists
-    delete submitData.credits;
+    // delete submitData.credits;
+    // delete submitData.minutes
     delete submitData.code; // Remove code field if it exists
     
     // If editing, include the id
@@ -165,7 +169,7 @@ export default function PlanForm({ initialData, onSubmit, onBack }) {
             </select>
           </label>
 
-          <label>
+          {/* <label> 
             Wallet Credits
             <input
               type="number"
@@ -177,6 +181,20 @@ export default function PlanForm({ initialData, onSubmit, onBack }) {
               min={0}
               required
               placeholder="Credits user gets when purchasing this plan"
+            />
+          </label>*/}
+           <label> 
+            Total Minutes
+            <input
+              type="number"
+              name="minutes"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={formData.minutes}
+              onChange={handleChange}
+              min={0}
+              required
+              placeholder="Minutes User Get on this plan"
             />
           </label>
 

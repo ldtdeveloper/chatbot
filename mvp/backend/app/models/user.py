@@ -37,5 +37,5 @@ class User(Base):
     payment_tokens = relationship("PaymentToken", back_populates="user", cascade="all, delete-orphan")
     wallet = relationship("Wallet", back_populates="user", uselist=False, cascade="all, delete-orphan")
     wallet_transactions = relationship("WalletTransaction", back_populates="user", cascade="all, delete-orphan")
-    user_min_balance = relationship("user_min_balance",back_populates= "user",cascade = "all, delete-orphan")
+    user_min_balance = relationship("UserMinuteBalance",back_populates= "user",cascade = "all, delete-orphan")
 

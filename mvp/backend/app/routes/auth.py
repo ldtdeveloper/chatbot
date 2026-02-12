@@ -9,6 +9,7 @@ from app.models.user import User, UserRole
 from app.models.payment_token import PaymentToken,PaymentPurpose
 from app.models.plans import Plans
 from app.models.subscription import Subscription, PaymentStatus, SubscriptionMode
+from app.models.usage import UserMinuteBalance
 from app.schemas.auth import  UserLogin, Token, SetupPasswordRequest, ChangePassword,ResetPassword, ForgetPasswordRequest,PreFetchDetails,ChangeEmail, AddToWalletRequest
 from app.schemas.user import UserCreate,UserRegisterRequest,UserResponse
 from app.utils.auth import verify_password, get_password_hash, create_access_token,decode_access_token
@@ -18,6 +19,7 @@ from datetime import timedelta, datetime, timezone
 from app.core.config import settings
 from app.tasks.email_task import send_email_task
 from app.utils.get_or_create_payment_token import get_or_create_payment_token
+from app.utils.usage_balance import add_to_usage_balance,get_or_create_usage_minutes,deduct_from_usage_balance
 from app.services.service_account import create_service_account
 from app.utils.wallet import add_to_wallet,get_wallet_balance
 from app.utils.get_subscription_type import get_subscription_type
@@ -160,20 +162,22 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
     )
     
     # Check wallet balance for low balance warning (only for non-superadmin users)
-    from app.utils.wallet import get_wallet_balance
+    from app.utils.usage_balance import get_remaining_minutes
     low_balance = False
-    wallet_balance = None
+    minutes_balance = None
     if not is_superadmin:
-        wallet_balance = get_wallet_balance(user.id, db)
-        if wallet_balance <= 2.0:
+        minutes_balance = get_remaining_minutes(user.id, db)
+        if minutes_balance <= 0.0:
             low_balance = True
     
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "low_balance": low_balance,
-        "wallet_balance": wallet_balance
+        # "wallet_balance": wallet_balance
+        "minutes_balance":low_balance
     }
+    
 
 
 @router.get("/me", response_model=UserResponse)
@@ -182,9 +186,13 @@ async def get_current_user_info(
     db: Session = Depends(get_db)
 ):
     wallet_balance = get_wallet_balance(current_user.id, db) if current_user.role != UserRole.SUPERADMIN else None
+    # minutes_balance=get_or_create_usage_minutes(current_user.id,db) if current_user.role!=UserRole.SUPERADMIN else None
     subscription_type = None
+    remaining_minutes = 0
     if current_user.role != UserRole.SUPERADMIN:
         wallet_balance = get_wallet_balance(current_user.id, db)
+        usage = db.query(UserMinuteBalance).filter_by(user_id=current_user.id).first()
+        remaining_minutes = usage.remaining_minutes if usage else 0
         subscription_type = get_subscription_type(current_user.id,db)
 
         if not subscription_type:
@@ -202,6 +210,7 @@ async def get_current_user_info(
         "is_active": current_user.is_active,
         "created_at": current_user.created_at,
         "wallet_balance": wallet_balance,
+        "remaining_minutes":remaining_minutes,
         "subscription_mode" : subscription_type
     }
     
@@ -277,6 +286,11 @@ async def setup_password_endpoint(
     if db_token.token_purpose == PaymentPurpose.TRIAL:
         result = create_service_account(name_prefix=f"voiceai-{user.id}",user=user,db=db)
         wallet = add_to_wallet(user.id,plan.wallet_credits,db)
+        usage = get_or_create_usage_minutes(
+    user_id = user.id,
+    db      = db,
+    minutes = plan.minutes
+)
         subscription = db.query(Subscription).filter(Subscription.user_id == user.id, Subscription.subscription_mode== SubscriptionMode.TRIAL,Subscription.is_active== False).first()
         if not subscription:
             raise HTTPException(status_code = 400, detail = "subscription already exist")
