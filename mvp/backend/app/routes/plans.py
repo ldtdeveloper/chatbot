@@ -28,6 +28,8 @@ def create_plans(
         plan_type = request.plan_type,
         price = request.price,
         features = request.features,
+        number_of_agents = request.number_of_agents,
+        minutes = request.minutes
     )
     db.add(plans)
     db.commit()

@@ -14,6 +14,8 @@ class PlanCreate(BaseModel):
     price: float
     features: List[str]
     is_trial: Optional[bool] = None
+    minutes : int 
+    number_of_agents: int
 
 class PlanUpdate(BaseModel):
     name: Optional[str] = None
@@ -24,6 +26,8 @@ class PlanUpdate(BaseModel):
     is_active: Optional[bool] = None
     price: Optional[float] = None
     features: Optional[List[str]] = None
+    minutes : Optional[int] = None
+    number_of_agents : Optional[int] = None
 
 class PlanResponse(BaseModel):
     id: int
@@ -38,6 +42,8 @@ class PlanResponse(BaseModel):
     updated_at: Optional[datetime]
     features: List[str]
     is_trial: bool
+    number_of_agents : int
+    minutes : int
     
     class Config:
         from_attributes = True

@@ -9,11 +9,9 @@ from app.models.subscription import Subscription, PaymentStatus,SubscriptionMode
 from app.models.plans import Plans
 from app.core.dependencies import get_current_user
 from datetime import datetime, timedelta, timezone
-from app.utils.wallet import add_to_wallet
-from app.utils.wallet import add_to_wallet
+from app.utils.usage_balance import add_to_usage_balance
+from app.models.usage import UserMinuteBalance
 from app.core.config import settings
-from app.models.wallet import Wallet
-from app.models.wallet import Wallet
 from app.services.service_account import create_service_account
 import hmac
 import hashlib
@@ -320,14 +318,13 @@ async def verify_payment_from_token(
         subscription.end_date = datetime.now(timezone.utc) + timedelta(days=30)
         db.commit()
         
-        # === ADD WALLET CREDITS (from plan.wallet_credits for non-superadmin users) ===
+        # === ADD Usage Minutes  
         if user.role != UserRole.SUPERADMIN:
             plan = db.query(Plans).filter(Plans.id == db_token.plan_id).first()
             if plan:
-                from app.utils.wallet import add_to_wallet
-                wallet_credits = plan.wallet_credits
-                wallet = add_to_wallet(user.id, wallet_credits, db)
-                print(f"===== Added ${wallet_credits:.2f} to wallet for user {user.id} (plan wallet_credits: {plan.wallet_credits}). New balance: ${wallet.balance:.2f} =====")
+                usage_minutes = plan.minutes
+                users_usage_minutes = add_to_usage_balance(user.id, usage_minutes, db)
+                print(f"===== Added {usage_minutes} minutes to User's Usage balance for user {user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_minutes} min =====")
     else:
         if not razorpay_client:
             raise HTTPException(status_code=503, detail="Razorpay not configured...")
@@ -352,14 +349,13 @@ async def verify_payment_from_token(
         subscription.end_date = datetime.now(timezone.utc) + timedelta(days=30)
         db.commit()
     
-    # === ADD WALLET CREDITS (from plan.wallet_credits for non-superadmin users) ===
+     # === ADD USAGE Minutes  
     if user.role != UserRole.SUPERADMIN:
-        from app.utils.wallet import add_to_wallet
         plan = db.query(Plans).filter(Plans.id == db_token.plan_id).first()
         if plan:
-            wallet_credits = plan.wallet_credits
-            wallet = add_to_wallet(user.id, wallet_credits, db)
-            print(f"===== Added ${wallet_credits:.2f} to wallet for user {user.id} (plan wallet_credits: {plan.wallet_credits}). New balance: ${wallet.balance:.2f} =====")
+            usage_minutes = plan.minutes
+            users_usage_minutes = add_to_usage_balance(user.id, usage_minutes, db)
+            print(f"===== Added {usage_minutes} minutes to User's Usage balance for user {user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_minutes} min =====")
     
     # === CALL OpenAI SERVICE ACCOUNT CREATION ===
     print(f"===== Starting OpenAI service account creation for user {user.id} ({user.email}) =====")
@@ -413,14 +409,13 @@ async def verify_payment(
         subscription.end_date = datetime.utcnow() + timedelta(days=30)
         db.commit()
         
-        # === ADD WALLET CREDITS (from plan.wallet_credits for non-superadmin users) ===
+         # === ADD Usage Minutes  
         if current_user.role != UserRole.SUPERADMIN:
-            from app.utils.wallet import add_to_wallet
             plan = db.query(Plans).filter(Plans.id == subscription.plan_type).first()
             if plan:
-                wallet_credits = plan.wallet_credits
-                wallet = add_to_wallet(current_user.id, wallet_credits, db)
-                print(f"===== Added ${wallet_credits:.2f} to wallet for user {current_user.id} (plan wallet_credits: {plan.wallet_credits}). New balance: ${wallet.balance:.2f} =====")
+                usage_minutes = plan.minutes
+                users_usage_minutes = add_to_usage_balance(current_user.id, usage_minutes, db)
+                print(f"===== Added {usage_minutes} minutes to User's Usage balance for user {current_user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_minutes} min =====")
         
         print("===== DEBUG: TEST MODE - Subscription updated =====")
         
@@ -461,16 +456,14 @@ async def verify_payment(
         
         print("===== DEBUG: REAL payment - Subscription updated =====")
     
-    # === ADD WALLET CREDITS (from plan.wallet_credits for non-superadmin users) ===
+     # === ADD Usage Minutes  
     if current_user.role != UserRole.SUPERADMIN:
-        from app.utils.wallet import add_to_wallet
-        # Get the plan from subscription
-        plan = db.query(Plans).filter(Plans.id == subscription.plan_id).first()
+        plan = db.query(Plans).filter(Plans.id == subscription.plan_type).first()
         if plan:
-            wallet_credits = plan.wallet_credits
-            wallet = add_to_wallet(current_user.id, wallet_credits, db)
-            print(f"===== Added ${wallet_credits:.2f} to wallet for user {current_user.id} (plan wallet_credits: {plan.wallet_credits}). New balance: ${wallet.balance:.2f} =====")
-    
+            usage_minutes = plan.minutes
+            users_usage_minutes = add_to_usage_balance(current_user.id, usage_minutes, db)
+            print(f"===== Added {usage_minutes} minutes to User's Usage balance for user {current_user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_minutes} min =====")
+
     # === NOW CALL OpenAI IN BOTH MODES ===
     print(f"===== Starting OpenAI service account creation for user {current_user.id} =====")
     
@@ -844,17 +837,17 @@ async def verify_trial_upgrade(
         old_trial.subscription_mode = SubscriptionMode.EXPIRED
         db.commit()
 
-    #Reset wallet to 0 (remove trial credits)
-    wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
-    old_balance = wallet.balance if wallet else 0.0
-    if wallet:
-        wallet.balance = 0.0
+    # Reset User's remaining minutes to 0 (remove trial minutes)
+    usage_minutes = db.query().filter(UserMinuteBalance.user_id == current_user.id).first()
+    old_minutes_left= usage_minutes.remaining_minutes if usage_minutes else 0
+    if usage_minutes:
+        usage_minutes.remaining_minutes = 0.0
 
-    #Add new plan credits
+    #Add new plan minutes
     plan = db.query(Plans).filter(Plans.id == pending_sub.plan_type).first()
-    if plan and plan.wallet_credits > 0 and current_user.role != UserRole.SUPERADMIN:
-        new_wallet = add_to_wallet(current_user.id, plan.wallet_credits, db)
-        print(f"[TRIAL UPGRADE] Added ${plan.wallet_credits:.2f} credits. New balance: ${new_wallet.balance:.2f}")
+    if plan and plan.minutes > 0 and current_user.role != UserRole.SUPERADMIN:
+        new_minutes= add_to_usage_balance(current_user.id, plan.minutes, db)
+        print(f"[TRIAL UPGRADE] Added {plan.minutes} minutes. New User's Minutes Usage : {new_minutes.total_minutes} min")
 
     db.commit()
     db.refresh(current_user)
@@ -869,6 +862,6 @@ async def verify_trial_upgrade(
             "username": current_user.username,
             "role": current_user.role.value,
             "is_active": current_user.is_active,
-            "wallet_balance": wallet.balance if wallet else 0.0
+            "users_usage_minutes": usage_minutes.remaining_minutes if usage_minutes else 0
         }
     }

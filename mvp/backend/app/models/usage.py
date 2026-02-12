@@ -12,7 +12,6 @@ class UserMinuteBalance(Base):
     id = Column(Integer, primary_key=True)
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
-    subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=False)
 
     total_minutes = Column(Integer, nullable=False)
     used_minutes = Column(Integer, nullable=False, default=0)

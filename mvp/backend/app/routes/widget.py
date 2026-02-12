@@ -468,7 +468,7 @@ async def widget_websocket(
             await websocket.send_json({
                 "type": "error",
                 "error": "insufficient_balance",
-                "message": "Your wallet balance is insufficient. Please recharge to continue using the service."
+                "message": "Your usage minutes have reached. Please recharge to continue using the service."
             })
             await websocket.close()
             print(f"[Widget WS] ❌ Call rejected: Agent {agent.id} is inactive for user {agent.user_id}")
@@ -970,13 +970,21 @@ TOOL USAGE:
                     if agent and agent.user_id:
                         user = db.query(User).filter(User.id == agent.user_id).first()
                         if user and user.role != UserRole.SUPERADMIN:
-                            from app.utils.wallet import deduct_from_wallet
-                            call_cost = interaction.total_cost or 0.0
-                            wallet = deduct_from_wallet(user.id, call_cost, db)
-                            if wallet.balance > 0:
-                                print(f"[Widget WS] 💰 Deducted ${call_cost:.6f} from wallet. Remaining balance: ${wallet.balance:.2f}")
+                            # from app.utils.wallet import deduct_from_wallet
+                            from app.utils.usage_balance import deduct_from_usage_balance
+                            # call_cost = interaction.total_cost or 0.0
+                            call_duration = interaction.duration_seconds
+                            # wallet = deduct_from_wallet(user.id, call_cost, db)
+                            usage = deduct_from_usage_balance(user.id,call_duration,db)
+                            if usage.remaining_minutes>0:
+                                print(f"[Widget WS] Deducted {call_duration} min from User's usage balance. Remaining Minutes : {usage.remaining_minutes} min")
                             else:
-                                print(f"[Widget WS] ⚠️ Insufficient wallet balance. Needed ${call_cost:.6f}, balance now: ${wallet.balance:.2f}")
+                                print(f"[Widget WS] ⚠️ Insufficient User's Usage minutes left . Needed {call_duration} min, balance now: {usage.remaining_minutes} min")
+                                
+                            # if wallet.balance > 0:
+                            #     print(f"[Widget WS] 💰 Deducted ${call_cost:.6f} from wallet. Remaining balance: ${wallet.balance:.2f}")
+                            # else:
+                            #     print(f"[Widget WS] ⚠️ Insufficient wallet balance. Needed ${call_cost:.6f}, balance now: ${wallet.balance:.2f}")
                     
                     db.commit()
                     print(f"[Widget WS] ✅ Completed interaction {interaction_id}, duration: {interaction.duration_seconds:.1f}s, cost: ${interaction.estimated_cost:.4f}, total_cost: ${interaction.total_cost:.6f}")
