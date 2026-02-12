@@ -34,7 +34,8 @@ export default function ViewPlan({ plan, onBack }) {
 
   const currency = plan.currency || 'USD';
   const currencySymbol = getCurrencySymbol(currency);
-  const walletCredits = plan.wallet_credits || plan.credits || 0;
+  // const walletCredits = plan.wallet_credits || plan.credits || 0;
+  const minutesCredit = plan.minutes||0;
   const planType = plan.plan_type || 'monthly';
 
   return (
@@ -70,9 +71,13 @@ export default function ViewPlan({ plan, onBack }) {
               <span className="currency-badge">{currency}</span>
             </div>
 
-            <div className="info-item">
+            {/* <div className="info-item">
               <label>Wallet Credits</label>
               <span className="credits-value">{walletCredits} credits</span>
+            </div> */}
+            <div className="info-item">
+              <label>Total Minutes</label>
+              <span className="credits-value">{minutesCredit} Minutes</span>
             </div>
 
             <div className="info-item">

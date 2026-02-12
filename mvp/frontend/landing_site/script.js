@@ -66,8 +66,10 @@ tailwind.config = {
 }
 
 // API Base URL
-const API_BASE = 'https://api.voicequik.com';
-const APP_BASE_URL = 'https://app.voicequik.com'
+// const API_BASE = 'https://api.voicequik.com';
+// const APP_BASE_URL = 'https://app.voicequik.com'
+const API_BASE = 'http://localhost:8081';
+const APP_BASE_URL = 'http://localhost:3000'
 // Selected plan tracking - stores the full plan object
 let selectedPlan = null;
 // Store all plans globally for lookup
@@ -210,7 +212,7 @@ function renderPlans(plans) {
                 </div>
                 ${plan.wallet_credits ? `
                     <div class="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-purple-50 text-xs font-medium text-purple-700">
-                        ${isTrial ? `Free $${plan.wallet_credits} Credits/14 days` : `Free $${plan.wallet_credits} Credits`}
+                        ${isTrial ? `Free ${plan.minutes} Minutes/14 days` : `Free ${plan.minutes} Minutes`}
                     </div>
                 ` : ''}
             </div>

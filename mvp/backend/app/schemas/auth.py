@@ -9,7 +9,6 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     low_balance: Optional[bool] = False
-    wallet_balance: Optional[float] = None
 
 class SetupPasswordRequest(BaseModel):
     token: str  # Payment token
