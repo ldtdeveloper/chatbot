@@ -25,7 +25,8 @@ function Layout() {
   const isTrial =
     user?.subscription_mode=== 'trial' 
  
-  const displayedBalance=user?.wallet_balance
+  const displayedBalance=user?.remaining_minutes
+  console.log(displayedBalance)
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -69,7 +70,7 @@ function Layout() {
           )}
 
           {/* Wallet Section */}
-          {/* {user?.role !== 'superadmin' && (
+          {user?.role !== 'superadmin' && (
             <div className="wallet-wrapper" ref={walletRef}>
               <button
                 className={`wallet-icon-btn ${isTrial ? 'wallet-trial-limited' : ''}`}
@@ -79,21 +80,21 @@ function Layout() {
                 disabled={isTrial}
                 title={
                   isTrial
-                    ? 'Trial wallet limited to $2.00 – Upgrade to unlock full access'
+                    ? 'Trial  limited to 50 minutes – Upgrade to unlock full access'
                     : `Wallet: $${displayedBalance.toFixed(2)}`
                 }
               >
                 <span className="wallet-amount-text">
-                  ${displayedBalance.toFixed(2)}
+                  🕒{displayedBalance.toFixed(2)}
                   {isTrial && <small className="trial-hint"> trial</small>}
                 </span>
-              </button> */}
+              </button>
 
               {/* Hover message for trial */}
-              {/* {isTrial && showWalletMessage && (
+              {isTrial && showWalletMessage && (
                 <div className="wallet-message-card">
                   <h4>Trial Wallet Limited</h4>
-                  <p>Fixed at $2.00 during trial. Upgrade to unlock full wallet & features.</p>
+                  <p>Fixed at 50 minutes during trial. Upgrade to unlock full features.</p>
                   <button
                     className="upgrade-from-wallet-btn"
                     onClick={() => setShowUpgradeModal(true)}
@@ -103,7 +104,7 @@ function Layout() {
                 </div>
               )}
             </div>
-          )} */}
+          )}
 
           {/* User Dropdown */}
           <div className="navbar-user" ref={dropdownRef}>

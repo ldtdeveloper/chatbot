@@ -321,15 +321,15 @@ function Dashboard() {
           </div>
         </div>
         <div className="summary-card">
-          <div className="summary-card-icon">💰</div>
-          <div className="summary-card-content">
-            <h3>Total Expenses</h3>
-            <p className="summary-card-value">${stats?.total_expenses?.toFixed(2) || '0.00'}</p>
-            <span className={`summary-card-change ${stats?.expenses_change >= 0 ? 'positive' : 'negative'}`}>
-              {stats?.expenses_change >= 0 ? '+' : ''}{stats?.expenses_change || 0}% from last period
-            </span>
-          </div>
-        </div>
+  <div className="summary-card-icon">⏱️</div> {/* clock icon for minutes */}
+  <div className="summary-card-content">
+    <h3>Total Minutes Used</h3>
+    <p className="summary-card-value">{stats?.total_minutes?.toLocaleString() || '0'}</p>
+    {/* <span className={`summary-card-change ${stats?.minutes_change >= 0 ? 'positive' : 'negative'}`}>
+      {stats?.minutes_change >= 0 ? '+' : ''}{stats?.minutes_change?.toFixed(1) || '0'}% from last period
+    </span> */}
+  </div>
+</div>
         {user?.role === 'superadmin' && (
           <div className="summary-card">
             <div className="summary-card-icon">💳</div>
