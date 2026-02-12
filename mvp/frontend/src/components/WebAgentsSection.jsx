@@ -27,7 +27,8 @@ function WebAgentsSection({
 }) {
   const cardsContainerRef = useRef(null)
   const {user} = useAuthStore()
-  const hasAgent = user.subscription_mode == 'trial' && agents && agents.length >= 1;
+  const hasAgent = agents && agents.length >= user.allowed_agents;
+  console.log(` Has agent value is ${hasAgent}`)
   const handleCancel = () =>{
     setShowAddForm(false)
   }
