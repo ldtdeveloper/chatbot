@@ -20,7 +20,8 @@ class ChartDataPoint(BaseModel):
 class DashboardStats(BaseModel):
     # Summary cards
     total_interactions: int
-    total_expenses: float
+    total_minutes: int
+    total_expense: Optional[int] = None
     total_agents: int
     active_keys: int
     
@@ -32,9 +33,11 @@ class DashboardStats(BaseModel):
     # Percentage changes from previous period
     interactions_change: float
     expenses_change: float
+    minutes_change: int = 0
     
     # Chart data
     interactions_chart: List[dict]  # [{date, key1_count, key2_count, ...}]
+    # minutes_chart: List[dict]
     expenses_chart: List[dict]  # [{date, key1_cost, key2_cost, ...}]
     agents_per_key: List[dict]  # [{name, value, color}]
     

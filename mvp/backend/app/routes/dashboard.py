@@ -7,7 +7,9 @@ from datetime import timedelta
 from typing import Optional
 from app.core.database import get_db
 from app.models.user import User, UserRole
+from app.models.usage import UserMinuteBalance
 from app.models.service_account_key import ServiceAccountKey
+from app.core.dependencies import get_current_user
 from app.models.agent import Agent
 from app.models.interaction import Interaction
 from app.schemas.dashboard import DashboardStats
@@ -20,6 +22,165 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 # Colors for charts (matching frontend)
 CHART_COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', '#43e97b', '#fa709a', '#fee140']
+# @router.get("/stats", response_model=DashboardStats)
+# async def get_dashboard_stats(
+#     days: str = Query(default="30d", regex="^(7d|30d|90d)$"),
+#     key_id: Optional[int] = Query(default=None),
+#     user_id: Optional[int] = Query(default=None),
+#     current_user: User = Depends(require_active_subscription),
+#     db: Session = Depends(get_db)
+# ):
+#     try:
+    
+#         usage = db.query(UserMinuteBalance).filter_by(
+#             user_id=current_user.id
+#         ).first()
+
+#         total_minutes = 0
+#         used_minutes = 0
+#         remaining_minutes = 0
+
+#         if usage:
+#             total_minutes = round(
+#                 usage.used_seconds / 60
+#                 if hasattr(usage, "total_seconds") and usage.total_seconds is not None
+#                 else usage.total_minutes or 0
+#             )
+
+#             used_minutes = round(
+#                 usage.used_seconds / 60
+#                 if hasattr(usage, "used_seconds") and usage.used_seconds is not None
+#                 else usage.used_minutes or 0
+#             )
+
+#             remaining_minutes = round(
+#                 usage.remaining_seconds / 60
+#                 if hasattr(usage, "remaining_seconds") and usage.remaining_seconds is not None
+#                 else usage.remaining_minutes or 0
+#             )
+
+     
+#         is_superadmin = False
+#         if hasattr(current_user.role, "value"):
+#             is_superadmin = current_user.role.value == UserRole.SUPERADMIN.value
+#         else:
+#             is_superadmin = current_user.role == UserRole.SUPERADMIN
+
+  
+#         if is_superadmin:
+#             if user_id:
+#                 target_user_ids = [user_id]
+#             else:
+#                 target_user_ids = [u.id for u in db.query(User).all()]
+#         else:
+#             target_user_ids = [current_user.id]
+
+#         if not target_user_ids:
+#             return DashboardStats(
+#                 total_interactions=0,
+#                 total_expenses=0.0,
+#                 total_minutes=total_minutes,
+#                 total_agents=0,
+#                 active_keys=0,
+#                 total_charging=None,
+#                 profit=None,
+#                 charging_change=None,
+#                 interactions_change=0.0,
+#                 expenses_change=0.0,
+#                 interactions_chart=[],
+#                 expenses_chart=[],
+#                 agents_per_key=[],
+#                 available_keys=[]
+#             )
+
+#         all_keys = db.query(ServiceAccountKey).filter(
+#             ServiceAccountKey.user_id.in_(target_user_ids)
+#         ).all()
+
+#         filtered_keys = (
+#             [k for k in all_keys if k.id == key_id]
+#             if key_id else all_keys
+#         )
+
+#         key_ids = [k.id for k in filtered_keys]
+#         active_keys = len([k for k in filtered_keys if k.is_active])
+
+#         agents_query = db.query(Agent).filter(
+#             Agent.user_id.in_(target_user_ids),
+#             Agent.is_active == True
+#         )
+
+#         if key_ids:
+#             agents_query = agents_query.filter(
+#                 Agent.openai_key_id.in_(key_ids)
+#             )
+
+#         total_agents = agents_query.count()
+
+#         agents_per_key = [
+#             {
+#                 "name": key.key_name or f"Key {key.id}",
+#                 "value": db.query(Agent).filter(
+#                     Agent.user_id.in_(target_user_ids),
+#                     Agent.openai_key_id == key.id,
+#                     Agent.is_active == True
+#                 ).count(),
+#                 "color": CHART_COLORS[idx % len(CHART_COLORS)]
+#             }
+#             for idx, key in enumerate(filtered_keys)
+#         ] if filtered_keys else []
+
+
+#         available_keys = [
+#             {"id": k.id, "name": k.key_name or f"Key {k.id}"}
+#             for k in all_keys
+#         ]
+
+#         total_interactions = 0
+#         total_expenses = 0.0
+#         interactions_change = 0.0
+#         expenses_change = 0.0
+
+#         return DashboardStats(
+#             total_interactions=total_interactions,
+#             total_expenses=round(total_expenses, 2),
+#             total_minutes=total_minutes,
+#             total_agents=total_agents,
+#             active_keys=active_keys,
+#             total_charging=None,
+#             profit=None,
+#             charging_change=None,
+#             interactions_change=round(interactions_change, 1),
+#             expenses_change=round(expenses_change, 1),
+#             interactions_chart=[],
+#             expenses_chart=[],
+#             agents_per_key=agents_per_key,
+#             available_keys=available_keys
+#         )
+
+#     except Exception as e:
+#         import logging, traceback
+#         logging.error(f"Dashboard stats error: {e}")
+#         logging.error(traceback.format_exc())
+
+#         return DashboardStats(
+#             total_interactions=0,
+#             total_expenses=0.0,
+#             total_minutes=total_minutes,
+#             total_agents=0,
+#             active_keys=0,
+#             total_charging=None,
+#             profit=None,
+#             charging_change=None,
+#             interactions_change=0.0,
+#             expenses_change=0.0,
+#             interactions_chart=[],
+#             expenses_chart=[],
+#             agents_per_key=[],
+#             available_keys=[]
+#         )
+
+
 
 @router.get("/stats", response_model=DashboardStats)
 async def get_dashboard_stats(
@@ -39,7 +200,14 @@ async def get_dashboard_stats(
     try:
         start_date, end_date = get_date_range(days)
         prev_start, prev_end = get_previous_period_range(days)
-        
+        usage = db.query(UserMinuteBalance).filter_by(
+            user_id=current_user.id
+        ).first()
+
+        used_minutes = 0
+
+        if usage and usage.used_seconds is not None:
+            used_minutes = round(usage.used_seconds // 60)
         # Check if user is superadmin - handle both enum and string comparison
         is_superadmin = False
         if hasattr(current_user.role, 'value'):
@@ -210,8 +378,9 @@ async def get_dashboard_stats(
         
         response= DashboardStats(
             total_interactions=total_interactions,
-            total_expenses=round(total_expenses, 2),
+            total_expenses=round(total_expenses, 2) if (total_expenses and current_user.role==UserRole.SUPERADMIN) else 0,
             total_agents=total_agents,
+            total_minutes = used_minutes,
             active_keys=active_keys,
             total_charging=round(total_charging, 2) if total_charging is not None else None,
             profit=round(profit, 2) if profit is not None else None,
@@ -246,8 +415,7 @@ async def get_dashboard_stats(
             available_keys=[]
         )
         return response
-
-
+    
 @router.get("/expenses-per-user")
 async def get_expenses_per_user(
     days: str = Query(default="30d", regex="^(7d|30d|90d|today|this_week|this_month|this_year|till_now|all)$"),
