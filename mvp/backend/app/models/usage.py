@@ -13,9 +13,9 @@ class UserMinuteBalance(Base):
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
 
-    total_minutes = Column(Integer, nullable=False)
-    used_minutes = Column(Integer, nullable=False, default=0)
-    remaining_minutes = Column(Integer, nullable=False)
+    total_seconds = Column(Integer, nullable=False)
+    used_seconds = Column(Integer, nullable=False, default=0)
+    remaining_seconds = Column(Integer, nullable=False)
 
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -23,7 +23,6 @@ import websockets
 from datetime import datetime
 from typing import Optional, Dict
 from urllib.parse import urlparse
-from app.utils.encryption import decrypt_api_key
 
 router = APIRouter(prefix="/api/widget", tags=["widget"])
 
@@ -442,7 +441,6 @@ async def widget_websocket(
     try:
         # Fetch agent from database
         agent = db.query(Agent).filter(Agent.id == agent_id).first()
-        
         if not agent:
             await websocket.send_json({
                 "type": "error",
@@ -973,13 +971,13 @@ TOOL USAGE:
                             # from app.utils.wallet import deduct_from_wallet
                             from app.utils.usage_balance import deduct_from_usage_balance
                             # call_cost = interaction.total_cost or 0.0
-                            call_duration = interaction.duration_seconds
+                            call_duration = int(interaction.duration_seconds)
                             # wallet = deduct_from_wallet(user.id, call_cost, db)
                             usage = deduct_from_usage_balance(user.id,call_duration,db)
-                            if usage.remaining_minutes>0:
-                                print(f"[Widget WS] Deducted {call_duration} min from User's usage balance. Remaining Minutes : {usage.remaining_minutes} min")
+                            if usage.remaining_seconds>0:
+                                print(f"[Widget WS] Deducted {call_duration} min from User's usage balance. Remaining Minutes : {usage.remaining_seconds} min")
                             else:
-                                print(f"[Widget WS] ⚠️ Insufficient User's Usage minutes left . Needed {call_duration} min, balance now: {usage.remaining_minutes} min")
+                                print(f"[Widget WS] ⚠️ Insufficient User's Usage minutes left . Needed {call_duration} min, balance now: {usage.remaining_seconds} min")
                                 
                             # if wallet.balance > 0:
                             #     print(f"[Widget WS] 💰 Deducted ${call_cost:.6f} from wallet. Remaining balance: ${wallet.balance:.2f}")

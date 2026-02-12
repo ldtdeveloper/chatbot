@@ -322,9 +322,9 @@ async def verify_payment_from_token(
         if user.role != UserRole.SUPERADMIN:
             plan = db.query(Plans).filter(Plans.id == db_token.plan_id).first()
             if plan:
-                usage_minutes = plan.minutes
-                users_usage_minutes = add_to_usage_balance(user.id, usage_minutes, db)
-                print(f"===== Added {usage_minutes} minutes to User's Usage balance for user {user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_minutes} min =====")
+                usage_seconds = int(plan.minutes*60)
+                users_usage_seconds = add_to_usage_balance(user.id, usage_seconds, db)
+                print(f"===== Added {usage_seconds} sec to User's Usage balance for user {user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_seconds} sec=====")
     else:
         if not razorpay_client:
             raise HTTPException(status_code=503, detail="Razorpay not configured...")
@@ -349,14 +349,14 @@ async def verify_payment_from_token(
         subscription.end_date = datetime.now(timezone.utc) + timedelta(days=30)
         db.commit()
     
-     # === ADD USAGE Minutes  
-    if user.role != UserRole.SUPERADMIN:
-        plan = db.query(Plans).filter(Plans.id == db_token.plan_id).first()
-        if plan:
-            usage_minutes = plan.minutes
-            users_usage_minutes = add_to_usage_balance(user.id, usage_minutes, db)
-            print(f"===== Added {usage_minutes} minutes to User's Usage balance for user {user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_minutes} min =====")
-    
+        # === ADD Usage Minutes  
+        if user.role != UserRole.SUPERADMIN:
+            plan = db.query(Plans).filter(Plans.id == db_token.plan_id).first()
+            if plan:
+                usage_seconds = int(plan.minutes/60)
+                users_usage_seconds = add_to_usage_balance(user.id, usage_seconds, db)
+                print(f"===== Added {usage_seconds} sec to User's Usage balance for user {user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_seconds} sec=====")
+
     # === CALL OpenAI SERVICE ACCOUNT CREATION ===
     print(f"===== Starting OpenAI service account creation for user {user.id} ({user.email}) =====")
     
@@ -413,9 +413,9 @@ async def verify_payment(
         if current_user.role != UserRole.SUPERADMIN:
             plan = db.query(Plans).filter(Plans.id == subscription.plan_type).first()
             if plan:
-                usage_minutes = plan.minutes
-                users_usage_minutes = add_to_usage_balance(current_user.id, usage_minutes, db)
-                print(f"===== Added {usage_minutes} minutes to User's Usage balance for user {current_user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_minutes} min =====")
+                usage_second= int(plan.minutes/60)
+                users_usage_sec = add_to_usage_balance(current_user.id, usage_second, db)
+                print(f"===== Added {usage_second} minutes to User's Usage balance for user {current_user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_sec} sec =====")
         
         print("===== DEBUG: TEST MODE - Subscription updated =====")
         
@@ -455,15 +455,14 @@ async def verify_payment(
         db.commit()
         
         print("===== DEBUG: REAL payment - Subscription updated =====")
-    
-     # === ADD Usage Minutes  
-    if current_user.role != UserRole.SUPERADMIN:
-        plan = db.query(Plans).filter(Plans.id == subscription.plan_type).first()
-        if plan:
-            usage_minutes = plan.minutes
-            users_usage_minutes = add_to_usage_balance(current_user.id, usage_minutes, db)
-            print(f"===== Added {usage_minutes} minutes to User's Usage balance for user {current_user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_minutes} min =====")
-
+        # Add usage seconds
+        if current_user.role != UserRole.SUPERADMIN:
+            plan = db.query(Plans).filter(Plans.id == subscription.plan_type).first()
+            if plan:
+                usage_second= int(plan.minutes*60)
+                users_usage_sec = add_to_usage_balance(current_user.id, usage_second, db)
+                print(f"===== Added {usage_second} minutes to User's Usage balance for user {current_user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_sec} sec =====")
+        
     # === NOW CALL OpenAI IN BOTH MODES ===
     print(f"===== Starting OpenAI service account creation for user {current_user.id} =====")
     
@@ -838,16 +837,16 @@ async def verify_trial_upgrade(
         db.commit()
 
     # Reset User's remaining minutes to 0 (remove trial minutes)
-    usage_minutes = db.query().filter(UserMinuteBalance.user_id == current_user.id).first()
-    old_minutes_left= usage_minutes.remaining_minutes if usage_minutes else 0
-    if usage_minutes:
-        usage_minutes.remaining_minutes = 0.0
+    usage_seconds = db.query().filter(UserMinuteBalance.user_id == current_user.id).first()
+    if usage_seconds:
+        usage_seconds.remaining_seconds = 0
 
     #Add new plan minutes
     plan = db.query(Plans).filter(Plans.id == pending_sub.plan_type).first()
     if plan and plan.minutes > 0 and current_user.role != UserRole.SUPERADMIN:
-        new_minutes= add_to_usage_balance(current_user.id, plan.minutes, db)
-        print(f"[TRIAL UPGRADE] Added {plan.minutes} minutes. New User's Minutes Usage : {new_minutes.total_minutes} min")
+        users_usage_seconds = int(plan.minutes/60)
+        new_seconds= add_to_usage_balance(current_user.id, users_usage_seconds, db)
+        print(f"[TRIAL UPGRADE] Added {plan.minutes} minutes. New User's Minutes Usage : {new_seconds.total_seconds} sec")
 
     db.commit()
     db.refresh(current_user)
@@ -862,6 +861,6 @@ async def verify_trial_upgrade(
             "username": current_user.username,
             "role": current_user.role.value,
             "is_active": current_user.is_active,
-            "users_usage_minutes": usage_minutes.remaining_minutes if usage_minutes else 0
+            "users_usage_sec": usage_seconds.remaining_seconds if usage_seconds else 0
         }
     }

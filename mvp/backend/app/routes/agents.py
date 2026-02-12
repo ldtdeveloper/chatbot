@@ -8,6 +8,7 @@ from typing import List
 from app.core.database import get_db
 from app.models.user import User
 from app.models.agent import Agent, NoiseReductionMode, AgentType
+from app.models.subscription import Subscription,PaymentStatus
 from app.schemas.agents import (
     AgentCreate, AgentResponse, AgentUpdate
 )
@@ -36,10 +37,22 @@ async def create_agent(
             status_code = status.HTTP_404_NOT_FOUND,
             detail = "No subscription found"
         )
-    
+    agent_count = db.query(Agent).filter(Agent.user_id==current_user.id).first()
     if subscription_type == 'trial':
-        agent_count = db.query(Agent).filter(Agent.user_id==current_user.id).first()
         if agent_count:
+            raise HTTPException(status_code = status.HTTP_403_UNAUTHORIZED, detail = "Agent creation restricted")
+    else:
+        subscription_details = (
+            db.query(Subscription)
+            .filter(
+                Subscription.user_id == current_user.id,
+                Subscription.payment_status == PaymentStatus.SUCCESS
+            )
+            .order_by(Subscription.updated_at.desc())
+            .first()  # if you only want the latest one
+        )
+        number_of_agents = subscription_details.plans.number_of_agents
+        if(agent_count and agent_count>=number_of_agents):
             raise HTTPException(status_code = status.HTTP_403_UNAUTHORIZED, detail = "Agent creation restricted")
     
     # Validate API key - System uses ServiceAccountKey (not OpenAIKey)
@@ -84,23 +97,6 @@ async def create_agent(
             detail=error_msg
         )
     
-    # Check wallet balance for non-superadmin users - cannot create agent if balance is zero
-    from app.models.user import UserRole
-    agent_is_active = True
-    if current_user.role != UserRole.SUPERADMIN:
-        from app.utils.wallet import get_wallet_balance
-        wallet_balance = get_wallet_balance(current_user.id, db)
-        
-        if wallet_balance <= 0:
-            logger.warning(f"User {current_user.id} attempted to create agent with zero wallet balance (balance: ${wallet_balance:.2f})")
-            raise HTTPException(
-                status_code=402,  # Payment Required
-                detail="Insufficient wallet balance. Please recharge your wallet to create new agents."
-            )
-        
-        # Set agent active status based on wallet balance
-        agent_is_active = wallet_balance > 0
-    
     # Validate noise reduction mode
     noise_reduction = NoiseReductionMode.NEAR_FIELD
     if agent_data.noise_reduction_mode:
@@ -128,7 +124,7 @@ async def create_agent(
         noise_reduction_silence_duration_ms=agent_data.noise_reduction_silence_duration_ms or 500,
         agent_config=agent_data.agent_config or {},
         enable_mcp_server=agent_data.enable_mcp_server or False,
-        is_active=agent_is_active
+        is_active=True
     )
     db.add(db_agent)
     db.commit()
@@ -233,4 +229,3 @@ async def delete_agent(
     db.delete(agent)
     db.commit()
     return {"message": "Agent deleted successfully"}
-
