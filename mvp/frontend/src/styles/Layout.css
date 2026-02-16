@@ -7,7 +7,7 @@
 .navbar {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 1rem 2rem;
+  padding: 12px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -18,7 +18,6 @@
   margin: 0;
   font-size: 1.5rem;
 }
-
 .navbar-menu {
   display: flex;
   gap: 2rem;
