@@ -22,8 +22,7 @@ function Layout() {
     navigate('/login')
   }
  
-  const isTrial =
-    user?.subscription_mode=== 'trial' 
+  const isTrial =user?.subscription_mode=== 'trial' 
  
   const displayedBalance=user?.remaining_minutes
   console.log(displayedBalance)
@@ -76,7 +75,9 @@ function Layout() {
                 className={`wallet-icon-btn ${isTrial ? 'wallet-trial-limited' : ''}`}
                 onMouseEnter={() => isTrial && setShowWalletMessage(true)}
                 onMouseLeave={() => isTrial && setShowWalletMessage(false)}
-                onClick={() => !isTrial && setWalletModalOpen(true)}
+                // onClick={() => !isTrial && setWalletModalOpen(true)
+
+                // }
                 disabled={isTrial}
                 title={
                   isTrial
