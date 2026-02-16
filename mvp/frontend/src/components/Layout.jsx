@@ -4,6 +4,7 @@ import { useAuthStore } from '../context/authStore'
 import WalletModal from './WalletModal'
 import PlansPopup from './PlansPopup'
 import '../styles/Layout.css'
+import logoIcon from '../assets/logo.png';
 
 function Layout() {
   const { user, logout } = useAuthStore()
@@ -43,10 +44,34 @@ function Layout() {
   return (
     <div className="layout">
       <nav className="navbar">
-        <div className="navbar-brand">
-          <h1>🎙️ Voice Assistant Platform</h1>
-        </div>
-
+        {/* <div className="navbar-brand">
+          <img src={logoIcon} alt="icon" style={{width:"auto", height:"auto"}}/><h1>Voice Assistant Platform</h1>
+        </div> */}
+        <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "12px", // gap-3 → 0.75rem → 12px
+  }}
+>
+  <img
+    src={logoIcon}
+    alt="Logo"
+    style={{
+      width: "70px",  // w-10
+      height: "50px", // h-10
+    }}
+  />
+  <h1
+    style={{
+      margin: 0,               // m-0
+      fontSize: "1.5rem",      // text-2xl
+      fontWeight: 600,         // font-semibold
+    }}
+  >
+    Voice Assistant Platform
+  </h1>
+</div>
         <div className="navbar-menu">
           <Link to="/">Dashboard</Link>
 

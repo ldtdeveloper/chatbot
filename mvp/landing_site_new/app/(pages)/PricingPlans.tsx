@@ -432,87 +432,88 @@ const handlePlanAction = (plan: Plan) => {
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-7xl mx-auto px-4">
-        {plans.map((plan, index) => {
-          const isActive = activePlanId === plan.id;
-          const isPopular = index === 1;
-          const isTrial = !!plan.is_trial;
-          const isCustom = plan.name === "Enterprise";
+      {plans.map((plan, index) => {
+        // const isActive = activePlanId === plan.id;
+        const isPopular = index === 1;
+        const isActive = activePlanId
+        ? activePlanId === plan.id
+        : isPopular;
+        const isTrial = !!plan.is_trial;
+        const isCustom = plan.name === "Enterprise";
 
-          return (
-            <div
-              key={plan.id}
-              onClick={() => setActivePlanId(plan.id)}
-              className={`pricing-card rounded-2xl p-[1px] transition duration-300 cursor-pointer
-                ${isActive ? "bg-gradient-to-br from-cyan-400 to-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.5)]" : "bg-white/5"}
-              `}
-            >
-              <div className="bg-[#151527] rounded-2xl p-8 h-full flex flex-col">
-
-                {isPopular && (
-                  <div className="mb-4 text-center">
-                    <span className="bg-gradient-to-r from-indigo-400 to-pink-500 text-white text-xs px-4 py-1 rounded-full">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-
-                <h3 className="text-2xl font-bold text-white mb-2 capitalize">
-                  {plan.name}
-                </h3>
-
-                <p className="text-gray-400 text-sm mb-4">
-                  {plan.description}
-                </p>
-
-                <div className="mb-6">
-                  {isTrial ? (
-                    <>
-                      <span className="text-4xl font-extrabold text-pink-400">$0.00</span>
-                      <span className="text-gray-400 text-sm"> /14 Days</span>
-                      {plan.minutes && (
-                        <span className="text-gray-400 text-sm ml-2">
-                          / {plan.minutes} minutes
-                        </span>
-                      )}
-                    </>
-                  ) : plan.price ? (
-                    <>
-                      <span className="text-4xl font-extrabold text-pink-400">
-                        ${plan.price}
-                      </span>
-                      {plan.minutes && (
-                        <span className="text-gray-400 text-sm ml-2">
-                          / {plan.minutes} minutes
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-4xl font-extrabold text-pink-400">
-                      Custom
-                    </span>
-                  )}
+        return (
+          <div
+            key={plan.id}
+            onClick={() => setActivePlanId(plan.id)}
+            className={`pricing-card rounded-2xl p-[1px] transition duration-300 cursor-pointer
+              ${isActive ? "bg-gradient-to-br from-cyan-400 to-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.5)]" : "bg-white/5"}          `}
+          >
+            <div className={`bg-[#151527] rounded-2xl p-8 h-full flex flex-col ${isPopular ? 'relative' : ''}`}>
+              {isPopular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold px-4 py-1.5 rounded-full shadow-lg">
+                    Most Popular
+                  </span>
                 </div>
+              )}
 
-                <ul className="space-y-3 text-gray-300 text-sm flex-grow">
-                  {plan.features?.map((feature, i) => (
-                    <li key={i}>✔ {feature}</li>
-                  ))}
-                </ul>
+              <h3 className={`text-2xl font-bold text-white mb-2 capitalize ${isPopular ? 'mt-2' : ''}`}>
+                {plan.name}
+              </h3>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePlanAction(plan);
-                  }}
-                  className="mt-8 w-full py-3 rounded-full bg-white/10 hover:bg-white/20 transition font-semibold text-white"
-                >
-                  {isTrial ? "Start Free Trial" : isCustom ? "Contact Sales" : "Get Started"}
-                </button>
+              <p className="text-gray-400 text-sm mb-4">
+                {plan.description}
+              </p>
 
+              <div className="mb-6">
+                {isTrial ? (
+                  <>
+                    <span className="text-4xl font-extrabold text-pink-400">$0.00</span>
+                    <span className="text-gray-400 text-sm"> /14 Days</span>
+                    {plan.minutes && (
+                      <span className="text-gray-400 text-sm ml-2">
+                        / {plan.minutes} minutes
+                      </span>
+                    )}
+                  </>
+                ) : plan.price ? (
+                  <>
+                    <span className="text-4xl font-extrabold text-pink-400">
+                      ${plan.price}
+                    </span>
+                    {plan.minutes && (
+                      <span className="text-gray-400 text-sm ml-2">
+                        / {plan.minutes} minutes
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-4xl font-extrabold text-pink-400">
+                    Custom
+                  </span>
+                )}
               </div>
+
+              <ul className="space-y-3 text-gray-300 text-sm flex-grow">
+                {plan.features?.map((feature, i) => (
+                  <li key={i}>✔ {feature}</li>
+                ))}
+              </ul>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePlanAction(plan);
+                }}
+                className="mt-8 w-full py-3 rounded-full bg-white/10 hover:bg-white/20 transition font-semibold text-white"
+              >
+                {isTrial ? "Start Free Trial" : isCustom ? "Contact Sales" : "Get Started"}
+              </button>
+
             </div>
-          );
-        })}
+          </div>
+        );
+      })}
       </div>
 
       {/* Register Modal (Exact design from homepage) */}
