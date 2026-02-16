@@ -36,9 +36,9 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     wallet_balance: Optional[float] = None  # Only for non-superadmin users
-    remaining_minutes: int 
+    remaining_minutes: Optional[int] = None 
     subscription_mode: Optional[str] = None
-    allowed_agents : int
+    allowed_agents : Optional[int] = None
     
     class Config:
         from_attributes = True

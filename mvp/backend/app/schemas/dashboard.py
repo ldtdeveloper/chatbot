@@ -21,6 +21,7 @@ class DashboardStats(BaseModel):
     # Summary cards
     total_interactions: int
     total_minutes: int
+    total_expense: Optional[int] = None
     total_agents: int
     active_keys: int
     
