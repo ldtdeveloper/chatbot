@@ -703,22 +703,25 @@
     </footer>
 
 <!-- Voice Assistant Widget: Maria -->
+<!-- Voice Assistant Widget: demo -->
+<!-- Voice Assistant Widget: Ana -->
+<!-- Voice Assistant Widget: demo -->
 <script>
 (function() {
     // API base URL for widget backend connection
-    let apiBaseUrl = '//chat-api.ldttechnology.in';
+    let apiBaseUrl = 'https://api.voicequik.com';
     
-    // Create and load widget script
+    // Create and load widget script-
     const script = document.createElement('script');
     script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
-    script.setAttribute('data-agent-id', '1');
+    script.setAttribute('data-agent-id', '16');
     script.setAttribute('data-api-url', apiBaseUrl);
-    script.setAttribute('data-agent-name', 'Maria');
+    script.setAttribute('data-agent-name', 'demo');
     script.async = true;
+    
     document.head.appendChild(script);
 })();
 </script>
-
     <script>
         // Smooth scrolling for navigation links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {

@@ -36,6 +36,7 @@ export default function ViewPlan({ plan, onBack }) {
   const currencySymbol = getCurrencySymbol(currency);
   // const walletCredits = plan.wallet_credits || plan.credits || 0;
   const minutesCredit = plan.minutes||0;
+  const agents = plan.number_of_agents||0;
   const planType = plan.plan_type || 'monthly';
 
   return (
@@ -78,6 +79,10 @@ export default function ViewPlan({ plan, onBack }) {
             <div className="info-item">
               <label>Total Minutes</label>
               <span className="credits-value">{minutesCredit} Minutes</span>
+            </div>
+            <div className="info-item">
+              <label>Total Agents</label>
+              <span className="credits-value">{agents} Agents</span>
             </div>
 
             <div className="info-item">

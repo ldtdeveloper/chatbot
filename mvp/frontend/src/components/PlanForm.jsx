@@ -13,6 +13,7 @@ export default function PlanForm({ initialData, onSubmit, onBack }) {
     plan_type: data.plan_type || "monthly",
     price: data.price || 0,
     minutes:data.minutes||0,
+    number_of_agents:data.number_of_agents||1,
     features: Array.isArray(data.features) ? data.features : [],
     is_active: data.is_active ?? true,
   });
@@ -48,6 +49,7 @@ export default function PlanForm({ initialData, onSubmit, onBack }) {
       plan_type: currentData.plan_type || "monthly",
       price: currentData.price || 0,
       minutes:currentData.minutes||0,
+      number_of_agents:data.number_of_agents||1,
       features: Array.isArray(currentData.features) ? currentData.features : [],
       is_active: currentData.is_active ?? true,
     });
@@ -95,6 +97,7 @@ export default function PlanForm({ initialData, onSubmit, onBack }) {
       // wallet_credits: Number(formData.wallet_credits),
       price: Number(formData.price),
       minutes:Number(formData.minutes),
+      no_of_agents:Number(formData.number_of_agents),
       features: formData.features,
     };
     
@@ -197,6 +200,21 @@ export default function PlanForm({ initialData, onSubmit, onBack }) {
               placeholder="Minutes User Get on this plan"
             />
           </label>
+          <label> 
+            Total Agents
+            <input
+              type="number"
+              name="number_of_agents"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={formData.number_of_agents}
+              onChange={handleChange}
+              min={1}
+              required
+              placeholder="Agents User Get on this plan"
+            />
+          </label>
+
 
           <label>
             Plan Type

@@ -12,6 +12,7 @@ def get_subscription_type(user, db: Session):
         Subscription.payment_status == PaymentStatus.SUCCESS,
         Subscription.is_active   
         ).first()
+
     
     return subscription
 
