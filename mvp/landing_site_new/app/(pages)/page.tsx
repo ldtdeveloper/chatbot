@@ -1,5 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
+import { useState, useEffect } from "react";
 import { HomePageScripts } from "./HomePageScripts";
 import { PricingPlans } from "./PricingPlans";
 
@@ -7,6 +8,17 @@ import { PricingPlans } from "./PricingPlans";
 const IMG = "";
 
 export default function HomePage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close menu on outside click or scroll
+  useEffect(() => {
+    const handleScroll = () => setMobileMenuOpen(false);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
   return (
     <div className="gradient-mesh min-h-screen text-white overflow-x-hidden">
       {/* Floating Background Shapes */}
@@ -23,19 +35,19 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Navigation - Pill Navbar Style (Exact Match to Provided HTML) */}
-      <nav className="main-navbar fixed top-0 left-0 right-0 z-50 px-6 py-4">
-        <div className="nav-inner flex items-center justify-between py-2.5 px-7 rounded-full bg-white backdrop-blur-xl border border-purple-500/30 shadow-2xl max-w-5xl mx-auto gap-4">
+      {/* Navigation - Pill Navbar Style */}
+      <nav className="main-navbar fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-4">
+        <div className="nav-inner flex items-center justify-between py-2.5 px-5 sm:px-7 rounded-full bg-white backdrop-blur-xl border border-purple-500/30 shadow-2xl max-w-5xl mx-auto gap-4">
           {/* Logo */}
           <div className="nav-logo flex-shrink-0">
-            <img 
-              src={`${IMG}/logo.png`} 
-              alt="Voice Quick" 
-              className="w-28 h-auto block sm:w-32" 
+            <img
+              src={`${IMG}/logo.png`}
+              alt="Voice Quick"
+              className="w-28 h-auto block sm:w-32"
             />
           </div>
 
-          {/* Center Links - Hidden on mobile/tablet, shown on md+ */}
+          {/* Center Links - Hidden on mobile, shown on md+ */}
           <div className="nav-center hidden md:flex items-center gap-8 flex-1 justify-center">
             <a href="#features" className="nav-link text-sm font-medium text-black hover:text-purple-600 transition">
               Features
@@ -49,13 +61,13 @@ export default function HomePage() {
           </div>
 
           {/* Right Side */}
-          <div className="nav-right flex items-center gap-4 flex-shrink-0">
-            {/* Login - Hidden on very small screens */}
-            <a 
-              href="#" 
+          <div className="nav-right flex items-center gap-3 flex-shrink-0">
+            {/* Login - Hidden on small screens */}
+            <a
+              href="#"
               className="login-link text-sm font-medium text-black hover:text-purple-600 transition hidden sm:inline-block"
-              onClick={(e) => { 
-                e.preventDefault(); 
+              onClick={(e) => {
+                e.preventDefault();
                 if (typeof window !== "undefined" && (window as any).openLoginModal) {
                   (window as any).openLoginModal();
                 }
@@ -64,25 +76,110 @@ export default function HomePage() {
               Login
             </a>
 
-            {/* Get Started Button */}
-            <a 
-              href="#pricing" 
-              className="cta-btn bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold text-sm px-6 py-2.5 rounded-full hover:opacity-90 transition"
+            {/* Get Started Button - hidden on mobile to save space */}
+            <a
+              href="#pricing"
+              className="cta-btn bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold text-sm px-5 py-2.5 rounded-full hover:opacity-90 transition hidden sm:inline-flex"
             >
               Get Started
             </a>
+
+            {/* Hamburger Button - visible only on mobile (< md = 768px) */}
+            <button
+              type="button"
+              aria-label="Toggle mobile menu"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="md:hidden flex flex-col justify-center items-center w-9 h-9 rounded-full bg-purple-50 hover:bg-purple-100 transition focus:outline-none focus:ring-2 focus:ring-purple-400 flex-shrink-0"
+            >
+              <span
+                className={`block w-5 h-0.5 bg-purple-700 rounded transition-all duration-300 ${
+                  mobileMenuOpen ? "rotate-45 translate-y-1.5" : ""
+                }`}
+              />
+              <span
+                className={`block w-5 h-0.5 bg-purple-700 rounded my-1 transition-all duration-300 ${
+                  mobileMenuOpen ? "opacity-0 scale-x-0" : ""
+                }`}
+              />
+              <span
+                className={`block w-5 h-0.5 bg-purple-700 rounded transition-all duration-300 ${
+                  mobileMenuOpen ? "-rotate-45 -translate-y-1.5" : ""
+                }`}
+              />
+            </button>
           </div>
         </div>
 
-        {/* Tablet Adjustments */}
+        {/* Mobile Dropdown Menu - hidden on md and above */}
+        <div
+          className={`md:hidden max-w-5xl mx-auto mt-2 transition-all duration-300 ease-in-out overflow-hidden ${
+            mobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="bg-white rounded-2xl border border-purple-200 shadow-2xl px-5 py-4 space-y-1">
+            <a
+              href="#features"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 font-medium hover:bg-purple-50 hover:text-purple-700 transition text-sm"
+            >
+              <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Features
+            </a>
+            <a
+              href="#how-it-works"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 font-medium hover:bg-purple-50 hover:text-purple-700 transition text-sm"
+            >
+              <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              How it Works
+            </a>
+            <a
+              href="#pricing"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 font-medium hover:bg-purple-50 hover:text-purple-700 transition text-sm"
+            >
+              <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z" />
+              </svg>
+              Pricing
+            </a>
+
+            <div className="border-t border-gray-100 pt-3 mt-2 space-y-2">
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                  if (typeof window !== "undefined" && (window as any).openLoginModal) {
+                    (window as any).openLoginModal();
+                  }
+                }}
+                className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border border-purple-200 text-purple-700 font-semibold text-sm hover:bg-purple-50 transition"
+              >
+                Login
+              </a>
+              <a
+                href="#pricing"
+                onClick={closeMobileMenu}
+                className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold text-sm hover:opacity-90 transition"
+              >
+                Get Started
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Tablet / Mobile Adjustments */}
         <style jsx>{`
           @media (max-width: 900px) {
             .nav-inner {
               padding: 8px 20px !important;
               gap: 12px !important;
-            }
-            .nav-center {
-              gap: 20px !important;
             }
             .nav-link {
               font-size: 13px !important;
@@ -92,24 +189,10 @@ export default function HomePage() {
             }
           }
 
-          /* Mobile - Hide center & login, smaller elements */
-          @media (max-width: 640px) {
+          /* Ensure center nav links are NEVER visible below md (768px) */
+          @media (max-width: 767px) {
             .nav-center {
               display: none !important;
-            }
-            .nav-inner {
-              padding: 8px 18px !important;
-              gap: 0 !important;
-            }
-            .login-link {
-              display: none !important;
-            }
-            .nav-logo img {
-              width: 90px !important;
-            }
-            .cta-btn {
-              font-size: 13px !important;
-              padding: 8px 16px !important;
             }
           }
         `}</style>
@@ -211,7 +294,7 @@ export default function HomePage() {
             Design and manage an AI Voice Bot that operates seamlessly across voice, chat, SMS, and digital channels. Voicequik delivers unified conversations with built-in compliance, reliability, and real-time insights.
           </p>
 
-          {/* Mobile Version: Simple vertical/grid cards - clean & easy to tap */}
+          {/* Mobile Version: Simple vertical/grid cards */}
           <div className="block lg:hidden">
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-6 sm:gap-8 max-w-3xl mx-auto">
               {/* EMAIL */}
@@ -261,7 +344,7 @@ export default function HomePage() {
                 <span className="channel-label mt-3 text-sm sm:text-base">SMS</span>
               </div>
 
-              {/* VOICE - larger icon in center */}
+              {/* VOICE */}
               <div className="flex flex-col items-center col-span-3 sm:col-span-1 order-first sm:order-none mb-6 sm:mb-0">
                 <div className="channel-icon-box channel-voice-icon w-16 h-16 sm:w-20 sm:h-20">
                   <svg viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -279,7 +362,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Desktop Version: Exact original arc layout (unchanged) */}
+          {/* Desktop Version: Arc layout */}
           <div className="hidden lg:block channel-arc-wrapper relative mt-12 max-w-5xl mx-auto">
             <div className="channel-rings-container relative w-full" aria-hidden>
               <svg className="channel-rings-svg w-full h-auto" viewBox="0 0 900 520" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
@@ -357,7 +440,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Launch AI Voice Bot Section - Mobile Responsive Fix */}
+      {/* Launch AI Voice Bot Section */}
       <section className="w-full launch-section flex flex-col lg:flex-row items-stretch justify-center py-12 md:py-16 lg:py-24 px-4 sm:px-6">
         <div className="launch-features w-full lg:w-[10%] flex flex-row lg:flex-col items-center lg:items-start justify-center gap-4 lg:gap-6 mb-8 lg:mb-0 flex-wrap">
           <div className="feature-card w-36 sm:w-40 lg:w-auto">
@@ -504,7 +587,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pricing Section - container for script.js to inject plans */}
+      {/* Pricing Section */}
       <section id="pricing" className="py-20 md:py-28 bg-gradient-to-b from-[#0f0f1a] to-[#140f24] relative">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 max-w-7xl mx-auto">
@@ -596,8 +679,8 @@ export default function HomePage() {
               { q: "Which industries can benefit from VoiceQuik's AI Voice Assistant?", a: "Industries including healthcare, finance, real estate, e-commerce, logistics, and customer support teams can benefit from VoiceQuik." },
             ].map((faq) => (
               <div key={faq.q} className="faq-item bg-[#1b1b22] rounded-2xl overflow-hidden shadow-lg">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="faq-btn w-full flex justify-between items-center px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 text-left transition-all duration-300 hover:bg-[#222228]"
                 >
                   <span className="text-white text-base sm:text-lg font-medium pr-4">
@@ -690,7 +773,7 @@ export default function HomePage() {
         <div className="py-6 text-center text-sm text-gray-400">© 2026 VoiceQuik by LDT Technology Pvt. Ltd. All rights reserved.</div>
       </footer>
 
-      {/* Modals and overlay - same structure as home.html for script.js */}
+      {/* Modals and overlay */}
       <RegisterModal />
       <LoginModal />
       <LoadingOverlay />

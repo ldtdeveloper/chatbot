@@ -429,9 +429,7 @@ const handlePlanAction = (plan: Plan) => {
   };
 
   const handleForgotPassword = (e: React.MouseEvent) => {
-    e.preventDefault();
-    // Implement forgot password logic here
-    console.log("Forgot password clicked");
+    (window as any).handleForgotPassword?.(e);
   };
 
   if (loading) return null;
