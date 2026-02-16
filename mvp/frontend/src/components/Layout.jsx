@@ -69,7 +69,7 @@ function Layout() {
       fontWeight: 600,         // font-semibold
     }}
   >
-    Voice Assistant Platform
+    VoiceQuik
   </h1>
 </div>
         <div className="navbar-menu">
