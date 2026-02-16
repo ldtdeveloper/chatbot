@@ -193,15 +193,20 @@ const handlePlanAction = (plan: Plan) => {
         const errorMsg = data.detail || data.message || "Registration failed";
         registerError.textContent = errorMsg;
         registerError.classList.remove("hidden");
+        // Show only one toast for already registered user
         if (typeof window !== "undefined" && (window as any).Toastify) {
-          (window as any).Toastify({
-            text: errorMsg,
-            duration: 3000,
-            gravity: "top",
-            position: "right",
-            backgroundColor: "#dc2626",
-            style: { borderRadius: "15px" }
-          }).showToast();
+          if (errorMsg.toLowerCase().includes("already")) {
+            (window as any).Toastify({
+              text: errorMsg,
+              duration: 3000,
+              gravity: "top",
+              position: "right",
+              backgroundColor: "#dc2626",
+              style: { borderRadius: "15px" }
+            }).showToast();
+            setShowLoadingOverlay(false);
+            return;
+          }
         }
         throw new Error(errorMsg);
       }
@@ -222,17 +227,20 @@ const handlePlanAction = (plan: Plan) => {
       }
     } catch (err: any) {
       const errorMsg = err.message || "Registration failed. Please try again.";
-      registerError.textContent = errorMsg;
-      registerError.classList.remove("hidden");
-      if (typeof window !== "undefined" && (window as any).Toastify) {
-        (window as any).Toastify({
-          text: errorMsg,
-          duration: 3000,
-          gravity: "top",
-          position: "right",
-          backgroundColor: "#dc2626",
-          style: { borderRadius: "15px" }
-        }).showToast();
+      // Only show errorDiv for errors not already handled by toast
+      if (!errorMsg.toLowerCase().includes("already")) {
+        registerError.textContent = errorMsg;
+        registerError.classList.remove("hidden");
+        if (typeof window !== "undefined" && (window as any).Toastify) {
+          (window as any).Toastify({
+            text: errorMsg,
+            duration: 3000,
+            gravity: "top",
+            position: "right",
+            backgroundColor: "#dc2626",
+            style: { borderRadius: "15px" }
+          }).showToast();
+        }
       }
     } finally {
       setShowLoadingOverlay(false);

@@ -423,6 +423,22 @@ async function handleRegister(e) {
 
         if (!registerResponse.ok) {
             const error = await registerResponse.json();
+            // Show only one toast for already registered user
+            if (error.detail && error.detail.toLowerCase().includes('already')) {
+                Toastify({
+                    text: error.detail,
+                    duration: 2000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#dc2626",
+                    style: {
+                        borderRadius: "15px"
+                    }
+                }).showToast();
+                loadingOverlay.classList.add('hidden');
+                registerBtn.disabled = false;
+                return;
+            }
             throw new Error(error.detail || 'Registration failed');
         }
 
@@ -436,8 +452,6 @@ async function handleRegister(e) {
             closeRegisterModal();
             loadingOverlay.classList.add('hidden');
 
-            // Show success message
-            // alert(`Registration successful! Please check your email (${email}) for the payment link. Click the link in the email to complete payment and set up your password.`);
             Toastify({
                 text: `Registration successful! Please check your email`,
                 duration: 2000,
@@ -453,8 +467,11 @@ async function handleRegister(e) {
 
     } catch (error) {
         console.error('Registration error:', error);
-        errorDiv.textContent = error.message || 'Registration failed. Please try again.';
-        errorDiv.classList.remove('hidden');
+        // Only show errorDiv for errors not already handled by toast
+        if (!error.message || !error.message.toLowerCase().includes('already')) {
+            errorDiv.textContent = error.message || 'Registration failed. Please try again.';
+            errorDiv.classList.remove('hidden');
+        }
         loadingOverlay.classList.add('hidden');
         registerBtn.disabled = false;
     }
