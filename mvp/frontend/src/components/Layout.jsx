@@ -23,7 +23,7 @@ function Layout() {
     navigate('/login')
   }
  
-  const isTrial =user?.subscription_mode=== 'trial' 
+  const isTrial = user?.subscription_mode=== 'trial' 
  
   const displayedBalance=user?.remaining_minutes
   console.log(displayedBalance)
@@ -107,7 +107,7 @@ function Layout() {
                 title={
                   isTrial
                     ? 'Trial  limited to 50 minutes – Upgrade to unlock full access'
-                    : `Wallet: $${displayedBalance}`
+                    : `Minutes: ${displayedBalance}`
                 }
               >
                 <span className="wallet-amount-text">
