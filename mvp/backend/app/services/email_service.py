@@ -167,7 +167,7 @@ class EmailService:
             self.smtp_host, self.smtp_port, self.smtp_user, bool(self.smtp_password),
             self.from_email, self.from_name, to_email, subject
         )
-
+        print(f"Email SMTP configured SMTP FROM_EMAIL {self.from_email}-------------------")
         if not self.smtp_user or not self.smtp_password:
             print(f"[Email] SMTP not configured - would send to {to_email}")
             print(f"[Email] Subject: {subject}")

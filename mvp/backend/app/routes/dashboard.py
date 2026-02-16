@@ -48,7 +48,7 @@ async def get_dashboard_stats(
         used_minutes = 0
 
         if usage and usage.used_seconds is not None:
-            used_minutes = round(usage.used_seconds // 60)
+            used_minutes = usage.used_seconds // 60
         # Check if user is superadmin - handle both enum and string comparison
         is_superadmin = False
         if hasattr(current_user.role, 'value'):
@@ -221,7 +221,7 @@ async def get_dashboard_stats(
             total_interactions=total_interactions,
             total_expenses=round(total_expenses, 2) if (total_expenses and current_user.role==UserRole.SUPERADMIN) else 0,
             total_agents=total_agents,
-            #total_minutes = used_minutes,
+            total_minutes = used_minutes,
             active_keys=active_keys,
             total_charging=round(total_charging, 2) if total_charging is not None else None,
             profit=round(profit, 2) if profit is not None else None,

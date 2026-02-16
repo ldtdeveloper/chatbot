@@ -87,7 +87,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    from_email: str = "noreply@voiceassistant.ai"
+    from_email: str = os.getenv("FROM_EMAIL","")
     from_name: str = "Voice Assistant Platform"
     
     # Razorpay Settings
@@ -164,4 +164,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-print(settings)
