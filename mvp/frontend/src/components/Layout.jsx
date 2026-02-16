@@ -107,11 +107,11 @@ function Layout() {
                 title={
                   isTrial
                     ? 'Trial  limited to 50 minutes – Upgrade to unlock full access'
-                    : `Wallet: $${displayedBalance.toFixed(2)}`
+                    : `Wallet: $${displayedBalance}`
                 }
               >
                 <span className="wallet-amount-text">
-                  🕒{displayedBalance.toFixed(2)}
+                  🕒{displayedBalance}
                   {isTrial && <small className="trial-hint"> trial</small>}
                 </span>
               </button>

@@ -353,7 +353,7 @@ async def verify_payment_from_token(
         if user.role != UserRole.SUPERADMIN:
             plan = db.query(Plans).filter(Plans.id == db_token.plan_id).first()
             if plan:
-                usage_seconds = int(plan.minutes/60)
+                usage_seconds = int(plan.minutes*60)
                 users_usage_seconds = add_to_usage_balance(user.id, usage_seconds, db)
                 print(f"===== Added {usage_seconds} sec to User's Usage balance for user {user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_seconds} sec=====")
 
@@ -413,7 +413,7 @@ async def verify_payment(
         if current_user.role != UserRole.SUPERADMIN:
             plan = db.query(Plans).filter(Plans.id == subscription.plan_type).first()
             if plan:
-                usage_second= int(plan.minutes/60)
+                usage_second= int(plan.minutes*60)
                 users_usage_sec = add_to_usage_balance(current_user.id, usage_second, db)
                 print(f"===== Added {usage_second} minutes to User's Usage balance for user {current_user.id} (plan usage minutes: {plan.minutes}). New balance: {users_usage_sec} sec =====")
         

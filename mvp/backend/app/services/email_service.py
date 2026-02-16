@@ -3,12 +3,14 @@ Email Service for sending reports
 Supports SMTP and can be extended for SendGrid/AWS SES
 """
 import smtplib
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Dict, Any, Optional
 
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
 
 class EmailService:
     """Email service for sending HTML reports"""
@@ -157,6 +159,15 @@ class EmailService:
     
     def send_email(self, to_email: str, subject: str, html_content: str, text_content: Optional[str] = None) -> bool:
         """Send an email via SMTP"""
+        
+        # Log SMTP config when send_email is called (password masked) - use logging so it appears under uvicorn
+        logger.info(
+            "send_email called - SMTP config: smtp_host=%s smtp_port=%s smtp_user=%s smtp_password_set=%s "
+            "from_email=%s from_name=%s to_email=%s subject=%s",
+            self.smtp_host, self.smtp_port, self.smtp_user, bool(self.smtp_password),
+            self.from_email, self.from_name, to_email, subject
+        )
+
         if not self.smtp_user or not self.smtp_password:
             print(f"[Email] SMTP not configured - would send to {to_email}")
             print(f"[Email] Subject: {subject}")
