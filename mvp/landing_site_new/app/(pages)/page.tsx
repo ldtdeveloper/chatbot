@@ -65,7 +65,7 @@ export default function HomePage() {
             {/* Login - Hidden on small screens */}
             <a
               href="#"
-              className="login-link text-sm font-medium text-black hover:text-purple-600 transition hidden sm:inline-block"
+              className="login-link text-sm font-medium text-black hover:text-purple-600 transition hidden md:inline-block"
               onClick={(e) => {
                 e.preventDefault();
                 if (typeof window !== "undefined" && (window as any).openLoginModal) {
@@ -79,7 +79,7 @@ export default function HomePage() {
             {/* Get Started Button - hidden on mobile to save space */}
             <a
               href="#pricing"
-              className="cta-btn bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold text-sm px-5 py-2.5 rounded-full hover:opacity-90 transition hidden sm:inline-flex"
+              className="cta-btn bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold text-sm px-5 py-2.5 rounded-full hover:opacity-90 transition hidden md:inline-flex"
             >
               Get Started
             </a>
@@ -200,7 +200,7 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="mt-24 min-h-screen flex items-center pt-16 md:pt-0 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 sm:py-12 md:py-20">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="space-y-6 md:space-y-8 text-center lg:text-left order-2 lg:order-1">
               <div className="inline-flex items-center space-x-2 bg-purple-900/50 backdrop-blur px-4 py-2 rounded-full shadow-md border border-purple-700 animate-fade-in">
@@ -228,9 +228,9 @@ export default function HomePage() {
                 </button>
                 <a
                   href="#how-it-works"
-                  className="relative inline-flex items-center justify-center p-[2px] rounded-full bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-500"
+                  className="relative inline-flex items-center justify-center p-[2px] rounded-full bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-500 w-full sm:w-auto"
                 >
-                  <span className="bg-white text-purple-700 px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg flex items-center space-x-2 hover:bg-gray-100 transition">
+                  <span className="bg-white text-purple-700 px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg flex items-center justify-center space-x-2 hover:bg-gray-100 transition w-full">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -296,7 +296,7 @@ export default function HomePage() {
 
           {/* Mobile Version: Simple vertical/grid cards */}
           <div className="block lg:hidden">
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-6 sm:gap-8 max-w-3xl mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-6 sm:gap-8 max-w-3xl mx-auto">
               {/* EMAIL */}
               <div className="flex flex-col items-center">
                 <div className="channel-icon-box w-12 h-12 sm:w-16 sm:h-16">
@@ -345,7 +345,7 @@ export default function HomePage() {
               </div>
 
               {/* VOICE */}
-              <div className="flex flex-col items-center col-span-3 sm:col-span-1 order-first sm:order-none mb-6 sm:mb-0">
+              <div className="flex flex-col items-center col-span-2 sm:col-span-1 order-first sm:order-none mb-6 sm:mb-0">
                 <div className="channel-icon-box channel-voice-icon w-16 h-16 sm:w-20 sm:h-20">
                   <svg viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="0" y="10" width="4" height="8" rx="2" fill="white" />
@@ -441,21 +441,22 @@ export default function HomePage() {
       </section>
 
       {/* Launch AI Voice Bot Section */}
-      <section className="w-full launch-section flex flex-col lg:flex-row items-stretch justify-center py-12 md:py-16 lg:py-24 px-4 sm:px-6">
-        <div className="launch-features w-full lg:w-[10%] flex flex-row lg:flex-col items-center lg:items-start justify-center gap-4 lg:gap-6 mb-8 lg:mb-0 flex-wrap">
-          <div className="feature-card w-36 sm:w-40 lg:w-auto">
-            <img className="w-12 sm:w-16 mx-auto" src={`${IMG}/online.png`} alt="Online Shopping Support" />
+    <section className="w-full launch-section flex flex-col lg:flex-row items-stretch justify-center py-12 md:py-16 lg:py-24 px-4 sm:px-6">
+        <div className="launch-features w-full lg:w-[10%] grid grid-cols-2 lg:grid-cols-1 items-start justify-items-center gap-4 lg:gap-6 mb-8 lg:mb-0">
+          <div className="feature-card w-full">
+            <img className="w-12 sm:w-16 mx-auto"  style={{ width: '48px', height: '48px', objectFit: 'contain' }}
+      src={`${IMG}/online.png`} alt="Online Shopping Support" />
             <span className="text-black text-xs sm:text-sm text-center">Online Shopping Support</span>
           </div>
-          <div className="feature-card w-36 sm:w-40 lg:w-auto">
+          <div className="feature-card w-full">
             <img className="w-12 sm:w-16 mx-auto" src={`${IMG}/order.png`} alt="Order Management" />
             <span className="text-black text-xs sm:text-sm text-center">Order Management</span>
           </div>
-          <div className="feature-card w-36 sm:w-40 lg:w-auto">
+          <div className="feature-card w-full">
             <img className="w-12 sm:w-16 mx-auto" src={`${IMG}/appointment.png`} alt="Appointment Scheduling" />
             <span className="text-black text-xs sm:text-sm text-center">Appointment Scheduling</span>
           </div>
-          <div className="feature-card w-36 sm:w-40 lg:w-auto">
+          <div className="feature-card w-full">
             <img className="w-12 sm:w-16 mx-auto" src={`${IMG}/bank.png`} alt="Banking Assistance" />
             <span className="text-black text-xs sm:text-sm text-center">Banking Assistance</span>
           </div>

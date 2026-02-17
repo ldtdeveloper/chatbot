@@ -268,7 +268,7 @@ body {
 
 .channel-section {
     position: relative;
-    padding: 80px 0;
+    /* padding: 80px 0; */
     overflow: hidden;
 }
 .channel-section::before {
@@ -341,7 +341,13 @@ body {
 .channel-icon-box svg { width: 36px; height: 36px; }
 .channel-label {
     font-size: 0.72rem; font-weight: 700;
-    letter-spacing: 0.08em; color: #1a1a2e; text-align: center;
+    letter-spacing: 0.08em; color: white; text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .channel-label {
+    color: #1a1a2e;
+  }
 }
 
 /* Positions */
@@ -381,7 +387,14 @@ body {
 /* Launch AI Voice Section */
 
 .launch-section {
-    padding: 120px 0;
+    padding: 10px;
+    padding-bottom: 30px;
+}
+
+@media (min-width: 1024px) {
+  .launch-section {
+    padding-bottom: 120px;
+  }
 }
 
 .launch-wrapper {
@@ -396,19 +409,38 @@ body {
 
 /* LEFT FEATURE CARDS */
 .launch-features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 cols on mobile/tablet */
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .launch-features {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    width: 10%;
+  }
 }
 
 .feature-card {
-    background: #ffffff;
-    padding: 8px 10px;
-    border-radius: 18px;
-    font-weight: 700;
-    font-size: 16px;
-    text-align: center;
-    box-shadow: 0 6px 10px rgba(255,255,255,0.25);
+  background: #ffffff;
+  padding: 8px 10px;
+  border-radius: 18px;
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
+  box-shadow: 0 6px 10px rgba(255, 255, 255, 0.25);
+
+  /* Equal sizing — key fix */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 120px; /* gives all cards equal height */
+  width: 100%;       /* fills grid column equally */
+  box-sizing: border-box;
 }
 
 
@@ -435,5 +467,3 @@ body {
     width: 100%;
     opacity: 0.9;
 }
-
-
