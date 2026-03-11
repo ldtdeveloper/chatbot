@@ -1,7 +1,7 @@
 """
 User model
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -23,6 +23,11 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.DEFAULT, nullable=False)
     is_active = Column(Boolean, default=False)  # Inactive until password is set
     password_set = Column(Boolean, default=False)  # Track if password has been set
+    #whatsaap related fields 
+    default_widget_mode = Column( String(20),nullable=False, default="demo", server_default="demo")
+    last_whatsapp_number_id = Column(String(30),  nullable=True  )
+    whatsapp_connected = Column(Boolean,nullable=False,  default=False,  server_default="false" )
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -38,4 +43,5 @@ class User(Base):
     wallet = relationship("Wallet", back_populates="user", uselist=False, cascade="all, delete-orphan")
     wallet_transactions = relationship("WalletTransaction", back_populates="user", cascade="all, delete-orphan")
     user_min_balance = relationship("UserMinuteBalance",back_populates= "user",cascade = "all, delete-orphan")
-
+    text_agents = relationship("TextAgent", back_populates="user")
+    human_agents = relationship("HumanAgent", back_populates="user", cascade="all, delete-orphan")

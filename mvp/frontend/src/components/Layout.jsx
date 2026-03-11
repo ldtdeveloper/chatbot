@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../context/authStore'
 import WalletModal from './WalletModal'
 import PlansPopup from './PlansPopup'
@@ -9,6 +9,7 @@ import logoIcon from '../assets/logo.png';
 function Layout() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [walletModalOpen, setWalletModalOpen] = useState(false)
@@ -92,6 +93,7 @@ function Layout() {
               )}
             </>
           )}
+
 
           {/* Wallet Section */}
           {user?.role !== 'superadmin' && (

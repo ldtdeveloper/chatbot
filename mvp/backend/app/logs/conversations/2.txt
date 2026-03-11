@@ -1,0 +1,32 @@
+[2026-03-10 18:16:12] User: Hi
+[2026-03-10 18:16:50] User: I want to talk to human
+[2026-03-10 18:16:50] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:18:34] User: I want to talk to human
+[2026-03-10 18:18:34] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:22:06] User: i want to talk to human
+[2026-03-10 18:22:06] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:24:28] User: i want to talk to human
+[2026-03-10 18:24:28] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:27:11] User: I want to talk to human
+[2026-03-10 18:27:11] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:28:11] User: human
+[2026-03-10 18:28:11] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:34:05] User: human
+[2026-03-10 18:34:05] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:38:09] User: I want to talk to human
+[2026-03-10 18:38:09] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:38:52] User: I want to talk to human
+[2026-03-10 18:38:52] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:40:59] User: I want to talk to human
+[2026-03-10 18:40:59] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:44:16] User: I want to talk to human
+[2026-03-10 18:44:16] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:44:53] User: Human
+[2026-03-10 18:44:53] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:46:58] User: I want to talk to human
+[2026-03-10 18:46:58] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:48:00] User: I want to talk to human
+[2026-03-10 18:48:00] System: Connecting you to an agent, please wait... 🤝
+[2026-03-10 18:51:37] Agent: demouser: hi
+[2026-03-10 18:51:56] User: Hi
+[2026-03-10 18:52:01] AI: Sorry, something went wrong.

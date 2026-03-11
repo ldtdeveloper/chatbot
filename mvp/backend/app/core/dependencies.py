@@ -2,6 +2,8 @@
 Dependencies for authentication and authorization
 """
 from fastapi import Depends, HTTPException, status
+from typing import Optional
+from fastapi import Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
@@ -88,4 +90,13 @@ async def require_active_subscription(
         )
     
     return current_user
+
+def get_optional_current_user(request: Request, db: Session = Depends(get_db)):
+    """
+    Optional auth: returns User if token valid, else None
+    """
+    try:
+        return get_current_user(request, db)
+    except HTTPException:
+        return None
 

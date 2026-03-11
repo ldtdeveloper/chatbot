@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     secret_key: str = "your-secret-key-change-in-production"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    FRONTEND_URL: str = "http://localhost:3000/dashboard"
+    MASTER_OPENAI_KEY:str
+   
     
     # Server
     host: str = "0.0.0.0"
@@ -76,11 +79,11 @@ class Settings(BaseSettings):
     frontend_base_url: str = "http://localhost:3000"
     
     #Celery URL
-    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
-    CELERY_BACKEND_URL: str = "redis://localhost:6379/1"
+    CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+    CELERY_BACKEND_URL: str = os.getenv("CELERY_BACKEND_URL", "redis://localhost:6379/1")
 
     #REDIS URL
-    REDIS_URL : str = "redis://localhost:6379/0"
+    REDIS_URL : str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     
     # SMTP Email Settings (for weekly reports)
     smtp_host: str = "smtp.gmail.com"
@@ -95,6 +98,10 @@ class Settings(BaseSettings):
     razorpay_key_secret: str = os.getenv("RAZORPAY_KEY_SECRET","")
     ADMIN_KEY:str = os.getenv("ADMIN_KEY","")
     PROJECT_ID:str = os.getenv("PROJECT_ID","")
+    #whatsaap key 
+    WHATSAPP_APP_ID: str
+    WHATSAPP_APP_SECRET: str
+    WHATSAPP_REDIRECT_URI: str
 
     # HubSpot OAuth Configuration
     hubspot_oauth_redirect_uri: str = "http://localhost:8081/api/integration-config/hubspot/oauth/callback"  # Can be overridden via HUBSPOT_OAUTH_REDIRECT_URI
@@ -164,3 +171,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+print("MASTER KEY LOADED:", bool(settings.MASTER_OPENAI_KEY))

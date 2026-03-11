@@ -9,7 +9,10 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routes import auth, service_account,agents, assistant_config, widget, users, dashboard, reports, integration_config, payments, plans
+from app.routes import whatsapp_dashboard
+from app.routes import human_agent_auth
+from fastapi.staticfiles import StaticFiles
+from app.routes import auth, service_account,agents, assistant_config, widget, users, dashboard, reports, integration_config, payments, plans,whatsapp, whatsapp_handoff, human_agents
 from app.routes import payment_link
 from sqlalchemy import text
 
@@ -202,6 +205,70 @@ def migrate_interactions_foreign_key():
         print(f"[Migration] ⚠️ Warning: Could not migrate interactions foreign key: {e}")
 
 
+def migrate_text_agents_company_id():
+    """Add company_id column to text_agents table if it doesn't exist"""
+    db_url = settings.database_url
+    is_postgres = ('postgresql' in db_url or 'postgres' in db_url) and not db_url.startswith('sqlite://')
+    
+    if not is_postgres:
+        return
+    
+    try:
+        with engine.begin() as conn:
+            # Check if company_id column exists in text_agents table
+            check_column = text("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'text_agents' AND column_name = 'company_id'
+                )
+            """)
+            result = conn.execute(check_column)
+            if not result.scalar():
+                print("[Migration] Adding company_id column to text_agents")
+                conn.execute(text("""
+                    ALTER TABLE text_agents 
+                    ADD COLUMN company_id INTEGER REFERENCES companies(id)
+                """))
+                print("[Migration] ✅ Added company_id column to text_agents")
+    except Exception as e:
+        print(f"[Migration] ⚠️ Warning: Could not add company_id to text_agents: {e}")
+
+
+# def backfill_text_agents_company_id():
+#     \"\"\"Backfill company_id in text_agents from the associated user's company_id\"\"\"
+#     db_url = settings.database_url
+#     is_postgres = ('postgresql' in db_url or 'postgres' in db_url) and not db_url.startswith('sqlite://')
+#     
+#     if not is_postgres:
+#         return
+#     
+#     try:
+#         with engine.begin() as conn:
+#             # Check if text_agents table exists
+#             check_table = text(\"\"\"
+#                 SELECT EXISTS (
+#                     SELECT FROM information_schema.tables 
+#                     WHERE table_name = 'text_agents'
+#                 )
+#             \"\"\")
+#             result = conn.execute(check_table)
+#             if not result.scalar():
+#                 return
+#                 
+#             print(\"[Migration] Backfilling company_id in text_agents\")
+#             conn.execute(text(\"\"\"
+#                 UPDATE text_agents 
+#                 SET company_id = users.company_id 
+#                 FROM users 
+#                 WHERE text_agents.user_id = users.id 
+#                 AND text_agents.company_id IS NULL 
+#                 AND users.company_id IS NOT NULL
+#             \"\"\"))
+#             print(\"[Migration] ✅ Backfilled company_id in text_agents\")
+#     except Exception as e:
+#         print(f\"[Migration] ⚠️ Warning: Could not backfill company_id in text_agents: {e}\")
+
+
 # Create enum types before creating tables (required for PostgreSQL)
 create_enum_types()
 
@@ -211,7 +278,8 @@ Base.metadata.create_all(bind=engine)
 # Fix foreign key constraints (migrations)
 migrate_agent_foreign_key()
 migrate_interactions_foreign_key()
-
+migrate_text_agents_company_id()
+# backfill_text_agents_company_id()
 
 # Lifespan handler for scheduler startup/shutdown
 @asynccontextmanager
@@ -237,17 +305,18 @@ app = FastAPI(
 )
 
 
+
 # More permissive CORS for development
 # In production, use specific origins
 cors_origins = [
         "https://voicequik.com",
         "https://app.voicequik.com",
         "http://localhost:3000",
+        "http://localhost:5173", # Standard Vite port
         "http://127.0.0.1:5500",
         "http://localhost:5500",
         "null",  # file:// protocol
     ]
-    
 
 app.add_middleware(
     CORSMiddleware,
@@ -300,11 +369,18 @@ app.include_router(agents.router)
 app.include_router(assistant_config.router)  # Now handles multiple assistants
 app.include_router(widget.router)
 app.include_router(dashboard.router)
+app.include_router(whatsapp_dashboard.router)
 app.include_router(reports.router)
 app.include_router(integration_config.router)
+app.include_router(human_agent_auth.router)
 app.include_router(payments.router)
 app.include_router(payment_link.router)
 app.include_router(plans.router)
+app.include_router(whatsapp.router)
+app.include_router(whatsapp_handoff.router)
+app.include_router(human_agents.router)
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/landing", StaticFiles(directory="../landing_site", html=True), name="landing")
 
 
 @app.get("/")

@@ -7,6 +7,8 @@ import { showSuccess,showError } from '../utils/toast.js';
 import AgentCategorySelector from '../components/AgentCategorySelector';
 import WebAgentsSection from '../components/WebAgentsSection';
 import PhoneAgentsSection from '../components/PhoneAgentsSection';
+import WhatsappAgentsSection from '../components/WhatsappAgentsSection';
+import EmployeesSection from '../components/EmployeesSection';
 import EditAgentModal from '../components/EditAgentModal';
 import WidgetModal from '../components/WidgetModal';
 import InstructionsModal from '../components/InstructionsModal';
@@ -144,11 +146,11 @@ function Agents() {
       } else {
         data = await agentService.generateWidgetCodeFixed(selectedAgentForWidget.id);
       }
-      setWidgetCode(data.widget_code); // Set the code dynamically
-      setWidgetId(data.widget_id || null); // Store widget_id from response
+      setWidgetCode(data.widget_code);
+      setWidgetId(data.widget_id || null);
     } catch (error) {
       console.error("Error fetching widget code:", error);
-      alert("Failed to fetch widget code");
+      showError("Failed to fetch widget code");
     }
   };
 
@@ -270,12 +272,35 @@ function Agents() {
     }
   })
 
+  const updatePhoneMutation = useMutation({
+    mutationFn: ({ id, data }) => agentService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['agents'])
+      setEditingAgent(null)
+      setShowPhoneAddForm(false)
+      handleCancelPhoneEdit()
+      showSuccess(`Phone agent updated successfully`)
+    },
+    onError: (error) =>{
+      showError(error)
+    }
+  })
+
   const deleteMutation = useMutation({
     mutationFn: agentService.delete,
     onSuccess: () => {
       queryClient.invalidateQueries(['agents'])
       setSelectedAgent(null)
       showSuccess(`Agent deleted successfully`)
+    },
+  })
+
+  const deletePhoneMutation = useMutation({
+    mutationFn: agentService.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['agents'])
+      setSelectedPhoneAgentId(null)
+      showSuccess(`Phone agent deleted successfully`)
     },
   })
   function convertJsonPrompt(data) {
@@ -334,7 +359,7 @@ function Agents() {
     if (editingAgent) {
       // Update existing agent
       if (!finalFormData.instructions.trim()) {
-        alert('Instructions are required')
+        showError('Instructions are required')
         return
       }
       updateMutation.mutate({
@@ -344,11 +369,11 @@ function Agents() {
     } else {
       // Create new agent
       if (!selectedApiKeyId) {
-        alert('Please select an API key')
+        showError('Please select an API key')
         return
       }
       if (!finalFormData.instructions.trim()) {
-        alert('Instructions are required')
+        showError('Instructions are required')
         return
       }
       /////sending to the backend
@@ -417,10 +442,65 @@ function Agents() {
     setShowEditModal(true)
   }
 
+  const handlePhoneEdit = (agent) => {
+    setEditingAgent(agent)
+
+    const defaultInstructions = {
+      voice_behaviour: "",
+      scope: '',
+      contact_details: '',
+      privacy_rules: '',
+      top_features: '',
+      product: '',
+      services: '',
+      office_locations: '',
+      pricing_rules: '',
+      restrictions: '',
+      tone_examples: '',
+      additional_instructions: ''
+    }
+
+    let parsedInstructions = { ...defaultInstructions }
+
+    if (agent.instructions) {
+      if (typeof agent.instructions === 'object') {
+        parsedInstructions = { ...defaultInstructions, ...agent.instructions }
+      } else if (typeof agent.instructions === 'string') {
+        try {
+          const parsed = JSON.parse(agent.instructions)
+          if (typeof parsed === 'object' && parsed !== null) {
+            parsedInstructions = { ...defaultInstructions, ...parsed }
+          } else {
+            parsedInstructions = { ...defaultInstructions, voice_behaviour: agent.instructions }
+          }
+        } catch (error) {
+          parsedInstructions = { ...defaultInstructions, voice_behaviour: agent.instructions }
+        }
+      }
+    }
+
+    setInstructions(parsedInstructions)
+    setPhoneFormData({
+      name: agent.name,
+      phone_number: agent.phone_number || '',
+      sip_server: agent.sip_server || '',
+      sip_username: agent.sip_username || '',
+      sip_password: agent.sip_password || '',
+      sip_domain: agent.sip_domain || '',
+      instructions: agent.instructions,
+      voice: agent.voice || 'alloy',
+      noise_reduction_mode: agent.noise_reduction_mode || 'near_field',
+      noise_reduction_threshold: agent.noise_reduction_threshold || '0.65',
+      noise_reduction_prefix_padding_ms: agent.noise_reduction_prefix_padding_ms || 150,
+      noise_reduction_silence_duration_ms: agent.noise_reduction_silence_duration_ms || 600
+    })
+    setShowPhoneAddForm(true)
+  }
+
 
   const handleGenerateWidget = async (agent) => {
     try {
-      setTab("float") // Set initial tab to float
+      setTab("float")
       const data = await agentService.generateWidgetCode(agent.id)
       setWidgetCode(data.widget_code)
       setWidgetId(data.widget_id || null)
@@ -428,7 +508,7 @@ function Agents() {
       setShowWidgetModal(true)
     } catch (error) {
       console.error('Error generating widget code:', error)
-      alert('Failed to generate widget code: ' + (error.response?.data?.detail || error.message))
+      showError('Failed to generate widget code: ' + (error.response?.data?.detail || error.message))
     }
   }
   const handleGenerateWidgetFixed = async (agent) => {
@@ -439,7 +519,7 @@ function Agents() {
       setShowWidgetModal(true)
     } catch (error) {
       console.error('Error generating widget code:', error)
-      alert('Failed to generate widget code: ' + (error.response?.data?.detail || error.message))
+      showError('Failed to generate widget code: ' + (error.response?.data?.detail || error.message))
     }
   }
 
@@ -455,7 +535,7 @@ function Agents() {
 
     if (!widgetCode) {
       console.warn('No widget code to copy')
-      alert('No widget code available to copy. Please wait for it to load.')
+      showError('No widget code available to copy. Please wait for it to load.')
       return
     }
 
@@ -628,26 +708,38 @@ function Agents() {
       agent_type: 'PHONE',
       instructions: JSON.stringify(Instructions)
     }
-    if (!phoneApiKeyId) {
-      alert('Please select an API key')
-      return
+
+    if (editingAgent) {
+      if (!finalFormData.instructions.trim()) {
+        showError('Instructions are required')
+        return
+      }
+      updatePhoneMutation.mutate({
+        id: editingAgent.id,
+        data: finalFormData
+      })
+    } else {
+      if (!phoneApiKeyId) {
+        showError('Please select an API key')
+        return
+      }
+      if (!finalFormData.instructions.trim()) {
+        showError('Instructions are required')
+        return
+      }
+      if (!finalFormData.phone_number) {
+        showError('Phone number is required')
+        return
+      }
+      if (!finalFormData.sip_server) {
+        showError('SIP server is required')
+        return
+      }
+      createPhoneMutation.mutate({
+        ...finalFormData,
+        openai_key_id: parseInt(phoneApiKeyId)
+      })
     }
-    if (!finalFormData.instructions.trim()) {
-      alert('Instructions are required')
-      return
-    }
-    if (!finalFormData.phone_number) {
-      alert('Phone number is required')
-      return
-    }
-    if (!finalFormData.sip_server) {
-      alert('SIP server is required')
-      return
-    }
-    createPhoneMutation.mutate({
-      ...finalFormData,
-      openai_key_id: parseInt(phoneApiKeyId)
-    })
   }
 
 
@@ -725,28 +817,53 @@ function Agents() {
         <h1>Agents</h1>
       </div>
 
-      <AgentCategorySelector 
+      <AgentCategorySelector
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
       />
 
+      {activeCategory === 'whatsapp' && (
+        <WhatsappAgentsSection
+          onEdit={(agent) => {
+            setEditingAgent(agent);
+            setFormData({
+              ...formData,
+              name: agent.name,
+              instructions: agent.instructions || '',
+              voice: agent.voice || 'alloy'
+            });
+            setShowEditModal(true);
+          }}
+        />
+      )}
+
+      {activeCategory === 'employees' && (
+        <EmployeesSection />
+      )}
+
       {activeCategory === 'phone' && (
         <PhoneAgentsSection
+          phoneAgents={phoneAgents}
+          isLoading={phoneAgentsLoading}
           showPhoneAddForm={showPhoneAddForm}
           setShowPhoneAddForm={setShowPhoneAddForm}
           phoneFormData={phoneFormData}
           setPhoneFormData={setPhoneFormData}
           Instructions={Instructions}
           InstructionSet={InstructionSet}
+          phoneApiKeyId={phoneApiKeyId}
+          setPhoneApiKeyId={setPhoneApiKeyId}
           activeApiKeys={activeApiKeys}
           handlePhoneSubmit={handlePhoneSubmit}
-          createPhoneMutation={createPhoneMutation}
-          phoneAgents={phoneAgents}
-          phoneAgentsLoading={phoneAgentsLoading}
+          createPhoneMutation={{
+            ...createPhoneMutation,
+            isLoading: createPhoneMutation.isLoading || updatePhoneMutation.isLoading
+          }}
           selectedPhoneAgentId={selectedPhoneAgentId}
+          setSelectedPhoneAgentId={setSelectedPhoneAgentId}
+          deleteMutation={deletePhoneMutation}
           handlePhoneCardClick={handlePhoneCardClick}
-          handleEdit={handleEdit}
-          deleteMutation={deleteMutation}
+          handleEdit={handlePhoneEdit}
           phoneCardsRef={phoneCardsRef}
         />
       )}

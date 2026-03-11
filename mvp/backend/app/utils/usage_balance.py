@@ -46,11 +46,10 @@ def add_to_usage_balance(
     if seconds <= 0:
         raise ValueError("Minutes must be greater than zero")
 
-    usage = get_or_create_usage_minutes(user_id,seconds= seconds,db= db)
+    usage = get_or_create_usage_minutes(user_id, seconds=seconds, db=db)
 
     usage.total_seconds += seconds
-    usage.remaining_seconds = seconds
-    usage.used_seconds = 0
+    usage.remaining_seconds += seconds
 
     db.commit()
     db.refresh(usage)

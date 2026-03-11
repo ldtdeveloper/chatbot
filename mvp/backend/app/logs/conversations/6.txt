@@ -1,0 +1,49 @@
+[2026-03-11 11:16:46] User: i want to talk to human
+[2026-03-11 11:16:46] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 11:17:21] Agent: demo1: hello there how may i help you bro 
+[2026-03-11 11:18:25] Agent: demo1: hello how are you i hope you are fine
+[2026-03-11 11:28:42] Agent: demo1: hello  how are  you
+[2026-03-11 11:40:40] User: I want to talk to human
+[2026-03-11 11:40:40] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 11:44:56] User: I want to talk to human
+[2026-03-11 11:44:56] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 11:45:43] User: I want to talk to human
+[2026-03-11 11:45:43] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 12:03:28] User: I want to talk to human
+[2026-03-11 12:03:28] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 12:06:05] User: I want to talk to human
+[2026-03-11 12:06:05] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 12:07:14] User: I want to talk to human
+[2026-03-11 12:07:14] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 12:09:28] User: I want to talk to human
+[2026-03-11 12:09:28] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 12:17:24] Agent: demo1: hi
+[2026-03-11 12:18:18] User: Hello
+[2026-03-11 12:18:32] User: Gjj
+[2026-03-11 12:20:04] Agent: demo1: hi
+[2026-03-11 12:20:16] Agent: demo1: how are you 
+[2026-03-11 12:20:24] User: Bro I am good
+[2026-03-11 12:21:21] Agent: demo1: j
+[2026-03-11 12:22:18] Agent: demo1: rr
+[2026-03-11 12:23:10] User: Human
+[2026-03-11 12:23:10] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 12:24:20] Agent: demo1: hi
+[2026-03-11 12:24:33] User: Huj
+[2026-03-11 12:25:11] Agent: demo1: ff
+[2026-03-11 12:26:26] Agent: demo1: hi
+[2026-03-11 12:26:34] User: Ch
+[2026-03-11 12:28:35] Agent: demo1: j
+[2026-03-11 12:28:42] User: Fb
+[2026-03-11 12:30:31] Agent: demo1: hi
+[2026-03-11 12:30:37] User: Gun
+[2026-03-11 12:39:58] Agent: demo1: hi
+[2026-03-11 12:40:02] User: Gumbo
+[2026-03-11 12:45:17] Agent: demo1: bjkl
+[2026-03-11 12:45:21] User: Served
+[2026-03-11 12:45:30] Agent: demo1: ok i got it 
+[2026-03-11 12:45:37] User: Ditto
+[2026-03-11 12:53:34] User: I want to talk to human
+[2026-03-11 12:53:34] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 13:02:01] Agent: demo1: hi
+[2026-03-11 13:03:04] User: Difficult
+[2026-03-11 13:03:11] AI: Sorry, something went wrong.

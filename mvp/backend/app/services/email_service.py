@@ -157,6 +157,37 @@ class EmailService:
         """
         return html
     
+    def send_otp(self, to_email: str, otp: str, name: str = "Agent") -> bool:
+        """Send OTP email"""
+        html = self._render_otp_template(otp, name)
+        text = f"Hello {name},\n\nYour OTP is: {otp}\nValid for 10 minutes.\nDo not share."
+
+        return self.send_email(
+            to_email=to_email,
+            subject="Your OTP for Agent Login",
+            html_content=html
+        )
+
+    def _render_otp_template(self, otp: str, name: str) -> str:
+        """Render OTP HTML template"""
+        try:
+            template = env.get_template("otp.html")
+            return template.render(otp=otp, name=name, company="Your Company", year=2026)
+        except Exception:
+            # Fallback if template missing
+            return f"""
+            <html>
+                <body style="font-family:Arial,sans-serif;">
+                    <h2>Hello {name},</h2>
+                    <p>Your OTP for login is: <strong style="font-size:24px;">{otp}</strong></p>
+                    <p>This code expires in 10 minutes.</p>
+                    <p><strong>Do not share this OTP.</strong></p>
+                    <br>
+                    <p>Regards,<br>Your Company Team</p>
+                </body>
+            </html>
+            """
+    
     def send_email(self, to_email: str, subject: str, html_content: str, text_content: Optional[str] = None) -> bool:
         """Send an email via SMTP"""
         
