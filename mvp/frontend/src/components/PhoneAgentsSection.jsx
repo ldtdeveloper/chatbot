@@ -1,6 +1,8 @@
 import React from 'react'
 import PhoneAgentCard from './PhoneAgentCard'
 import PhoneAgentForm from './PhoneAgentForm'
+import DeleteConfirmationModal from './DeleteConfirmationModal'
+import { useState } from 'react'
 
 function PhoneAgentsSection({ 
   showPhoneAddForm,
@@ -20,6 +22,7 @@ function PhoneAgentsSection({
   deleteMutation,
   phoneCardsRef
 }) {
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   return (
     <div id="phone-agents-section" className="phone-agents-container">
@@ -63,12 +66,24 @@ function PhoneAgentsSection({
                   handlePhoneCardClick(agent, e)
                 }}
                 onEdit={handleEdit}
-                onDelete={deleteMutation.mutate}
+                onDelete={(id) => setConfirmDeleteId(id)}
               />
             )
           })
         )}
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          deleteMutation.mutate(confirmDeleteId)
+          showSuccess('Phone agent deleted successfully.')
+          setConfirmDeleteId(null)
+          setSelectedPhoneAgentId(null)
+        }}
+        title="Delete Phone Agent"
+      />
     </div>
   )
 }

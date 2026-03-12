@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { humanAgentService } from '../services/services';
 import { UserPlus, Trash2, Mail, User, Loader2 } from 'lucide-react';
 import { showSuccess, showError } from '../utils/toast';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 const EmployeesSection = () => {
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEmployee, setNewEmployee] = useState({ name: '', email: '' });
+  const [confirmDeleteMember, setConfirmDeleteMember] = useState(null)
 
   const { data: employees, isLoading } = useQuery({
     queryKey: ['employees'],
@@ -125,11 +127,7 @@ const EmployeesSection = () => {
                 </span>
                 
                 <button 
-                  onClick={() => {
-                    if (window.confirm(`Are you sure you want to remove ${emp.name}?`)) {
-                      deleteMutation.mutate(emp.id);
-                    }
-                  }}
+                  onClick={() => setConfirmDeleteMember(emp)}
                   style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '5px' }}
                 >
                   <Trash2 size={18} />
@@ -139,6 +137,17 @@ const EmployeesSection = () => {
           ))
         )}
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={!!confirmDeleteMember}
+        onClose={() => setConfirmDeleteMember(null)}
+        onConfirm={() => {
+          deleteMutation.mutate(confirmDeleteMember.id);
+          setConfirmDeleteMember(null);
+        }}
+        title="Remove Team Member"
+        message={`Are you sure you want to remove ${confirmDeleteMember?.name}? They will no longer be able to log in to the Support Hub.`}
+      />
     </div>
   );
 };

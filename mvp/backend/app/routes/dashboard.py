@@ -11,6 +11,7 @@ from app.models.usage import UserMinuteBalance
 from app.models.service_account_key import ServiceAccountKey
 from app.core.dependencies import get_current_user
 from app.models.agent import Agent
+from app.models.text_agents import TextAgent
 from app.models.interaction import Interaction
 from app.schemas.dashboard import DashboardStats
 from app.core.dependencies import  require_active_subscription
@@ -41,21 +42,14 @@ async def get_dashboard_stats(
     try:
         start_date, end_date = get_date_range(days)
         prev_start, prev_end = get_previous_period_range(days)
-        usage = db.query(UserMinuteBalance).filter_by(
-            user_id=current_user.id
-        ).first()
-
-        used_minutes = 0
-
-        if usage and usage.used_seconds is not None:
-            used_minutes = usage.used_seconds // 60
+        
         # Check if user is superadmin - handle both enum and string comparison
         is_superadmin = False
         if hasattr(current_user.role, 'value'):
             is_superadmin = current_user.role.value == UserRole.SUPERADMIN.value
         else:
             is_superadmin = str(current_user.role) == str(UserRole.SUPERADMIN.value) or current_user.role == UserRole.SUPERADMIN
-        
+            
         # Determine which user(s) to query for
         if is_superadmin:
             # Superadmin can see all users or filter by specific user
@@ -70,6 +64,16 @@ async def get_dashboard_stats(
         else:
             # Regular users can only see their own data
             target_user_ids = [current_user.id] if current_user.id else []
+            
+        usages = db.query(UserMinuteBalance).filter(
+            UserMinuteBalance.user_id.in_(target_user_ids)
+        ).all()
+
+        used_minutes = 0
+
+        if usages:
+            total_seconds = sum((usage.used_seconds or 0) for usage in usages)
+            used_minutes = total_seconds // 60
         
         # Handle empty user list
         if not target_user_ids:
@@ -157,7 +161,14 @@ async def get_dashboard_stats(
         agents_query = db.query(Agent).filter(Agent.user_id.in_(target_user_ids))
         if key_ids:
             agents_query = agents_query.filter(Agent.openai_key_id.in_(key_ids))
-        total_agents = agents_query.count()
+        total_voice_web_agents = agents_query.count()
+        
+        text_agents_query = db.query(TextAgent).filter(TextAgent.user_id.in_(target_user_ids))
+        if key_ids:
+            text_agents_query = text_agents_query.filter(TextAgent.openai_key_id.in_(key_ids))
+        total_text_whatsapp_agents = text_agents_query.count()
+        
+        total_agents = total_voice_web_agents + total_text_whatsapp_agents
         
         # Get active keys count
         active_keys = len([k for k in filtered_keys if k.is_active]) if filtered_keys else 0
@@ -204,13 +215,22 @@ async def get_dashboard_stats(
         if filtered_keys:
             for idx, key in enumerate(filtered_keys):
                 key_name = key.key_name or f"Key {key.id}"
+                
                 agent_count = db.query(Agent).filter(
                     Agent.user_id.in_(target_user_ids),
                     Agent.openai_key_id == key.id
                 ).count()
+                
+                text_agent_count = db.query(TextAgent).filter(
+                    TextAgent.user_id.in_(target_user_ids),
+                    TextAgent.openai_key_id == key.id
+                ).count()
+                
+                total_key_agents = agent_count + text_agent_count
+                
                 agents_per_key.append({
                     'name': key_name,
-                    'value': agent_count,
+                    'value': total_key_agents,
                     'color': CHART_COLORS[idx % len(CHART_COLORS)]
                 })
         
@@ -244,6 +264,7 @@ async def get_dashboard_stats(
             total_interactions=0,
             total_expenses=0.0,
             total_agents=0,
+            total_minutes=0,
             active_keys=0,
             total_charging=None,
             profit=None,

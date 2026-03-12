@@ -5,6 +5,7 @@ import { MessageSquare, Loader2, Plus } from 'lucide-react';
 import { useAuthStore } from '../context/authStore';
 import WhatsappAgentCard from './WhatsappAgentCard';
 import WhatsappAgentForm from './WhatsappAgentForm';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { showSuccess, showError } from '../utils/toast.js';
 
 const WhatsappAgentsSection = () => {
@@ -162,16 +163,7 @@ const WhatsappAgentsSection = () => {
     }
   };
 
-  const handleDelete = (id) => {
-    setConfirmDeleteId(id);
-  };
-
-  const confirmDelete = () => {
-    deleteMutation.mutate(confirmDeleteId);
-    showSuccess('WhatsApp agent deleted successfully.');
-    setConfirmDeleteId(null);
-    setSelectedAgent(null);
-  };
+  // Delete Handlers are now inline in the component return below
 
   const handleShowWidget = async (agent) => {
     setSelectedAgentForWidget(agent);
@@ -262,54 +254,17 @@ const WhatsappAgentsSection = () => {
         </div>
       )}
 
-      {/* Confirmation Delete Modal */}
-      {confirmDeleteId && (
-        <div className="modal-overlay" onClick={() => setConfirmDeleteId(null)}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '420px', padding: '0', borderRadius: '16px', overflow: 'hidden' }}
-          >
-            <div style={{ padding: '28px 28px 0 28px', textAlign: 'center' }}>
-              <div style={{
-                width: '56px', height: '56px', borderRadius: '50%',
-                background: '#fef2f2', margin: '0 auto 16px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '26px'
-              }}>🗑️</div>
-              <h3 style={{ margin: '0 0 8px 0', color: '#111827', fontSize: '18px', fontWeight: 700 }}>
-                Delete WhatsApp Agent
-              </h3>
-              <p style={{ margin: '0 0 24px 0', color: '#6b7280', fontSize: '14px', lineHeight: '1.5' }}>
-                Are you sure you want to delete this agent? This action cannot be undone.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '10px', padding: '0 28px 28px 28px' }}>
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                style={{
-                  flex: 1, padding: '10px', borderRadius: '8px',
-                  border: '1px solid #e5e7eb', background: 'white',
-                  color: '#374151', fontWeight: 600, cursor: 'pointer', fontSize: '14px'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                style={{
-                  flex: 1, padding: '10px', borderRadius: '8px',
-                  border: 'none', background: 'linear-gradient(120deg, #f87171 0%, #ef4444 100%)',
-                  color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '14px',
-                  boxShadow: '0 4px 12px rgba(239,68,68,0.3)'
-                }}
-              >
-                Yes, Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationModal
+        isOpen={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          deleteMutation.mutate(confirmDeleteId);
+          showSuccess('WhatsApp agent deleted successfully.');
+          setConfirmDeleteId(null);
+          setSelectedAgent(null);
+        }}
+        title="Delete WhatsApp Agent"
+      />
 
       {/* Widget Modal */}
       {showWidgetModal && (
@@ -372,8 +327,10 @@ const WhatsappAgentsSection = () => {
               isSelected={selectedAgent?.id === agent.id}
               onCardClick={() => handleCardClick(agent)}
               onEdit={handleEditClick}
-              onDelete={handleDelete}
+            
+              onDelete={(id) => setConfirmDeleteId(id)}
               onShowWidget={handleShowWidget}
+             
               onCopyWidget={handleCopyWidget}
               onSendLoginUrl={handleSendLoginUrl}
               onConnectMeta={handleConnectMeta}

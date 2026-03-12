@@ -2,6 +2,8 @@ import React, { useRef } from 'react'
 import AgentCard from './AgentCard'
 import AddAgentForm from './AddAgentForm'
 import { useAuthStore } from '../context/authStore'
+import DeleteConfirmationModal from './DeleteConfirmationModal'
+import { useState } from 'react'
 
 function WebAgentsSection({ 
   showAddForm,
@@ -25,6 +27,7 @@ function WebAgentsSection({
   checked,
   handleChange
 }) {
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const cardsContainerRef = useRef(null)
   const {user} = useAuthStore()
   const hasAgent = agents && agents.length >= user.allowed_agents;
@@ -83,7 +86,7 @@ function WebAgentsSection({
               isSelected={selectedAgent?.id === agent.id}
               onCardClick={() => handleCardClick(agent)}
               onEdit={handleEdit}
-              onDelete={deleteMutation.mutate}
+              onDelete={(id) => setConfirmDeleteId(id)}
               onGenerateWidget={handleGenerateWidget}
               onViewInstructions={setSelectedInstructionsAgent}
               checked={selectedAgent?.id === agent.id ? checked : false}
@@ -92,6 +95,16 @@ function WebAgentsSection({
           ))
         )}
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          deleteMutation.mutate(confirmDeleteId)
+          setConfirmDeleteId(null)
+        }}
+        title="Delete Web Agent"
+      />
       {selectedAgent && (
         <div className="selected-agent-details">
           <h4>Configuration - {selectedAgent.name}</h4>
