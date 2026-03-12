@@ -1,13 +1,3 @@
-"""
-Shared AI Chat Route
-- Used by WhatsApp webhook, widget fallback, future SMS/Telegram agents, etc.
-- Fixed model: gpt-3.5-turbo (can be overridden)
-- API Key priority:
-  1. Logged-in user (dashboard / authenticated request)
-  2. Owner of the text agent (webhook / public use)
-  3. MASTER_OPENAI_KEY (true demo/fallback)
-"""
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -18,6 +8,7 @@ from app.utils.encryption import decrypt_api_key
 from app.core.database import get_db
 from app.core.dependencies import get_optional_current_user
 from app.core.config import settings
+from app.models.service_account_key import ServiceAccountKey
 from app.models.text_agents import TextAgent
 from app.models.user import User
 
@@ -75,7 +66,7 @@ async def generate_ai_chat(
             logger.debug(f"Using logged-in user key (user {current_user.id})")
 
         # Priority 2: Agent's specific service account key (assigned during creation)
-        from app.models.service_account_key import ServiceAccountKey
+
         if not api_key and text_agent.openai_key_id:
             sa_key = db.query(ServiceAccountKey).filter(ServiceAccountKey.id == text_agent.openai_key_id).first()
             if sa_key and sa_key.service_account_key:
@@ -87,14 +78,9 @@ async def generate_ai_chat(
             api_key = decrypt_api_key(text_agent.user.service_account.service_account_key)
             logger.debug(f"Using agent owner key (user {text_agent.user.id})")
 
-        # Priority 3: Master fallback (true demo mode)
         if not api_key:
-            api_key = settings.MASTER_OPENAI_KEY
-            if api_key:
-                logger.debug("Using MASTER_OPENAI_KEY fallback")
-            else:
-                logger.error("No OpenAI API key available at all")
-                raise HTTPException(status_code=500, detail="No OpenAI API key configured")
+            logger.error("No OpenAI API key available at all")
+            raise HTTPException(status_code=500, detail="No OpenAI API key configured")
 
         # ─────────────────────────────────────────────
         # 3. Build System Prompt

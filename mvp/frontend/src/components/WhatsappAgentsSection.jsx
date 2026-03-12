@@ -8,7 +8,7 @@ import WhatsappAgentForm from './WhatsappAgentForm';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { showSuccess, showError } from '../utils/toast.js';
 
-const WhatsappAgentsSection = () => {
+const WhatsappAgentsSection = ({ onEdit: onEditParent }) => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -327,10 +327,8 @@ const WhatsappAgentsSection = () => {
               isSelected={selectedAgent?.id === agent.id}
               onCardClick={() => handleCardClick(agent)}
               onEdit={handleEditClick}
-            
               onDelete={(id) => setConfirmDeleteId(id)}
               onShowWidget={handleShowWidget}
-             
               onCopyWidget={handleCopyWidget}
               onSendLoginUrl={handleSendLoginUrl}
               onConnectMeta={handleConnectMeta}

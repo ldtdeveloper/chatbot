@@ -7,3 +7,7 @@
 [2026-03-11 17:29:11] AI: Hello! How can I assist you today?
 [2026-03-11 17:30:56] User: For whom you work
 [2026-03-11 17:30:57] AI: I am for LDT Tech. How can I assist you today?
+[2026-03-12 13:15:52] User: Ch
+[2026-03-12 13:15:58] AI: Sorry, something went wrong.
+[2026-03-12 13:17:36] User: Drug
+[2026-03-12 13:17:39] AI: Sorry, something went wrong.

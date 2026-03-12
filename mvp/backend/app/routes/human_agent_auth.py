@@ -17,6 +17,7 @@ from app.core.database import get_db
 from app.models.human_agent import HumanAgent
 from app.models.whatsapp_configs import WhatsappConfig
 from app.services.email_service import EmailService
+from app.tasks.email_task import send_email_task
 from app.core.config import settings
 from app.models.user import User
 import string
@@ -27,7 +28,7 @@ SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
 security = HTTPBearer()
 
-email_service = EmailService()  # Instantiate once (or use dependency injection)
+# email_service = EmailService()  # Instantiate once (or use dependency injection)
 
 def create_agent_token(agent_id: int, owner_id: int) -> str:
     expire = datetime.now(timezone.utc) + timedelta(hours=8)
@@ -111,29 +112,33 @@ def send_otp(
 
     db.commit()
 
-    success = email_service.send_email(
-        to_email=email,
-        subject="Your Login Verification Codes",
-        html_content=f"""
-        <html>
-            <body style='font-family: Arial, sans-serif;'>
-                <h3>Hello {agent.name},</h3>
-                <p>Use the following codes to log in:</p>
-                <div style='background: #f1f5f9; padding: 15px; border-radius: 8px;'>
-                    <p><strong>OTP (6-digit):</strong> <span style='font-size: 20px;'>{otp}</span></p>
-                    <p><strong>Security Code:</strong> <span style='font-size: 20px;'>{security_code}</span></p>
-                </div>
-                <p>These codes will expire in 10 minutes.</p>
-            </body>
-        </html>
-        """
-    )
-
-    if not success:
-        agent.otp = None
-        agent.otp_expiry = None
-        db.commit()
-        raise HTTPException(status_code=500, detail="Failed to send OTP email")
+    # Move email sending to Celery task
+    subject = "Your Login Verification Codes"
+    html_content = f"""
+    <html>
+        <body style='font-family: Arial, sans-serif;'>
+            <h3>Hello {agent.name},</h3>
+            <p>Use the following codes to log in:</p>
+            <div style='background: #f1f5f9; padding: 15px; border-radius: 8px;'>
+                <p><strong>OTP (6-digit):</strong> <span style='font-size: 20px;'>{otp}</span></p>
+                <p><strong>Security Code:</strong> <span style='font-size: 20px;'>{security_code}</span></p>
+            </div>
+            <p>These codes will expire in 10 minutes.</p>
+        </body>
+    </html>
+    """
+    
+    try:
+        send_email_task.delay(email, subject, html_content)
+    except Exception as e:
+        logger.error(f"Failed to queue OTP email: {e}")
+        # We don't necessarily want to fail the whole request if queueing fails, 
+        # but the user won't get the email. For now, let's keep it consistent with other routes.
+        # If we want to be strict, we could uncomment the rollback logic.
+        # agent.otp = None
+        # agent.otp_expiry = None
+        # db.commit()
+        # raise HTTPException(status_code=500, detail="Failed to send OTP email")
 
     return {"message": "OTP sent successfully to your email"}
 

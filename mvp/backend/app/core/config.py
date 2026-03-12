@@ -9,7 +9,7 @@ Set APP_ENV environment variable to switch between environments:
 """
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
+from typing import List, Optional
 from enum import Enum
 
 
@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     FRONTEND_URL: str = "http://localhost:3000/dashboard"
-    MASTER_OPENAI_KEY:str
+    MASTER_OPENAI_KEY: Optional[str] = None
    
     
     # Server
@@ -171,4 +171,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-print("MASTER KEY LOADED:", bool(settings.MASTER_OPENAI_KEY))

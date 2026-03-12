@@ -56,7 +56,11 @@ function Agents() {
         }
       }, [selectedAgent]);
       
-  const handleChange = async (e) => {
+   const handleChange = async (e) => {
+    // Capture previous state before any changes for error handling
+    const previousCheckedState = checked;
+    const newCheckedState = Boolean(e.target.checked);
+    
     // Stop event propagation to prevent card from closing
     if (e && e.stopPropagation) {
       e.stopPropagation();
