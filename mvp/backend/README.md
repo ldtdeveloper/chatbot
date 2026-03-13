@@ -20,11 +20,11 @@ alembic upgrade head
 
 4. Start the server:
 ```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8081
 ```
 
-The API will be available at `http://localhost:8000`
-API documentation at `http://localhost:8000/docs`
+The API will be available at `http://localhost:8081`
+API documentation at `http://localhost:8081/docs`
 
 ## Project Structure
 

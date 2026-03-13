@@ -20,6 +20,7 @@ class AgentCreate(BaseModel):
     enable_mcp_server: Optional[bool] = False  # Whether to enable MCP server for this agent
     agent_type: Optional[str] = "WEB"  # Agent type: WEB or PHONE
     startup_message: Optional[str] = None  # Startup message that bot sends automatically when chat starts
+    modality: str  # voice or text
 
 
 class AgentUpdate(BaseModel):
@@ -34,6 +35,7 @@ class AgentUpdate(BaseModel):
     agent_config: Optional[dict] = None
     enable_mcp_server: Optional[bool] = None
     startup_message: Optional[str] = None  # Startup message that bot sends automatically when chat starts
+    modality: Optional[str] = None
 
 
 class AgentResponse(BaseModel):
@@ -49,10 +51,12 @@ class AgentResponse(BaseModel):
     noise_reduction_silence_duration_ms: int
     agent_config: dict
     startup_message: Optional[str]  # Startup message that bot sends automatically when chat starts
+    modality: str
     created_at: datetime
     updated_at: Optional[datetime]
     enable_mcp_server: Optional[bool]
     is_active: bool
+    agent_type: str
     
     class Config:
         from_attributes = True

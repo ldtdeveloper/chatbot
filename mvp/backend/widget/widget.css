@@ -118,3 +118,51 @@
     text-align: center;
 }
 
+/* Text mode input area */
+#text-input-area {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid #eee;
+    background: #fff;
+}
+
+#text-msg-input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#text-msg-input:focus {
+    border-color: #667eea;
+}
+
+#text-send-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity 0.2s;
+}
+
+#text-send-btn:hover {
+    opacity: 0.85;
+}
+
+/* Text mode container keeps same panel size but taller for input */
+#voice-widget-container.text-mode #voice-widget-panel {
+    max-height: 450px;
+}

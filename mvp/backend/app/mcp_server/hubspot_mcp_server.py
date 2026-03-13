@@ -3,7 +3,7 @@ import os
 import requests  
 from app.services.integration_config_service import get_integration_config
 
-MCP_PORT = 8000  # Default for most versions
+MCP_PORT = 8081  # Default for most versions
 
 def start_local_mcp_server(agent_id):
     """

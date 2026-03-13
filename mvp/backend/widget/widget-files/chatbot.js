@@ -2,7 +2,8 @@
 (async () => {
   console.info("[Voice Bot] Initializing...");
 
-  const WS_URL = "wss://your address/ws";
+  const isHttps = window.location.protocol === "https:";
+  const WS_URL = `${isHttps ? "wss" : "ws"}://${window.location.host}/ws`;
   let ws = null;
   let audioContext = null;
   let processor = null;
@@ -273,7 +274,7 @@
     const pcm16 = new Int16Array(float32Array.length);
     for (let i = 0; i < float32Array.length; i++) {
       let s = Math.max(-1, Math.min(1, float32Array[i]));
-      pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      pcm16[i] = s < 0 ? s * 0x8081 : s * 0x7FFF;
     }
     return pcm16;
   }

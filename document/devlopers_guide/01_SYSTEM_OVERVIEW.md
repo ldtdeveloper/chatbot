@@ -74,7 +74,7 @@ graph TD
 
     subgraph "Service Plane"
         Proxy["WebSocket Proxy (Port: 8001)"]
-        API["Management API (Port: 8000)"]
+        API["Management API (Port: 8081)"]
     end
 
     subgraph "Data Plane"

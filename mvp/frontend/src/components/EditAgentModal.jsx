@@ -64,6 +64,17 @@ function EditAgentModal({
             <label>Additional Instructions</label>
             <textarea value={Instructions.additional_instructions} name="additional_instructions" autoComplete="off" rows={5} placeholder="Additional Instructions (example: Add the additional instructions you want to enhance your assistant)" onChange={InstructionSet} />
             <label>
+              Modality:
+              <select
+                value={formData.modality || "voice"}
+                onChange={(e) => setFormData({ ...formData, modality: e.target.value })}
+                autoComplete="off"
+              >
+                <option value="voice">Voice</option>
+                <option value="text">Text</option>
+              </select>
+            </label>
+            <label>
               Assistant Voice:
               <select
                 value={formData.voice}

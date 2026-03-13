@@ -29,6 +29,7 @@ class Agent(Base):
     agent_type = Column(ENUM(AgentType, name='agenttype', create_type=False), nullable=False, default=AgentType.WEB)  # Agent type: WEB or PHONE
     name = Column(String, nullable=False)
     domain = Column(String, nullable=False)  # TLD domain where widget will be displayed (e.g., example.com)
+    modality = Column(String, nullable=False)  # voice or text
     
     # Agent configuration (stored locally, used for WebRTC calls)
     instructions = Column(Text, nullable=False)  # System instructions for the agent

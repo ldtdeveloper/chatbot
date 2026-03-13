@@ -101,12 +101,13 @@ async def create_agent(
     noise_reduction = NoiseReductionMode.NEAR_FIELD
     if agent_data.noise_reduction_mode:
         try:
-            # Convert string to enum, ensuring we use the value
-            noise_reduction = NoiseReductionMode(agent_data.noise_reduction_mode)
+            # Convert string to enum (case-insensitive)
+            noise_mode_input = agent_data.noise_reduction_mode.lower()
+            noise_reduction = NoiseReductionMode(noise_mode_input)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]} or {[m.name for m in NoiseReductionMode]}"
+                detail=f"Invalid noise reduction mode. Must be one of: {[m.value for m in NoiseReductionMode]}"
             )
     
     # Create agent configuration (stored locally only)
@@ -124,7 +125,8 @@ async def create_agent(
         noise_reduction_silence_duration_ms=agent_data.noise_reduction_silence_duration_ms or 500,
         agent_config=agent_data.agent_config or {},
         enable_mcp_server=agent_data.enable_mcp_server or False,
-        is_active=True
+        is_active=True,
+        modality=agent_data.modality,
     )
     db.add(db_agent)
     db.commit()

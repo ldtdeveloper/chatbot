@@ -244,6 +244,7 @@ async def get_dashboard_stats(
             total_interactions=0,
             total_expenses=0.0,
             total_agents=0,
+            total_minutes = 0,
             active_keys=0,
             total_charging=None,
             profit=None,

@@ -245,7 +245,7 @@ async function startRecording() {
                 echoCancellation: true,
                 noiseSuppression: true, // Browser's built-in noise suppression
                 autoGainControl: true,
-                sampleRate: 48000 // Request higher quality for better processing
+                sampleRate: 48081 // Request higher quality for better processing
             } 
         });
         
@@ -345,7 +345,7 @@ function convertFloat32ToPCM16(float32Array) {
     const pcm16 = new Int16Array(float32Array.length);
     for (let i = 0; i < float32Array.length; i++) {
         const sample = Math.max(-1, Math.min(1, float32Array[i]));
-        pcm16[i] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+        pcm16[i] = sample < 0 ? sample * 0x8081 : sample * 0x7FFF;
     }
     return pcm16;
 }

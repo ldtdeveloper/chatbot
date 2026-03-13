@@ -162,7 +162,8 @@ function Agents() {
     noise_reduction_threshold: '0.65',  // Optimized: higher = fewer false starts = lower cost
     noise_reduction_prefix_padding_ms: 150,  // Optimized: reduced from 300 = faster responses
     noise_reduction_silence_duration_ms: 600,  // Optimized: balanced for speed and quality
-    startup_message: ''  // Startup message that bot sends automatically when chat starts
+    startup_message: '',  // Startup message that bot sends automatically when chat starts
+    modality: 'voice' // 'voice' or 'text'
   })
 
   const [phoneFormData, setPhoneFormData] = useState({
@@ -412,7 +413,8 @@ function Agents() {
       noise_reduction_threshold: agent.noise_reduction_threshold,
       noise_reduction_prefix_padding_ms: agent.noise_reduction_prefix_padding_ms,
       noise_reduction_silence_duration_ms: agent.noise_reduction_silence_duration_ms,
-      startup_message: agent.startup_message || ''
+      startup_message: agent.startup_message || '',
+      modality: agent.modality || 'voice'
     })
     setShowEditModal(true)
   }
@@ -570,7 +572,8 @@ function Agents() {
       noise_reduction_mode: 'near_field',
       noise_reduction_threshold: '0.65',  // Optimized: higher = fewer false starts = lower cost
       noise_reduction_prefix_padding_ms: 150,  // Optimized: reduced from 300 = faster responses
-      noise_reduction_silence_duration_ms: 600  // Optimized: balanced for speed and quality
+      noise_reduction_silence_duration_ms: 600,  // Optimized: balanced for speed and quality
+      modality: 'voice'
     })
     setSelectedApiKeyId('')
     setInstructions({

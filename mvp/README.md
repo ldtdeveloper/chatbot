@@ -68,8 +68,8 @@ cp .env.example .env
 uvicorn main:app --reload
 ```
 
-Backend runs on `http://localhost:8000`
-API docs at `http://localhost:8000/docs`
+Backend runs on `http://localhost:8081`
+API docs at `http://localhost:8081/docs`
 
 ### Frontend Setup
 

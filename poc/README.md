@@ -5,10 +5,10 @@ A simple voice-powered AI assistant that connects directly to OpenAI's Realtime 
 ## Quick Start
 
 ```bash
-php -S localhost:8000
+php -S localhost:8081
 ```
 
-Open: `http://localhost:8000`
+Open: `http://localhost:8081`
 
 ## How It Works
 

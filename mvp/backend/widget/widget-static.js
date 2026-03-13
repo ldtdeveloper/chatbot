@@ -93,7 +93,7 @@
         openaiSpeechPending: false // Track if we're waiting to stop after OpenAI speech_started
     };
     
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsProtocol = apiBaseUrl.startsWith('https:') ? 'wss:' : 'ws:';
     const wsHost = apiBaseUrl.replace(/^https?:/, '').replace(/^\/\//, '');
     const wsUrl = `${wsProtocol}//${wsHost}/api/widget/ws?agent_id=${agentId}`;
     
@@ -573,7 +573,7 @@
         const pcm16 = new Int16Array(float32Array.length);
         for (let i = 0; i < float32Array.length; i++) {
             let s = Math.max(-1, Math.min(1, float32Array[i]));
-            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            pcm16[i] = s < 0 ? s * 0x8081 : s * 0x7FFF;
         }
         return pcm16;
     }

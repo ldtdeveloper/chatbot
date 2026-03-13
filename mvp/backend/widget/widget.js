@@ -1,9 +1,13 @@
 (function() {
     // Get configuration from script tag data attributes
-    const scriptTag = document.currentScript || document.querySelector('script[data-agent-id]');
-    const agentId = scriptTag ? parseInt(scriptTag.getAttribute('data-agent-id')) : null;
+    const scriptTag = document.currentScript || 
+                     document.querySelector('script[data-agent-id="2"]') ||
+                     document.querySelector('script[data-agent-id]');
+    const agentId = scriptTag ? scriptTag.getAttribute('data-agent-id') : null;
     const apiBaseUrl = scriptTag ? scriptTag.getAttribute('data-api-url') : null;
     const agentName = scriptTag ? scriptTag.getAttribute('data-agent-name') : 'Voice Assistant';
+    const modality = scriptTag ? (scriptTag.getAttribute('data-modality') || 'voice') : 'voice';
+    const isTextMode = modality === 'text';
     
     if (!agentId || !apiBaseUrl) {
         console.error('[Widget] Missing required configuration: agentId or apiBaseUrl');
@@ -16,8 +20,25 @@
     link.href = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.css';
     document.head.appendChild(link);
     
-    // Create widget HTML
-    const widgetHTML = `
+    // Create widget HTML — differs by modality
+    const widgetHTML = isTextMode ? `
+        <div id="voice-widget-container" class="text-mode">
+            <div id="voice-widget-panel">
+                <div id="voice-widget-header">${agentName}</div>
+                <div id="voice-widget-transcript"></div>
+                <div id="text-input-area" style="display:none;">
+                    <input type="text" id="text-msg-input" placeholder="Type a message..." autocomplete="off" />
+                    <button id="text-send-btn" title="Send">&#9658;</button>
+                </div>
+                <div id="voice-widget-status">Ready</div>
+            </div>
+            <button id="voice-widget-button" title="Chat with ${agentName}">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                </svg>
+            </button>
+        </div>
+    ` : `
         <div id="voice-widget-container">
             <div id="voice-widget-panel">
                 <div id="voice-widget-header">${agentName}</div>
@@ -46,8 +67,11 @@
     const panel = document.getElementById('voice-widget-panel');
     const transcript = document.getElementById('voice-widget-transcript');
     const status = document.getElementById('voice-widget-status');
-    const micIcon = document.getElementById('mic-icon');
-    const stopIcon = document.getElementById('stop-icon');
+    const micIcon = isTextMode ? null : document.getElementById('mic-icon');
+    const stopIcon = isTextMode ? null : document.getElementById('stop-icon');
+    const textInputArea = isTextMode ? document.getElementById('text-input-area') : null;
+    const textInput = isTextMode ? document.getElementById('text-msg-input') : null;
+    const textSendBtn = isTextMode ? document.getElementById('text-send-btn') : null;
     
     let ws = null;
     let audioContext = null;
@@ -85,12 +109,13 @@
     };
     
     // Determine WebSocket URL
-    const wsProtocol = 'wss:';
+    const wsProtocol = apiBaseUrl.startsWith('https:') ? 'wss:' : 'ws:';
     const wsHost = apiBaseUrl.replace(/^https?:/, '').replace(/^\/\//, '');
     const wsUrl = `${wsProtocol}//${wsHost}/api/widget/ws?agent_id=${agentId}`;
     
-    // Function to update button icon
+    // Function to update button icon (voice mode only)
     function updateButtonIcon(showStop) {
+        if (isTextMode) return; // no icon swap needed in text mode
         if (showStop) {
             micIcon.style.display = 'none';
             stopIcon.style.display = 'block';
@@ -197,6 +222,7 @@
     async function connect() {
         try {
             status.textContent = 'Connecting...';
+            console.log('[Widget] Connecting to:', wsUrl);
             ws = new WebSocket(wsUrl);
             
             
@@ -222,8 +248,9 @@
                 console.log('[Widget] Disconnected');
                 isConnected = false;
                 button.classList.remove('connected', 'recording');
-                updateButtonIcon(false);
+                if (!isTextMode) updateButtonIcon(false);
                 status.textContent = 'Disconnected';
+                if (isTextMode && textInputArea) textInputArea.style.display = 'none';
                 cleanup();
             };
         } catch (error) {
@@ -243,13 +270,39 @@
         status.textContent = 'Stopped';
     }
     
+    // Wire up text input handlers (text mode only)
+    if (isTextMode && textSendBtn && textInput) {
+        textSendBtn.addEventListener('click', sendTextMessage);
+        textInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendTextMessage();
+        });
+    }
+
+    function sendTextMessage() {
+        if (!textInput) return;
+        const text = textInput.value.trim();
+        if (!text) return;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            status.textContent = 'Not connected';
+            return;
+        }
+        addTranscript('user', text);
+        ws.send(JSON.stringify({ action: 'send_text', text: text }));
+        textInput.value = '';
+    }
+
     // Handle messages
     function handleMessage(data) {
         console.log(data?.type);
         switch (data.type) {
             case 'connected':
                 status.textContent = 'Connected - Ready';
-                startRecording();
+                if (!isTextMode) {
+                    startRecording();
+                } else if (textInputArea) {
+                    textInputArea.style.display = 'flex';
+                    if (textInput) textInput.focus();
+                }
                 // Startup message is now handled by the backend automatically
                 break;
             case 'transcript_user':
@@ -259,8 +312,8 @@
                 addTranscript('assistant', data.text);
                 break;
             case 'audio_chunk':
-                if (data.audio) {
-                    // If this is a new response (queue was cleared), start fresh
+                if (data.audio && !isTextMode) {
+                    // Only play audio in voice mode
                     queueAudio(data.audio);
                 }
                 break;
@@ -679,7 +732,7 @@
         const pcm16 = new Int16Array(float32Array.length);
         for (let i = 0; i < float32Array.length; i++) {
             let s = Math.max(-1, Math.min(1, float32Array[i]));
-            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            pcm16[i] = s < 0 ? s * 0x8081 : s * 0x7FFF;
         }
         return pcm16;
     }

@@ -838,14 +838,16 @@
 <script>
 (function() {
     // API base URL for widget backend connection
-    let apiBaseUrl = 'http://localhost:8081';
+    let apiBaseUrl = 'http://127.0.0.1:8081';
     
-    // Create and load widget script-
+    // Create and load widget script with cache buster
     const script = document.createElement('script');
-    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js';
-    script.setAttribute('data-agent-id', '11');
+    const timestamp = new Date().getTime();
+    script.src = apiBaseUrl.replace(/\/$/, '') + '/api/widget/widget.js?v=' + timestamp;
+    script.setAttribute('data-agent-id', '5');
     script.setAttribute('data-api-url', apiBaseUrl);
-    script.setAttribute('data-agent-name', 'demo');
+    script.setAttribute('data-agent-name', 'alexa');
+    script.setAttribute('data-modality', 'text');
     script.async = true;
     
     document.head.appendChild(script);

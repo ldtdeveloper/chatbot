@@ -20,6 +20,7 @@ import uuid
 import json
 import asyncio
 import websockets
+import httpx
 from datetime import datetime
 from typing import Optional, Dict
 from urllib.parse import urlparse
@@ -211,6 +212,7 @@ async def generate_agent_widget_code(
     script.setAttribute('data-agent-id', '{agent_id}');
     script.setAttribute('data-api-url', apiBaseUrl);
     script.setAttribute('data-agent-name', '{agent.name}');
+    script.setAttribute('data-modality', '{getattr(agent, "modality", "voice")}');
     script.setAttribute('data-target-id', 'chatbot'); // <<<--- Change to desired container id
     script.async = true;
     document.head.appendChild(script);
@@ -287,6 +289,7 @@ async def generate_agent_widget_code(
     script.setAttribute('data-agent-id', '{agent_id}');
     script.setAttribute('data-api-url', apiBaseUrl);
     script.setAttribute('data-agent-name', '{agent.name}');
+    script.setAttribute('data-modality', '{getattr(agent, "modality", "voice")}');
     script.async = true;
     
     document.head.appendChild(script);
@@ -488,39 +491,47 @@ async def widget_websocket(
         # ServiceAccountKey stores the key as plain text (not encrypted)
         openai_api_key = decrypt_api_key(api_key_record.service_account_key)
         
-        print(f"[Widget WS] Agent '{agent.name}' validated, connecting to OpenAI...")
+        # Decide on modality and model
+        agent_modality = getattr(agent, 'modality', 'voice').lower()
+        use_realtime = (agent_modality == 'voice')
         
-        # Connect to OpenAI Realtime API (requested cheaper mini preview)
-        ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview"
-        headers = {
-            "Authorization": f"Bearer {openai_api_key}",
-            "OpenAI-Beta": "realtime=v1"
-        }
-        
-        # Log WebSocket connection in dev environment
-        log_openai_websocket_connect(ws_url, headers)
-        
-        try:
-            openai_ws = await websockets.connect(ws_url, extra_headers=headers)
-            print("[Widget WS] Connected to OpenAI Realtime API")
-        except Exception as e:
-            error_str = str(e).lower()
-            # Check for credit/quota related connection errors
-            if any(keyword in error_str for keyword in [
-                "quota", "billing", "payment", "credit", "limit", "unauthorized", "forbidden"
-            ]):
-                print(f"[Widget WS] ⚠️⚠️⚠️ OPENAI API CREDIT/QUOTA ERROR ON CONNECTION ⚠️⚠️⚠️")
-                print(f"[Widget WS] ❌ Connection Error: {e}")
-                print(f"[Widget WS] ⚠️⚠️⚠️ Please check OpenAI account billing and credits ⚠️⚠️⚠️")
-            else:
-                print(f"[Widget WS] OpenAI connection failed: {e}")
+        openai_ws = None
+        if use_realtime:
+            print(f"[Widget WS] Agent '{agent.name}' is VOICE modality, connecting to OpenAI Realtime...")
+            # Connect to OpenAI Realtime API
+            ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview"
+            headers = {
+                "Authorization": f"Bearer {openai_api_key}",
+                "OpenAI-Beta": "realtime=v1"
+            }
             
-            await websocket.send_json({
-                "type": "error",
-                "error": "Failed to connect to OpenAI"
-            })
-            await websocket.close()
-            return
+            # Log WebSocket connection in dev environment
+            log_openai_websocket_connect(ws_url, headers)
+            
+            try:
+                openai_ws = await websockets.connect(ws_url, extra_headers=headers)
+                print("[Widget WS] Connected to OpenAI Realtime API")
+                # Store connection
+                client_connections[websocket] = openai_ws
+            except Exception as e:
+                error_str = str(e).lower()
+                # Check for credit/quota related connection errors
+                if any(keyword in error_str for keyword in [
+                    "quota", "billing", "payment", "credit", "limit", "unauthorized", "forbidden"
+                ]):
+                    print(f"[Widget WS] ⚠️⚠️⚠️ OPENAI API CREDIT/QUOTA ERROR ON CONNECTION ⚠️⚠️⚠️")
+                    print(f"[Widget WS] ❌ Connection Error: {e}")
+                else:
+                    print(f"[Widget WS] OpenAI connection failed: {e}")
+                
+                await websocket.send_json({
+                    "type": "error",
+                    "error": "Failed to connect to OpenAI"
+                })
+                await websocket.close()
+                return
+        else:
+            print(f"[Widget WS] Agent '{agent.name}' is TEXT modality, using Chat Completion (GPT-3.5-Turbo)")
         # Configure OpenAI session with agent settings
         agent_config = agent.agent_config if agent.agent_config else {}
         hubspot_config = None
@@ -602,10 +613,13 @@ TOOL USAGE:
             final_instructions = final_instructions + greeting_instruction
             print(f"[Widget WS] No startup message configured - added greeting instruction - bot will generate its own greeting")
 
+        # Determine modalities explicitly based on agent configuration
+        ws_modalities = ["text"] if getattr(agent, "modality", "voice") == "text" else ["audio", "text"]
+
         session_payload = {
             "type": "session.update",
             "session": {
-                "modalities": ["audio", "text"],
+                "modalities": ws_modalities,
                 "input_audio_format": "pcm16",
                 "output_audio_format": "pcm16",
                 "input_audio_transcription": {"model": "whisper-1"},
@@ -733,13 +747,7 @@ TOOL USAGE:
         else:
             print(f"[Widget WS] 🔧 MCP: No tools in session payload")
         
-        print(f"[Widget WS] 🔧 MCP: Sending session.update to OpenAI...")
-        await openai_ws.send(json.dumps(session_payload))
-        print(f"[Widget WS] ✅ MCP: Session update sent to OpenAI")
-        
-        # Store connection
-        client_connections[websocket] = openai_ws
-        
+        # Move initialization UP before startup message
         # Create interaction record for tracking
         session_id = str(uuid.uuid4())
         interaction = Interaction(
@@ -769,22 +777,58 @@ TOOL USAGE:
         
         print(f"[Widget WS] Created interaction {interaction.id} for session {session_id}")
         
-        # Start message forwarding tasks
-        asyncio.create_task(handle_openai_messages(openai_ws, websocket))
-        
-        # Always trigger an initial response so the bot speaks first
-        # If startup message is configured, bot will say that exact message
-        # If not configured, bot will generate its own greeting based on instructions
-        await asyncio.sleep(0.5)  # Wait a moment for session to be ready
-        response_payload = {"type": "response.create"}
-        await openai_ws.send(json.dumps(response_payload))
-        if agent.startup_message and agent.startup_message.strip():
-            print(f"[Widget WS] Triggered initial response - bot will speak startup message: {agent.startup_message}")
-        else:
-            print(f"[Widget WS] Triggered initial response - bot will generate its own greeting")
-        
-        # Send connection confirmation
+        # Send connection confirmation FIRST
         await websocket.send_json({"type": "connected", "session_id": session_id})
+
+        # Start message forwarding task ONLY for Realtime
+        if use_realtime and openai_ws:
+            asyncio.create_task(handle_openai_messages(openai_ws, websocket))
+            
+            # Always trigger an initial response so the bot speaks first
+            # If startup message is configured, bot will say that exact message
+            # If not configured, bot will generate its own greeting based on instructions
+            await asyncio.sleep(0.5)  # Wait a moment for session to be ready
+            response_payload = {"type": "response.create"}
+            await openai_ws.send(json.dumps(response_payload))
+            if agent.startup_message and agent.startup_message.strip():
+                print(f"[Widget WS] Triggered initial response - bot will speak startup message: {agent.startup_message}")
+            else:
+                print(f"[Widget WS] Triggered initial response - bot will generate its own greeting")
+        else:
+            # For text mode, handle startup message OR generate greeting
+            if agent.startup_message and agent.startup_message.strip():
+                await websocket.send_json({
+                    "type": "transcript_assistant",
+                    "text": agent.startup_message
+                })
+                websocket_transcripts[websocket].append(f"Assistant: {agent.startup_message}")
+            else:
+                # Generate a greeting using GPT-3.5-Turbo
+                print(f"[Widget WS] Generating dynamic greeting for text agent...")
+                try:
+                    async with httpx.AsyncClient() as client:
+                        res = await client.post(
+                            "https://api.openai.com/v1/chat/completions",
+                            headers={"Authorization": f"Bearer {openai_api_key}"},
+                            json={
+                                "model": "gpt-3.5-turbo",
+                                "messages": [
+                                    {"role": "system", "content": final_instructions},
+                                    {"role": "user", "content": "Hi! Please introduce yourself briefly."}
+                                ]
+                            },
+                            timeout=15.0
+                        )
+                        if res.status_code == 200:
+                            greeting = res.json()["choices"][0]["message"]["content"]
+                            await websocket.send_json({
+                                "type": "transcript_assistant",
+                                "text": greeting
+                            })
+                            websocket_transcripts[websocket].append(f"Assistant: {greeting}")
+                except Exception as e:
+                    print(f"[Widget WS] Error generating greeting: {e}")
+        
         
         # Handle client messages
         while True:
@@ -800,6 +844,77 @@ TOOL USAGE:
                             "type": "input_audio_buffer.append",
                             "audio": data.get("audio")
                         }))
+                elif action == "send_text":
+                    text_msg = data.get("text", "")
+                    # Store user transcript
+                    if websocket in websocket_transcripts:
+                        websocket_transcripts[websocket].append(f"User: {text_msg}")
+                    
+                    if use_realtime and openai_ws and openai_ws.open:
+                        # Send text item to Realtime API
+                        await openai_ws.send(json.dumps({
+                            "type": "conversation.item.create",
+                            "item": {
+                                "type": "message",
+                                "role": "user",
+                                "content": [{
+                                    "type": "input_text",
+                                    "text": text_msg
+                                }]
+                            }
+                        }))
+                        # Trigger response to process the text message
+                        await openai_ws.send(json.dumps({
+                            "type": "response.create"
+                        }))
+                    elif not use_realtime:
+                        # Hybrid Approach: Call GPT-3.5-Turbo via REST for Text Mode
+                        print(f"[Widget WS] Calling GPT-3.5-Turbo (REST) for: {text_msg}")
+                        try:
+                            async with httpx.AsyncClient() as client:
+                                res = await client.post(
+                                    "https://api.openai.com/v1/chat/completions",
+                                    headers={"Authorization": f"Bearer {openai_api_key}"},
+                                    json={
+                                        "model": "gpt-3.5-turbo",
+                                        "messages": [
+                                            {"role": "system", "content": final_instructions},
+                                            {"role": "user", "content": text_msg}
+                                        ]
+                                    },
+                                    timeout=30.0
+                                )
+                                
+                                if res.status_code == 200:
+                                    res_data = res.json()
+                                    assistant_reply = res_data["choices"][0]["message"]["content"]
+                                    
+                                    # Forward to client as transcript_assistant
+                                    await websocket.send_json({
+                                        "type": "transcript_assistant",
+                                        "text": assistant_reply
+                                    })
+                                    
+                                    # Send response_done signal (needed by frontend to reset status)
+                                    await websocket.send_json({"type": "response_done"})
+                                    
+                                    # Store in transcripts
+                                    if websocket in websocket_transcripts:
+                                        websocket_transcripts[websocket].append(f"Assistant: {assistant_reply}")
+                                    
+                                    print(f"[Widget WS] Assistant (GPT-3.5) reply: {assistant_reply}")
+                                else:
+                                    print(f"[Widget WS] GPT-3.5 API Error: {res.status_code} - {res.text}")
+                                    await websocket.send_json({
+                                        "type": "error",
+                                        "error": f"OpenAI REST API Error: {res.status_code}"
+                                    })
+                        except Exception as rest_err:
+                            print(f"[Widget WS] Error in GPT-3.5 REST call: {rest_err}")
+                            await websocket.send_json({
+                                "type": "error",
+                                "error": f"Failed to get response from GPT-3.5: {str(rest_err)}"
+                            })
                 
                 elif action == "commit":
                     # Commit audio and request response
@@ -972,12 +1087,14 @@ TOOL USAGE:
                             from app.utils.usage_balance import deduct_from_usage_balance
                             # call_cost = interaction.total_cost or 0.0
                             call_duration = int(interaction.duration_seconds)
-                            # wallet = deduct_from_wallet(user.id, call_cost, db)
-                            usage = deduct_from_usage_balance(user.id,call_duration,db)
-                            if usage.remaining_seconds>0:
-                                print(f"[Widget WS] Deducted {call_duration} min from User's usage balance. Remaining Minutes : {usage.remaining_seconds} min")
+                            if call_duration > 0:
+                                usage = deduct_from_usage_balance(user.id,call_duration,db)
+                                if usage.remaining_seconds>0:
+                                    print(f"[Widget WS] Deducted {call_duration} min from User's usage balance. Remaining Minutes : {usage.remaining_seconds} min")
+                                else:
+                                    print(f"[Widget WS] ⚠️ Insufficient User's Usage minutes left . Needed {call_duration} min, balance now: {usage.remaining_seconds} min")
                             else:
-                                print(f"[Widget WS] ⚠️ Insufficient User's Usage minutes left . Needed {call_duration} min, balance now: {usage.remaining_seconds} min")
+                                print(f"[Widget WS] ℹ️ Call duration is less than 1 min ({interaction.duration_seconds:.1f}s), skipping usage deduction.")
                                 
                             # if wallet.balance > 0:
                             #     print(f"[Widget WS] 💰 Deducted ${call_cost:.6f} from wallet. Remaining balance: ${wallet.balance:.2f}")
@@ -1150,6 +1267,9 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
             elif event_type == "response.audio_transcript.delta":
                 assistant_text += data.get("delta", "")
             
+            elif event_type == "response.text.delta":
+                assistant_text += data.get("delta", "")
+            
             elif event_type == "response.audio_transcript.done":
                 # Check if transcript is in the event data itself (some events include full transcript)
                 transcript = data.get("transcript", "")
@@ -1169,7 +1289,25 @@ async def handle_openai_messages(openai_ws: websockets.WebSocketClientProtocol, 
                 else:
                     print(f"[Widget WS] ⚠️ response.audio_transcript.done but no transcript found")
                     print(f"[Widget WS] ⚠️ Event data keys: {list(data.keys())}")
-                    print(f"[Widget WS] ⚠️ Full event: {json.dumps(data, indent=2)}")
+                    # print(f"[Widget WS] ⚠️ Full event: {json.dumps(data, indent=2)}")
+            
+            elif event_type == "response.text.done":
+                text = data.get("text", "")
+                if text:
+                    assistant_text = text
+                
+                if assistant_text:
+                    await client_ws.send_json({
+                        "type": "transcript_assistant",
+                        "text": assistant_text
+                    })
+                    print(f"[Widget WS] Assistant text: {assistant_text}")
+                    # Store assistant transcript
+                    if client_ws in websocket_transcripts:
+                        websocket_transcripts[client_ws].append(f"Assistant: {assistant_text}")
+                    assistant_text = ""
+                else:
+                    print(f"[Widget WS] ⚠️ response.text.done but no text found")
             
             elif event_type == "response.audio.delta":
                 delta = data.get("delta")

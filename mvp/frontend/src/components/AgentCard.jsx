@@ -50,6 +50,7 @@ function AgentCard({
       </div>
       <div className="agent-meta">
         <span><strong>Domain:</strong> {agent.domain}</span>
+        <span>Modality: {agent.modality === 'text' ? 'Text Only' : 'Voice'}</span>
         <span>Voice: {agent.voice}</span>
         <span>Noise Reduction: {agent.noise_reduction_mode}</span>
       </div>
