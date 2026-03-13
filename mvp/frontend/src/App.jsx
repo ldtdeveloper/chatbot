@@ -9,7 +9,10 @@ import UserProfile from './pages/UserProfile'
 import OpenAIKeys from './pages/OpenAIKeys'
 import Agents from './pages/Agents'
 import Assistants from './pages/Assistants'
+import WhatsappDashboard from './pages/WhatsappDashboard'
 import WidgetGenerator from './pages/WidgetGenerator'
+import AgentLogin from './pages/AgentLogin'
+import AgentDashboard from './pages/AgentDashboard'
 import { useAuthStore } from './context/authStore'
 import Layout from './components/Layout'
 import ResetPassword from './pages/ResetPassword'
@@ -55,6 +58,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/agent-login/:slug" element={<AgentLogin />} />
         
           <Route
             path="/"
@@ -67,14 +71,18 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="users" element={<Users />} />
             <Route path="users/:userId/profile" element={<UserProfile />} />
-            <Route path="users/:userId/profile-update" element={<EditProfile />} />
+            <Route path="users/:userId/profile-update" element={<EditProfile />} /> 
             <Route path="openai-keys" element={<OpenAIKeys />} />
             <Route path="agents" element={<Agents />} />
             <Route path="assistants" element={<Assistants />} />
             <Route path="widget-generator" element={<WidgetGenerator />} />
             <Route path ="plans" element={<Plans/>}/>
-
           </Route>
+
+          <Route path="/whatsapp-dashboard/:slug" element={<WhatsappDashboard />} />
+          <Route path="/agent-dashboard/:slug" element={<AgentDashboard />} />
+          <Route path="/whatsapp-dashboard" element={<WhatsappDashboard />} />
+          <Route path="/agent-dashboard" element={<AgentDashboard />} />
           <Route path ="password" element={<ResetPassword />} />
         </Routes>
         <Toaster richColors position="top-right" />

@@ -23,6 +23,7 @@ from app.utils.usage_balance import add_to_usage_balance,get_or_create_usage_min
 from app.services.service_account import create_service_account
 from app.utils.wallet import add_to_wallet,get_wallet_balance
 from app.utils.get_subscription_type import get_subscription_type
+from app.utils.slug import generate_dashboard_slug
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -200,7 +201,9 @@ async def get_current_user_info(
         "wallet_balance": wallet_balance,
         "remaining_minutes":remaining_minutes,
         "subscription_mode" : subscription_type.subscription_mode if subscription_type else None,
-        "allowed_agents" : subscription_type.plans.number_of_agents if subscription_type else None
+        "allowed_agents" : subscription_type.plans.number_of_agents if subscription_type else None,
+        "whatsapp_connected": current_user.whatsapp_connected,
+        "default_widget_mode": current_user.default_widget_mode
     }
     
     return user_dict

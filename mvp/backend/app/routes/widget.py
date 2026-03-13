@@ -170,9 +170,6 @@ async def generate_agent_widget_code(
     try:
         if agent.instructions:
             instructions_data = json.loads(agent.instructions)
-            company_name = instructions_data.get("company_name")
-            if company_name:
-                print(f"Company name: {company_name}")
     except (json.JSONDecodeError, TypeError):
         # Instructions might be plain text, which is fine
         pass
@@ -246,9 +243,6 @@ async def generate_agent_widget_code(
     try:
         if agent.instructions:
             instructions_data = json.loads(agent.instructions)
-            company_name = instructions_data.get("company_name")
-            if company_name:
-                print(f"Company name: {company_name}")
     except (json.JSONDecodeError, TypeError):
         # Instructions might be plain text, which is fine
         pass

@@ -3,12 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { assistantConfigService, agentService, widgetService } from '../services/services'
 import { useAuthStore } from '../context/authStore'
 import '../styles/Assistants.css'
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal'
 
 function Assistants() {
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
   const [showAddForm, setShowAddForm] = useState(false)
   const [selectedAssistant, setSelectedAssistant] = useState(null)
+  const [confirmDeleteAssistant, setConfirmDeleteAssistant] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     agent_id: '',
@@ -158,19 +160,29 @@ function Assistants() {
             key={assistant.id}
             assistant={assistant}
             onSelect={setSelectedAssistant}
-            onDelete={deleteMutation.mutate}
+            onDelete={() => setConfirmDeleteAssistant(assistant)}
             isSelected={selectedAssistant?.id === assistant.id}
           />
         ))}
         {assistants?.length === 0 && <p>No assistants created yet. Create your first assistant chatbot!</p>}
       </div>
 
-      {selectedAssistant && (
         <AssistantDetails
           assistant={selectedAssistant}
           onClose={() => setSelectedAssistant(null)}
         />
-      )}
+      
+
+      <DeleteConfirmationModal
+        isOpen={!!confirmDeleteAssistant}
+        onClose={() => setConfirmDeleteAssistant(null)}
+        onConfirm={() => {
+          deleteMutation.mutate(confirmDeleteAssistant.id);
+          setConfirmDeleteAssistant(null);
+        }}
+        title="Delete Assistant"
+        message={`Are you sure you want to delete ${confirmDeleteAssistant?.name}? This action cannot be undone.`}
+      />
     </div>
   )
 }
@@ -186,9 +198,7 @@ function AssistantCard({ assistant, onSelect, onDelete, isSelected }) {
         <button
           onClick={(e) => {
             e.stopPropagation()
-            if (window.confirm('Are you sure you want to delete this assistant?')) {
-              onDelete(assistant.id)
-            }
+            onDelete()
           }}
           className="delete-btn"
         >

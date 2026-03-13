@@ -904,4 +904,8 @@
   color: #555;
   line-height: 1.4;
 }
+.agent-category-pill.whatsapp {
+  background: rgba(37, 211, 102, 0.12);
+  color: #1f9c52;
+}
 

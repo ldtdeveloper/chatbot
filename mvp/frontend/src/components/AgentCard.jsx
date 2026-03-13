@@ -79,9 +79,7 @@ function AgentCard({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                if (window.confirm('Are you sure you want to delete this agent?')) {
-                  onDelete(agent.id)
-                }
+                onDelete(agent.id)
               }}
               className="delete-btn"
             >

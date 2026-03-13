@@ -336,3 +336,60 @@ export const paymentService = {
 
   // verifyTopUp: async (data) => api.post('/api/payments/wallet-topup/verify', data).then(r => r.data),
 }
+
+export const humanAgentService = {
+  list: async () => {
+    const response = await api.get('/api/human-agents')
+    return response.data
+  },
+  create: async (data) => {
+    const response = await api.post('/api/human-agents', data)
+    return response.data
+  },
+  delete: async (id) => {
+    const response = await api.delete(`/api/human-agents/${id}`)
+    return response.data
+  },
+}
+
+export const whatsappService = {
+  list: async () => {
+    const response = await api.get('/api/whatsapp/agents')
+    return response.data
+  },
+  
+  create: async (data) => {
+    const response = await api.post('/api/whatsapp/agents', data)
+    return response.data
+  },
+  
+  update: async (id, data) => {
+    const response = await api.put(`/api/whatsapp/agents/${id}`, data)
+    return response.data
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/api/whatsapp/agents/${id}`)
+    return response.data
+  },
+
+  getStatus: async (id) => {
+    const response = await api.get(`/api/whatsapp/status/${id}`)
+    return response.data
+  },
+
+  getWidgetCode: async (id) => {
+    const response = await api.get(`/api/whatsapp/${id}/widget-code`)
+    return response.data
+  },
+  
+  sendLoginUrl: async (agentId) => {
+    const response = await api.post(`/api/whatsapp/agents/${agentId}/send-login-url`)
+    return response.data
+  },
+
+  getConnectUrl: async (agentId) => {
+    const response = await api.get(`/api/whatsapp/connect/${agentId}`)
+    return response.data
+  }
+}

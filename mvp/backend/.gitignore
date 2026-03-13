@@ -16,6 +16,8 @@ build/
 *.db
 *.sqlite
 *.sqlite3
+database.db
+backup_db.sh
 
 # Environment
 .env

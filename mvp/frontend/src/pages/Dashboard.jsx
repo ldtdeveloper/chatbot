@@ -325,9 +325,9 @@ function Dashboard() {
   <div className="summary-card-content">
     <h3>Total Minutes Used</h3>
     <p className="summary-card-value">{stats?.total_minutes?.toLocaleString() || '0'}</p>
-    {/* <span className={`summary-card-change ${stats?.minutes_change >= 0 ? 'positive' : 'negative'}`}>
+    <span className={`summary-card-change ${stats?.minutes_change >= 0 ? 'positive' : 'negative'}`}>
       {stats?.minutes_change >= 0 ? '+' : ''}{stats?.minutes_change?.toFixed(1) || '0'}% from last period
-    </span> */}
+    </span>
   </div>
 </div>
         {user?.role === 'superadmin' && (

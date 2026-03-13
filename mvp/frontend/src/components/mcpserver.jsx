@@ -3,6 +3,7 @@ import '../styles/mcpserver.css';
 import {integrationConfigService} from '../services/services'
 import { IoCloseOutline } from "react-icons/io5";
 import { showSuccess,showError } from '../utils/toast';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 
 export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selectedAgent,hubspotformdata,onSuccess }) {
@@ -13,6 +14,7 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
   });
   const [isConnecting, setIsConnecting] = useState(false);
   const [oauthStatus, setOauthStatus] = useState(null); // 'connected', 'not_connected', 'checking'
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   // Update form data when hubspotformdata changes or when form opens
   useEffect(() => {
@@ -161,10 +163,6 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
   const handleDisconnectHubSpot = async () => {
     if (!selectedAgent?.id) {
       showError(`No agent selected`);
-      return;
-    }
-
-    if (!window.confirm("Are you sure you want to disconnect HubSpot OAuth? MCP tools will no longer work until you reconnect.")) {
       return;
     }
 
@@ -349,7 +347,7 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
                   </p>
                   <button 
                     type="button"
-                    onClick={handleDisconnectHubSpot}
+                    onClick={() => setShowDisconnectModal(true)}
                     disabled={isConnecting}
                     style={{
                       padding: '8px 16px',
@@ -380,6 +378,19 @@ export default function HubSpotForm({ setShowHubSpotForm,setCheckedLocal,selecte
           </div>
         </div>
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={showDisconnectModal}
+        onClose={() => setShowDisconnectModal(false)}
+        onConfirm={() => {
+          handleDisconnectHubSpot();
+          setShowDisconnectModal(false);
+        }}
+        title="Disconnect HubSpot"
+        message="Are you sure you want to disconnect HubSpot OAuth? MCP tools will no longer work until you reconnect."
+        confirmText="Disconnect"
+        icon="🔌"
+      />
     </div>
   );
 }

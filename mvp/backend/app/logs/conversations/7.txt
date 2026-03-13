@@ -1,0 +1,9 @@
+[2026-03-11 15:44:47] User: I want to talk to human
+[2026-03-11 15:44:47] System: Connecting you to an agent, please wait... 🤝
+[2026-03-11 15:45:39] Agent: rachit: hello how are you 
+[2026-03-11 15:45:46] Agent: rachit: i am your huma agent 
+[2026-03-11 15:45:51] Agent: rachit: how may i help you 
+[2026-03-11 15:46:21] User: How can itslk to you
+[2026-03-11 15:46:31] Agent: rachit: you are talking to me bro 
+[2026-03-11 15:46:41] User: Didi
+[2026-03-11 15:46:48] AI: Sorry, something went wrong.

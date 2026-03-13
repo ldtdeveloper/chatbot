@@ -9,13 +9,20 @@ from app.models.report import UserReportPreference, ReportJob, ReportFrequency, 
 from app.models.subscription import Subscription, PaymentStatus
 from app.models.payment_token import PaymentToken
 from app.models.usage import UserMinuteBalance
+from app.models.contact import Contact
+from app.models.conversation import Conversation
+from app.models.message import Message
+from app.models.human_agent import HumanAgent
 from app.models.plans import Plans
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction, TransactionStatus
-from app.models.usage import UserMinuteBalance
-__all__ = [
-    "User", "UserRole", "OpenAIKey", "Agent", "AssistantConfig", "Interaction","UserMinuteBalance",
-    "IntegrationConfig", "UserReportPreference", "ReportJob", "ReportFrequency", "JobStatus",
-    "Subscription", "PaymentStatus", "PaymentToken", "Plans", "Wallet", "WalletTransaction", "TransactionStatus",UserMinuteBalance
-]
+from app.models.whatsapp_configs import WhatsappConfig
+from app.models.text_agents import TextAgent
 
+__all__ = [
+    "User", "UserRole", "OpenAIKey", "ServiceAccountKey", "Agent", "AssistantConfig", 
+    "Interaction", "IntegrationConfig", "UserReportPreference", "ReportJob", 
+    "ReportFrequency", "JobStatus", "Subscription", "PaymentStatus", "PaymentToken", 
+    "UserMinuteBalance", "Contact", "Conversation", "Message", "HumanAgent", 
+    "Plans", "Wallet", "WalletTransaction", "TransactionStatus", "WhatsappConfig", "TextAgent"
+]
