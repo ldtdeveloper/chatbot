@@ -7,6 +7,7 @@ import WhatsappAgentCard from './WhatsappAgentCard';
 import WhatsappAgentForm from './WhatsappAgentForm';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { showSuccess, showError } from '../utils/toast.js';
+import AppIconsCard from './mcpservercard.jsx';
 
 const WhatsappAgentsSection = ({ onEdit: onEditParent }) => {
   const { user } = useAuthStore();
@@ -21,6 +22,8 @@ const WhatsappAgentsSection = ({ onEdit: onEditParent }) => {
   const [widgetCode, setWidgetCode] = useState('');
   const [selectedAgentForWidget, setSelectedAgentForWidget] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [checked, setChecked] = useState(false);
+  const [showMcpServerCard, setShowMcpServerCard] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -43,13 +46,15 @@ const WhatsappAgentsSection = ({ onEdit: onEditParent }) => {
     queryFn: () => whatsappService.list(),
     enabled: !!user?.id
   });
+  console.log(agents)
+
 
   // Mutations
   const createMutation = useMutation({
     mutationFn: (data) => whatsappService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-agents'] });
-      showSuccess('WhatsApp agent connected successfully!');
+      showSuccess('WhatsApp agent created successfully!');
       resetForm();
     },
     onError: () => showError('Failed to create WhatsApp agent.')
@@ -102,7 +107,11 @@ const WhatsappAgentsSection = ({ onEdit: onEditParent }) => {
     }));
   };
 
+  // Compute limit: use user.allowed_agents (same as WebAgentsSection)
+  const atLimit = !!(agents && user?.allowed_agents && agents.length >= user.allowed_agents);
+
   const handleAddClick = () => {
+    if (atLimit) return;   // guard — button should be disabled but double-check
     resetForm();
     setSelectedAgent(null);
     setIsFormOpen(true);
@@ -111,9 +120,56 @@ const WhatsappAgentsSection = ({ onEdit: onEditParent }) => {
   const handleCardClick = (agent) => {
     if (selectedAgent?.id === agent.id) {
       setSelectedAgent(null);
+      setChecked(false);
+      setShowMcpServerCard(false);
     } else {
       setSelectedAgent(agent);
       setIsFormOpen(false); // close form when clicking a card
+      setChecked(agent.enable_mcp_server || false);
+      setShowMcpServerCard(agent.enable_mcp_server || false);
+    }
+  };
+
+  const handleSwitchChange = async (e) => {
+    // Stop event propagation to prevent card from closing
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
+    
+    const newCheckedState = Boolean(e.target.checked);
+    
+    if (newCheckedState) {
+        try {
+            await updateMutation.mutateAsync({ 
+                id: selectedAgent.id, 
+                data: { enable_mcp_server: true } 
+            });
+            setChecked(true);
+            setShowMcpServerCard(true);
+            showSuccess('MCP server enabled');
+            
+            // Re-sync the selected agent with the updated data
+            const updatedAgents = queryClient.getQueryData(['whatsapp-agents']);
+            if (updatedAgents) {
+                const updated = updatedAgents.find(a => a.id === selectedAgent.id);
+                if (updated) setSelectedAgent(updated);
+            }
+        } catch (error) {
+            showError('Failed to enable MCP server');
+        }
+    } else {
+        try {
+            await updateMutation.mutateAsync({ 
+                id: selectedAgent.id, 
+                data: { enable_mcp_server: false } 
+            });
+            setChecked(false);
+            setShowMcpServerCard(false);
+            setSelectedAgent(null); // Close card on disable
+            showSuccess('MCP server disabled');
+        } catch (error) {
+            showError('Failed to disable MCP server');
+        }
     }
   };
 
@@ -306,9 +362,25 @@ const WhatsappAgentsSection = ({ onEdit: onEditParent }) => {
           <h2>WhatsApp Agents</h2>
           <p className="subtitle">AI agents connected to your WhatsApp Business accounts.</p>
         </div>
-        <button className="create-btn" onClick={handleAddClick}>
-          <Plus size={18} /> Create Agent
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          
+          <button
+  className="create-btn"
+  onClick={handleAddClick}
+  disabled={atLimit}
+  title={atLimit ? `Your plan allows ${user?.allowed_agents} WhatsApp agent(s). Upgrade to add more.` : 'Create a new WhatsApp agent'}
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    opacity: atLimit ? 0.5 : 1,
+    cursor: atLimit ? "not-allowed" : "pointer"
+  }}
+>
+  <Plus size={18} />
+  <span>Create Agent</span>
+</button>
+        </div>
       </div>
 
       <div className="agents-list">
@@ -332,10 +404,20 @@ const WhatsappAgentsSection = ({ onEdit: onEditParent }) => {
               onCopyWidget={handleCopyWidget}
               onSendLoginUrl={handleSendLoginUrl}
               onConnectMeta={handleConnectMeta}
+              checked={selectedAgent?.id === agent.id ? checked : false}
+              onSwitchChange={handleSwitchChange}
             />
           ))
         )}
       </div>
+      {showMcpServerCard && (
+        <AppIconsCard 
+          setShowMcpServerCard={setShowMcpServerCard} 
+          setChecked={setChecked} 
+          selectedAgent={selectedAgent} 
+          isTextAgent={true}
+        />
+      )}
     </div>
   );
 };
