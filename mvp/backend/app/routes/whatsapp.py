@@ -38,9 +38,9 @@ from app.schemas.whatsapp import (
     WhatsappAgentUpdatePayload
 )
 from app.utils.get_subscription_type import get_subscription_type
-from app.services.service_account import create_service_account
 from app.routes.whatsapp_handoff import manager
 from app.utils.conversation_logger import log_message
+from app.tasks.hubspot_task import sync_to_hubspot_task
 
 logger = logging.getLogger(__name__)
 WIDGET_DIR = Path(__file__).parent.parent / "static" / "js" 
@@ -70,16 +70,19 @@ async def create_whatsapp_agent(
         TextAgent.channel == "whatsapp"
     ).count()
 
-    if subscription_type.subscription_mode == SubscriptionMode.TRIAL:
-        if whatsapp_count >= 1:
-            raise HTTPException(403, "only 1 WhatsApp agent allowed in trial account")
+    # Agent limit check from Plan
+    limit = 1
+    if subscription_type and subscription_type.plans:
+        limit = subscription_type.plans.number_of_agents
+    
+    if whatsapp_count >= limit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail=f"Agent limit reached. Your current plan allows maximum {limit} WhatsApp agents."
+        )
 
-    # Service account key
-    if not current_user.service_account:
-        create_service_account(name_prefix=f"voiceai-{current_user.id}", user=current_user, db=db)
-        db.refresh(current_user)
-
-    openai_key_id = current_user.service_account.id
+    # Get service account ID (assumed already created at registration)
+    openai_key_id = current_user.service_account.id if current_user.service_account else None
 
     # Create TextAgent (basic text agent info)
     db_text_agent = TextAgent(
@@ -221,6 +224,8 @@ async def update_whatsapp_agent(
         agent.startup_message = payload.startup_message
     if payload.onboarding_mode is not None:
         agent.onboarding_mode = payload.onboarding_mode
+    if payload.enable_mcp_server is not None:
+        agent.enable_mcp_server = payload.enable_mcp_server
 
     config = agent.whatsapp_config
     if config:
@@ -714,6 +719,11 @@ async def chat_ai_fallback(
             "content": message,
             "timestamp": datetime.utcnow().isoformat()
         }, agent_id=str(text_agent.user_id))
+
+        # Sync to HubSpot if enabled
+        if text_agent.enable_mcp_server:
+            sync_to_hubspot_task.delay(conversation.id)
+
         return {"response": "An agent will respond shortly.", "is_human_active": True}
 
     from app.routes.text_ai import AIChatRequest, generate_ai_chat
@@ -735,6 +745,10 @@ async def chat_ai_fallback(
     db.add(ai_msg)
     db.commit()
     log_message(conversation.id, "AI", reply)
+
+    # Sync to HubSpot if enabled
+    if text_agent.enable_mcp_server:
+        sync_to_hubspot_task.delay(conversation.id)
 
     return {"response": reply}
 
@@ -802,6 +816,11 @@ async def whatsapp_webhook(
                     logger.warning("No text agent linked")
                     continue
 
+                # Get profile name from contacts list in webhook
+                profile_name = None
+                if "contacts" in value:
+                    profile_name = value["contacts"][0].get("profile", {}).get("name")
+
                 # -------------------------------------------------
                 # FIND OR CREATE CONTACT
                 # -------------------------------------------------
@@ -810,10 +829,13 @@ async def whatsapp_webhook(
                 ).first()
 
                 if not contact:
-                    contact = Contact(identifier=sender)
+                    contact = Contact(identifier=sender, name=profile_name)
                     db.add(contact)
                     db.commit()
                     db.refresh(contact)
+                elif profile_name and not contact.name:
+                    contact.name = profile_name
+                    db.commit()
 
                 # -------------------------------------------------
                 # FIND OR CREATE CONVERSATION
@@ -846,6 +868,10 @@ async def whatsapp_webhook(
                 
                 # Log incoming message
                 log_message(conversation.id, "User", text)
+
+                # Sync to HubSpot if enabled
+                if text_agent.enable_mcp_server:
+                    sync_to_hubspot_task.delay(conversation.id)
 
                 user_message = text.strip().lower()
 
@@ -922,6 +948,10 @@ async def whatsapp_webhook(
                         "timestamp": datetime.utcnow().isoformat()
                     }, agent_id=str(text_agent.user_id))
                     
+                    # Sync to HubSpot if enabled (ensure info is captured even if agent hasn't replied)
+                    if text_agent.enable_mcp_server:
+                        sync_to_hubspot_task.delay(conversation.id)
+
                     return {"status": "human_active"}
 
                 # =================================================
@@ -974,6 +1004,10 @@ async def whatsapp_webhook(
                 
                 # Log AI response
                 log_message(conversation.id, "AI", reply)
+
+                # Sync to HubSpot if enabled
+                if text_agent.enable_mcp_server:
+                    sync_to_hubspot_task.delay(conversation.id)
 
                 # Send AI reply
                 url = f"https://graph.facebook.com/v18.0/{phone_number_id}/messages"
